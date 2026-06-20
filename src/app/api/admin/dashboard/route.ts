@@ -20,7 +20,7 @@ export async function GET() {
   ]);
 
   return NextResponse.json({
-    todayRevenue: todayOrders.reduce((sum, o) => sum + Number(o.total), 0),
+    todayRevenue: todayOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0),
     todayOrders: todayOrders.length,
     monthlyRevenue: Number(monthlyRevenue._sum.total || 0),
     totalOrders,
