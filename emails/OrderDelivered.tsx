@@ -4,12 +4,9 @@ import {
   Body,
   Container,
   Section,
-  Row,
-  Column,
   Heading,
   Text,
   Button,
-  Img,
   Hr,
   Preview,
 } from '@react-email/components';

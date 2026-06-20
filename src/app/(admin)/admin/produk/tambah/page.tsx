@@ -80,8 +80,8 @@ export default function AddProductPage() {
       if (!res.ok) throw new Error('Gagal menyimpan produk');
       toast('Produk berhasil ditambahkan', 'success');
       router.push('/admin/produk');
-    } catch (err: any) {
-      toast(err.message || 'Gagal menyimpan produk', 'error');
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan produk', 'error');
     } finally {
       setLoading(false);
     }

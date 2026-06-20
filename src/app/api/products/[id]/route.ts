@@ -8,10 +8,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json(product);
 }
 
-export async function PUT(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(_req: Request, _context: { params: Promise<{ id: string }> }) {
+  void _req;
+  void _context;
   return NextResponse.json({ error: 'Database not available' }, { status: 503 });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: Request, _context: { params: Promise<{ id: string }> }) {
+  void _req;
+  void _context;
   return NextResponse.json({ error: 'Database not available' }, { status: 503 });
 }

@@ -2,16 +2,21 @@
 
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { User, Package, MapPin, Star, Heart, Settings, LogOut, ChevronRight, Bell } from 'lucide-react';
+import { Package, MapPin, Star, Heart, Settings, LogOut, ChevronRight, Bell } from 'lucide-react';
 
-export function ProfilePage({ user }: { user: any }) {
-  const router = useRouter();
+interface ProfileUser {
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  _count: { orders: number; reviews: number };
+  addresses: unknown[];
+}
+
+export function ProfilePage({ user }: { user: ProfileUser }) {
 
   const menuItems = [
     { icon: Package, label: 'Pesanan Saya', href: '/pesanan', desc: ` ${user._count.orders} pesanan` },

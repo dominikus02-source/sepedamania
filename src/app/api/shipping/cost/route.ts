@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { validateOrigin } from '@/lib/csrf';
+
+// C5: Zod validation schema
+const shippingCostSchema = z.object({
+  courier: z.string().min(1, 'Kurir wajib dipilih'),
+  destination: z.string().optional(),
+  weight: z.number().positive('Berat harus lebih dari 0').optional(),
+});
 
 const mockRates: Record<string, { service: string; description: string; cost: number; etd: string }[]> = {
   jne: [
@@ -24,13 +33,24 @@ const mockRates: Record<string, { service: string; description: string; cost: nu
 
 export async function POST(req: Request) {
   try {
-    const { courier, weight } = await req.json();
-
-    if (!courier) {
-      return NextResponse.json({ error: 'Kurir tidak dipilih' }, { status: 400 });
+    // C3: CSRF origin check
+    if (!validateOrigin(req)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const rates = mockRates[courier as string] || null;
+    // C5: Validate request body with Zod
+    const parsed = shippingCostSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Data tidak valid', details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const { courier, weight } = parsed.data;
+    const normalizedCourier = courier.toLowerCase();
+
+    const rates = mockRates[normalizedCourier] || null;
     if (!rates) {
       return NextResponse.json({ error: 'Kurir tidak tersedia' }, { status: 404 });
     }
@@ -45,7 +65,7 @@ export async function POST(req: Request) {
     }));
 
     return NextResponse.json({ costs: results });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Gagal menghitung ongkir' }, { status: 500 });
   }
 }

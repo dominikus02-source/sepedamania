@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { mockProducts, mockCategories } from '@/lib/mock-data';
+import { mockProducts } from '@/lib/mock-data';
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+export async function GET(_req: Request) {
+  const { searchParams } = new URL(_req.url);
   const q = searchParams.get('q');
   const categoryId = searchParams.get('categoryId');
   const limit = Number(searchParams.get('limit') || '50');
@@ -32,6 +32,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ products });
 }
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
+  void _req;
   return NextResponse.json({ error: 'Database not available. Admin product creation requires DB connection.' }, { status: 503 });
 }

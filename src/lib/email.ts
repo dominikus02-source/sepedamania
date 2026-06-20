@@ -6,6 +6,30 @@ import OrderShippedEmail from '@/emails/OrderShipped';
 import OrderDeliveredEmail from '@/emails/OrderDelivered';
 import WelcomeEmailTemplate from '@/emails/WelcomeEmail';
 
+interface OrderEmail {
+  id: string;
+  guestEmail?: string;
+  guestName?: string;
+  user?: { name?: string; email?: string };
+  items?: { name: string; quantity?: number; qty?: number; price: number; image?: string }[];
+  subtotal: number;
+  shippingCost: number;
+  discount?: number;
+  total: number;
+  shippingAddress?: {
+    detail?: string;
+    district?: string;
+    city?: string;
+    province?: string;
+    postalCode?: string;
+  };
+  courier?: string;
+  courierService?: string;
+  paymentMethod?: string;
+  trackingNumber?: string;
+  orderUrl?: string;
+}
+
 const resend =
   typeof process !== 'undefined' && process.env.RESEND_API_KEY
     ? new Resend(process.env.RESEND_API_KEY)
@@ -13,9 +37,16 @@ const resend =
 
 const FROM = 'SEPEDAMANIA <noreply@sepedamania.store>';
 
+interface OrderItem {
+  name: string;
+  qty: number;
+  price: number;
+  image: string;
+}
+
 // ─── Order Confirmation ─────────────────────────────────────────────────
 
-export async function sendOrderConfirmationEmail(order: any) {
+export async function sendOrderConfirmationEmail(order: OrderEmail) {
   const email = order.guestEmail || order.user?.email;
 
   if (!email) {
@@ -23,7 +54,7 @@ export async function sendOrderConfirmationEmail(order: any) {
     return { success: false };
   }
 
-  const items = (order.items || []).map((item: any) => ({
+  const emailItems: OrderItem[] = (order.items || []).map((item) => ({
     name: item.name,
     qty: item.qty ?? item.quantity ?? 1,
     price: Number(item.price),
@@ -48,7 +79,7 @@ export async function sendOrderConfirmationEmail(order: any) {
     OrderConfirmationEmail({
       customerName: order.user?.name || order.guestName || 'Pelanggan',
       orderId: order.id,
-      items,
+      items: emailItems,
       subtotal: Number(order.subtotal),
       shippingCost: Number(order.shippingCost),
       discount: Number(order.discount ?? 0),
@@ -77,7 +108,7 @@ export async function sendOrderConfirmationEmail(order: any) {
 
 // ─── Order Shipped ──────────────────────────────────────────────────────
 
-export async function sendOrderShippedEmail(order: any) {
+export async function sendOrderShippedEmail(order: OrderEmail) {
   const email = order.guestEmail || order.user?.email;
 
   if (!email) {
@@ -122,7 +153,7 @@ export async function sendOrderShippedEmail(order: any) {
 
 // ─── Order Delivered ────────────────────────────────────────────────────
 
-export async function sendOrderDeliveredEmail(order: any) {
+export async function sendOrderDeliveredEmail(order: OrderEmail) {
   const email = order.guestEmail || order.user?.email;
 
   if (!email) {

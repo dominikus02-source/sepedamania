@@ -9,7 +9,6 @@ import {
   Heading,
   Text,
   Button,
-  Img,
   Hr,
   Preview,
 } from '@react-email/components';

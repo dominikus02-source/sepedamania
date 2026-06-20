@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
-import { Save, ArrowLeft, Plus, X, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { mockProducts, mockCategories, mockBrands } from '@/lib/mock-data';
 
 interface Variant {
@@ -24,7 +25,6 @@ interface Variant {
 export default function EditProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [slug, setSlug] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -50,7 +50,6 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
 
   useEffect(() => {
     params.then(({ slug: resolvedSlug }) => {
-      setSlug(resolvedSlug);
       const product = mockProducts.find((p) => p.slug === resolvedSlug);
       if (!product) {
         setNotFound(true);
@@ -90,15 +89,9 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
 
   if (notFound) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-[#F2F2F7] flex items-center justify-center mb-4">
-          <ImageIcon className="w-8 h-8 text-[#8E8E93]" />
-        </div>
-        <h2 className="text-xl font-semibold text-[#1C1C1E] mb-2">Produk tidak ditemukan</h2>
-        <p className="text-[#8E8E93] mb-6">Produk dengan slug &quot;{slug}&quot; tidak ada.</p>
-        <Link href="/admin/produk">
-          <Button variant="outline"><ArrowLeft className="w-4 h-4 mr-1" /> Kembali ke Produk</Button>
-        </Link>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <h1 className="text-2xl font-bold text-[#1C1C1E]">Produk Tidak Ditemukan</h1>
+        <Link href="/admin/produk" className="text-[#F5A623] hover:underline text-sm">Kembali ke daftar produk</Link>
       </div>
     );
   }
@@ -178,11 +171,13 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
           <h2 className="text-lg font-semibold text-[#1C1C1E]">Gambar Produk</h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {images.map((img, i) => (
-              <div key={i} className="relative flex-shrink-0 group">
-                <img
+              <div key={i} className="relative flex-shrink-0 group w-24 h-24">
+                <Image
                   src={img}
                   alt={`Gambar ${i + 1}`}
-                  className="w-24 h-24 rounded-lg object-cover border border-[#E5E5EA]"
+                  fill
+                  className="rounded-lg object-cover border border-[#E5E5EA]"
+                  sizes="96px"
                 />
                 <button
                   type="button"

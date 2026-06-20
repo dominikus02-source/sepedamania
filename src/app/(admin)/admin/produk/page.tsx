@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -102,10 +103,12 @@ export default async function AdminProductsPage({
                 {/* Thumbnail */}
                 <td className="p-3">
                   {p.images && p.images.length > 0 ? (
-                    <img
+                    <Image
                       src={p.images[0]}
                       alt={p.name}
-                      className="w-10 h-10 rounded-lg object-cover border border-[#E5E5EA]"
+                      width={40}
+                      height={40}
+                      className="rounded-lg object-cover border border-[#E5E5EA]"
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-[#F2F2F7] flex items-center justify-center">

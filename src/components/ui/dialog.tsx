@@ -21,7 +21,7 @@ function Dialog({ open, onOpenChange, children }: DialogProps) {
   );
 }
 
-function DialogTrigger({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) {
+function DialogTrigger({ children }: { children: React.ReactNode }) {
   const ctx = React.useContext(DialogContext);
   if (!ctx) throw new Error('DialogTrigger must be used within Dialog');
 

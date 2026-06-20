@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== 'ADMIN') {
+  if (!session?.user || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -13,15 +13,12 @@ export async function POST(req: Request) {
 
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     // For demo, return a placeholder
     return NextResponse.json({
       url: '/images/placeholder.svg',
       publicId: 'demo',
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

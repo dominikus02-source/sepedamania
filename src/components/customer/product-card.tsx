@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { cn, formatPrice } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { Star, ShoppingCart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';

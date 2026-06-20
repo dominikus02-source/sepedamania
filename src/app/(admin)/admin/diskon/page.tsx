@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { mockVouchers, AdminVoucher } from '@/lib/mock-admin-data';
 import { mockProducts } from '@/lib/mock-data';
 import { formatPrice, formatDate } from '@/lib/utils';
@@ -10,9 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toaster';
-import { Plus, Tag, Percent, Zap } from 'lucide-react';
+import { Plus, Zap } from 'lucide-react';
 
 export default function AdminDiscountPage() {
   const { toast } = useToast();
@@ -312,12 +313,14 @@ export default function AdminDiscountPage() {
                   key={p.id}
                   className="flex items-center gap-4 p-4 rounded-xl border border-[#E5E5EA] bg-[#F2F2F7]/50"
                 >
-                  <div className="w-16 h-16 rounded-lg bg-[#E5E5EA] overflow-hidden flex-shrink-0">
+                  <div className="relative w-16 h-16 rounded-lg bg-[#E5E5EA] overflow-hidden flex-shrink-0">
                     {p.images?.[0] ? (
-                      <img
+                      <Image
                         src={p.images[0]}
                         alt={p.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="64px"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[#8E8E93] text-xs">

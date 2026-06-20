@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { mockOrders, AdminOrder } from '@/lib/mock-admin-data';
@@ -102,7 +102,6 @@ function StatusStepper({ status }: { status: string }) {
       {STEP_ORDER.map((step, idx) => {
         const isCompleted = idx < currentIdx;
         const isCurrent = idx === currentIdx;
-        const isFuture = idx > currentIdx;
 
         return (
           <div key={step} className="flex items-center flex-1 last:flex-none">
@@ -164,24 +163,14 @@ export default function AdminOrderDetailPage() {
   const { toast } = useToast();
   const id = params.id as string;
 
-  const [order, setOrder] = useState<AdminOrder | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState('');
-  const [selectedCourier, setSelectedCourier] = useState('JNE');
-  const [trackingNo, setTrackingNo] = useState('');
+  const foundOrder = mockOrders.find((o) => o.id === id) || null;
+
+  const [order, setOrder] = useState<AdminOrder | null>(foundOrder);
+  const [notes, setNotes] = useState(foundOrder?.notes || '');
+  const [selectedCourier, setSelectedCourier] = useState(foundOrder?.courier || 'JNE');
+  const [trackingNo, setTrackingNo] = useState(foundOrder?.trackingNumber || '');
   const [savingNotes, setSavingNotes] = useState(false);
   const [acting, setActing] = useState(false);
-
-  useEffect(() => {
-    const found = mockOrders.find((o) => o.id === id) || null;
-    if (found) {
-      setOrder(found);
-      setNotes(found.notes || '');
-      setSelectedCourier(found.courier || 'JNE');
-      setTrackingNo(found.trackingNumber || '');
-    }
-    setLoading(false);
-  }, [id]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -261,35 +250,13 @@ export default function AdminOrderDetailPage() {
     }, 400);
   };
 
-  // ── Loading / Not Found ────────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse text-[#8E8E93]">Memuat pesanan...</div>
-      </div>
-    );
-  }
+  // ── Not Found ────────────────────────────────────────────────────
 
   if (!order) {
     return (
-      <div>
-        <Link href="/admin/pesanan">
-          <Button variant="ghost" size="sm" className="mb-4">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Kembali
-          </Button>
-        </Link>
-        <Card>
-          <CardContent className="py-16 text-center">
-            <h2 className="text-lg font-semibold text-[#1C1C1E] mb-2">
-              Pesanan Tidak Ditemukan
-            </h2>
-            <p className="text-sm text-[#8E8E93]">
-              Pesanan dengan ID <span className="font-mono">#{id}</span> tidak
-              ditemukan.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <h1 className="text-2xl font-bold text-[#1C1C1E]">Pesanan Tidak Ditemukan</h1>
+        <Link href="/admin/pesanan" className="text-[#F5A623] hover:underline text-sm">Kembali ke daftar pesanan</Link>
       </div>
     );
   }
@@ -316,14 +283,14 @@ export default function AdminOrderDetailPage() {
               <div className="flex items-center gap-2">
                 <Badge
                   variant={
-                    (ORDER_BADGE_VARIANTS[order.status] as any) || 'default'
+                    (ORDER_BADGE_VARIANTS[order.status] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') || 'default'
                   }
                 >
                   {STATUS_LABELS[order.status] || order.status}
                 </Badge>
                 <Badge
                   variant={
-                    (PAYMENT_BADGE_VARIANTS[order.paymentStatus] as any) ||
+                    (PAYMENT_BADGE_VARIANTS[order.paymentStatus] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') ||
                     'default'
                   }
                 >

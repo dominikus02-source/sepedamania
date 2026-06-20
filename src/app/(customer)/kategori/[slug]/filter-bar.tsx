@@ -8,7 +8,7 @@ export function FilterBar() {
   return (
     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
       <Sheet>
-        <SheetTrigger asChild>
+        <SheetTrigger>
           <Button variant="outline" size="sm" className="flex items-center gap-1.5">
             <SlidersHorizontal className="w-4 h-4" />
             Filter

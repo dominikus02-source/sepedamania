@@ -53,8 +53,8 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
       });
       if (!res.ok) throw new Error('Gagal menyimpan');
       toast('Pengaturan berhasil disimpan', 'success');
-    } catch (err: any) {
-      toast(err.message || 'Terjadi kesalahan', 'error');
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Terjadi kesalahan', 'error');
     } finally {
       setLoading(false);
     }

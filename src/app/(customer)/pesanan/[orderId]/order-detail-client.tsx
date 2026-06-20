@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { OrderStatusBadge } from '@/components/customer/order-status-badge';
-import { Loader2, ArrowLeft, Copy, ExternalLink, MessageCircle, Clock, Package, Truck, CheckCircle, AlertCircle, Banknote } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
 
 const STATUS_STEPS = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'] as const;
@@ -18,7 +18,25 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
   const searchParams = useSearchParams();
   const status = searchParams.get('status');
   const { toast } = useToast();
-  const [order, setOrder] = useState<any>(null);
+  interface OrderData {
+    id: string;
+    status: string;
+    paymentStatus: string;
+    paymentMethod?: string;
+    subtotal: number;
+    shippingCost: number;
+    discount: number;
+    total: number;
+    courier?: string;
+    courierService?: string;
+    trackingNumber?: string;
+    shippingAddress?: Record<string, string>;
+    items: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }[];
+    createdAt: string;
+    [key: string]: unknown;
+  }
+
+  const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,7 +86,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
     );
   }
 
-  const currentStepIndex = STATUS_STEPS.indexOf(order.status);
+  const currentStepIndex = STATUS_STEPS.indexOf(order.status as 'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED');
 
   return (
     <div className="pb-8">
@@ -141,7 +159,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-[#1C1C1E] mb-3">Produk Dipesan</h3>
           <div className="space-y-3">
-            {order.items.map((item: any, i: number) => (
+            {order.items.map((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }, i: number) => (
               <div key={i} className="flex gap-3">
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-[#F2F2F7] flex-shrink-0">
                   <Image src={item.image || '/images/placeholder.svg'} alt={item.name} fill className="object-cover" sizes="64px" />
@@ -194,19 +212,20 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             variant="outline"
             className="w-full"
             onClick={() => {
-              const items = order.items.map((item: any) => ({
+              const items = order.items.map((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }) => ({
                 productId: item.productId,
                 variantId: item.variantId,
                 name: item.name,
                 price: item.price,
                 image: item.image,
+                qty: item.qty,
                 maxStock: 999,
                 weight: 0,
               }));
-              items.forEach((item: any) => {
+              items.forEach((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string; maxStock?: number; weight?: number }) => {
                 const stored = localStorage.getItem('sepedamania-cart');
                 const cart = stored ? JSON.parse(stored) : { state: { items: [] }, version: 0 };
-                const existing = cart.state.items.find((i: any) => i.productId === item.productId && i.variantId === item.variantId);
+                const existing = cart.state.items.find((i: { productId: string; variantId?: string }) => i.productId === item.productId && i.variantId === item.variantId);
                 if (existing) existing.qty += item.qty;
                 else cart.state.items.push({ ...item, qty: item.qty, id: `${item.productId}-${item.variantId || 'default'}` });
                 localStorage.setItem('sepedamania-cart', JSON.stringify(cart));

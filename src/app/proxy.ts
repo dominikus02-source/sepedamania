@@ -18,11 +18,11 @@ export default auth((req) => {
     return Response.redirect(new URL('/masuk', nextUrl));
   }
 
-  if (isAdminRoute && isLoggedIn && (req.auth?.user as any)?.role !== 'ADMIN') {
+  if (isAdminRoute && isLoggedIn && req.auth?.user?.role !== 'ADMIN') {
     return Response.redirect(new URL('/', nextUrl));
   }
 
-  if (isApiAdmin && (!isLoggedIn || (req.auth?.user as any)?.role !== 'ADMIN')) {
+  if (isApiAdmin && (!isLoggedIn || req.auth?.user?.role !== 'ADMIN')) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

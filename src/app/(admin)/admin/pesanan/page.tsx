@@ -3,7 +3,6 @@ import { mockOrders } from '@/lib/mock-admin-data';
 import { formatPrice, formatDateShort } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -192,13 +191,13 @@ export default async function AdminOrdersPage({
                       {formatPrice(o.total)}
                     </td>
                     <td className="p-3 text-center">
-                      <Badge variant={badgeVariant(o.status) as any}>
+                      <Badge variant={badgeVariant(o.status) as 'success' | 'destructive' | 'primary' | 'info' | 'warning'}>
                         {STATUS_LABELS[o.status] || o.status}
                       </Badge>
                     </td>
                     <td className="p-3 text-center">
                       <Badge
-                        variant={paymentBadgeVariant(o.paymentStatus) as any}
+                        variant={paymentBadgeVariant(o.paymentStatus) as 'success' | 'destructive' | 'primary' | 'info' | 'warning'}
                       >
                         {PAYMENT_LABELS[o.paymentStatus] || o.paymentStatus}
                       </Badge>

@@ -145,6 +145,10 @@ model Product {
   orderItems  OrderItem[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([slug])
 }
 
 model ProductVariant {
@@ -183,6 +187,11 @@ model Order {
   notes            String?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -208,6 +217,8 @@ model Review {
   comment   String?
   images    String[]
   createdAt DateTime @default(now())
+
+  @@index([productId])
 }
 
 model Voucher {

@@ -32,7 +32,7 @@ interface RadioGroupItemProps {
   className?: string;
 }
 
-const RadioGroupItem = ({ value, checked, onChange, children, className }: RadioGroupItemProps) => {
+const RadioGroupItem = ({ checked, onChange, children, className }: RadioGroupItemProps) => {
   return (
     <label
       className={cn(

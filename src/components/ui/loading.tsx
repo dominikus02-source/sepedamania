@@ -9,6 +9,10 @@ export function Spinner({ className }: { className?: string }) {
   );
 }
 
+export function Loading() {
+  return <PageLoader />;
+}
+
 export function PageLoader() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">

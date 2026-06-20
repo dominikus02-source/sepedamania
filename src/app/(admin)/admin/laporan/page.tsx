@@ -115,8 +115,8 @@ export default function AdminReportsPage() {
                   axisLine={{ stroke: '#E5E5EA' }}
                 />
                 <Tooltip
-                  formatter={(val: any) => [formatPrice(val), 'Pendapatan']}
-                  labelFormatter={(label: any) => `Tanggal: ${label}`}
+                  formatter={(val) => [formatPrice(Number(val)), 'Pendapatan']}
+                  labelFormatter={(label) => `Tanggal: ${label}`}
                 />
                 <Area
                   type="monotone"
@@ -152,8 +152,8 @@ export default function AdminReportsPage() {
                     axisLine={{ stroke: '#E5E5EA' }}
                   />
                   <Tooltip
-                    formatter={(val: any) => [val, 'Jumlah']}
-                    labelFormatter={(label: any) => `Status: ${label}`}
+                    formatter={(val) => [val, 'Jumlah']}
+                    labelFormatter={(label) => `Status: ${label}`}
                   />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {mockOrderStatusCounts.map((entry, index) => (

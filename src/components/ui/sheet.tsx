@@ -30,7 +30,7 @@ function Sheet({ children, open: controlledOpen, onOpenChange: controlledOnOpenC
   );
 }
 
-function SheetTrigger({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) {
+function SheetTrigger({ children }: { children: React.ReactNode }) {
   const ctx = React.useContext(SheetContext);
   if (!ctx) throw new Error('SheetTrigger must be used within Sheet');
 

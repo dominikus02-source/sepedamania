@@ -8,7 +8,16 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
 
-export function OrderList({ orders }: { orders: any[] }) {
+interface OrderListItem {
+  id: string;
+  status: string;
+  total: number;
+  createdAt: string;
+  items: { id: string; name: string; price: number; qty: number; image?: string }[];
+  [key: string]: unknown;
+}
+
+export function OrderList({ orders }: { orders: OrderListItem[] }) {
   if (orders.length === 0) {
     return (
       <div className="p-4">
@@ -28,7 +37,7 @@ export function OrderList({ orders }: { orders: any[] }) {
               <span className="text-xs text-[#8E8E93] font-mono">#{order.id.slice(0, 8)}</span>
               <OrderStatusBadge status={order.status} />
             </div>
-            {order.items.slice(0, 3).map((item: any) => (
+            {order.items.slice(0, 3).map((item: { id: string; name: string; price: number; qty: number; image?: string }) => (
               <div key={item.id} className="flex items-center gap-2 py-1">
                 <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#F2F2F7] flex-shrink-0">
                   <Image src={item.image || '/images/placeholder.svg'} alt={item.name} fill className="object-cover" sizes="40px" />

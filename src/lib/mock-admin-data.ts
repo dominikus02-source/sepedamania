@@ -16,7 +16,15 @@ export interface AdminOrder {
   courier: string;
   courierService: string;
   trackingNumber: string | null;
-  shippingAddress: any;
+  shippingAddress: {
+    recipient: string;
+    phone: string;
+    detail: string;
+    district: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
   items: { id: string; name: string; qty: number; price: number; image: string }[];
   notes: string;
   createdAt: string;

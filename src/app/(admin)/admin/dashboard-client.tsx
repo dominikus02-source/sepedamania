@@ -20,6 +20,8 @@ import {
 } from 'recharts';
 import { ShoppingCart, DollarSign, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 
+import type { DashboardStats, RevenuePoint, OrderStatusCount, AdminOrder } from '@/lib/mock-admin-data';
+
 export function AdminDashboard({
   stats,
   revenueData,
@@ -27,11 +29,11 @@ export function AdminDashboard({
   recentOrders,
   lowStockProducts,
 }: {
-  stats: any;
-  revenueData: any[];
-  orderStatusCounts: any[];
-  recentOrders: any[];
-  lowStockProducts: any[];
+  stats: DashboardStats;
+  revenueData: RevenuePoint[];
+  orderStatusCounts: OrderStatusCount[];
+  recentOrders: Partial<AdminOrder>[];
+  lowStockProducts: { id: string; name: string; stock: number; price: number; salePrice: number | null }[];
 }) {
   const kpis = [
     { label: 'Pesanan Hari Ini', value: stats.todayOrders, icon: ShoppingCart, color: 'text-[#007AFF]' },
@@ -106,8 +108,8 @@ export function AdminDashboard({
                   axisLine={{ stroke: '#E5E5EA' }}
                 />
                 <Tooltip
-                  formatter={(val: any) => [formatPrice(val), 'Pendapatan']}
-                  labelFormatter={(label: any) => `Tanggal: ${label}`}
+                  formatter={(val) => [formatPrice(Number(val)), 'Pendapatan']}
+                  labelFormatter={(label) => `Tanggal: ${label}`}
                 />
                 <Area
                   type="monotone"
@@ -143,8 +145,8 @@ export function AdminDashboard({
                     axisLine={{ stroke: '#E5E5EA' }}
                   />
                   <Tooltip
-                    formatter={(val: any) => [val, 'Pesanan']}
-                    labelFormatter={(label: any) => `Tanggal: ${label}`}
+                    formatter={(val) => [Number(val), 'Pesanan']}
+                    labelFormatter={(label) => `Tanggal: ${label}`}
                   />
                   <Bar dataKey="orders" fill="#007AFF" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -169,15 +171,15 @@ export function AdminDashboard({
                     cy="50%"
                     outerRadius={80}
                     innerRadius={40}
-                    label={({ name, percent }: any) =>
-                      `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+                    label={({ name, percent }: { name?: string; percent?: number }) =>
+                      `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
                     }
                   >
-                    {orderStatusCounts.map((entry: any, index: number) => (
+                    {orderStatusCounts.map((entry: OrderStatusCount, index: number) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: any, name: any) => [val, name]} />
+                  <Tooltip formatter={(val, name) => [Number(val), name]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -197,7 +199,7 @@ export function AdminDashboard({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {lowStockProducts.map((p: any) => (
+                {lowStockProducts.map((p) => (
                   <div key={p.id} className="flex items-center justify-between text-sm">
                     <Link
                       href={`/admin/produk/${p.id}`}
@@ -221,20 +223,20 @@ export function AdminDashboard({
             <div className="space-y-3">
               {recentOrders.map((order) => (
                 <Link
-                  key={order.id}
+                  key={order.id ?? ''}
                   href={`/admin/pesanan/${order.id}`}
                   className="flex items-center justify-between py-2 border-b border-[#E5E5EA] last:border-0"
                 >
                   <div>
                     <p className="text-sm font-medium text-[#1C1C1E]">
-                      #{order.id.slice(0, 8)}
+                      #{order.id?.slice(0, 8) ?? ''}
                     </p>
                     <p className="text-xs text-[#8E8E93]">
-                      {order.user?.name || 'Guest'} • {formatDate(order.createdAt)}
+                      {order.user?.name || 'Guest'} • {formatDate(order.createdAt ?? '')}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{formatPrice(order.total)}</p>
+                    <p className="text-sm font-semibold">{formatPrice(order.total ?? 0)}</p>
                     <Badge
                       variant={order.paymentStatus === 'PAID' ? 'success' : 'warning'}
                       className="text-[10px]"

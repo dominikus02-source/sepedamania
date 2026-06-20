@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, startTransition } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,6 @@ import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCartStore } from '@/store/cart';
@@ -63,9 +62,29 @@ export default function CheckoutPage() {
   const [selectedCourier, setSelectedCourier] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [shippingCost, setShippingCost] = useState(0);
-  const [shippingRates, setShippingRates] = useState<any[]>([]);
+  interface ShippingRate {
+    service: string;
+    description: string;
+    cost: number;
+    etd: string;
+  }
+
+  interface OrderResult {
+    id: string;
+    total: number;
+    paymentInstructions?: {
+      bank?: string;
+      vaNumber?: string;
+      qr?: string;
+      ewallet?: string;
+      instructions?: string[];
+    };
+    [key: string]: unknown;
+  }
+
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [orderResult, setOrderResult] = useState<any>(null);
+  const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState(24 * 60 * 60);
 
@@ -85,18 +104,20 @@ export default function CheckoutPage() {
   const totalWeight = getTotalWeight();
   const total = subtotal + shippingCost - voucherDiscount;
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<AddressForm>({
+  const form = useForm<AddressForm>({
     resolver: zodResolver(addressSchema),
     defaultValues: { recipient: '', phone: '', province: '', city: '', district: '', postalCode: '', detail: '' },
   });
 
-  const selectedProvince = watch('province');
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    setValue,
+    formState: { errors },
+  } = form;
+
+  const selectedProvince = useWatch({ control: form.control, name: 'province' });
 
   // Load provinces
   useEffect(() => {
@@ -110,7 +131,7 @@ export default function CheckoutPage() {
 
   // Load cities when province changes
   useEffect(() => {
-    if (!selectedProvince) { setCities([]); return; }
+    if (!selectedProvince) return;
     fetch(`/api/shipping/cities?provinceId=${selectedProvince}`)
       .then((r) => r.json())
       .then((data) => {
@@ -120,35 +141,33 @@ export default function CheckoutPage() {
     setValue('city', '');
   }, [selectedProvince, setValue]);
 
-  const fetchShippingCost = useCallback(async (courierId: string) => {
-    setShippingLoading(true);
-    setSelectedService('');
-    setShippingCost(0);
-    try {
-      const res = await fetch('/api/shipping/cost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courier: courierId, weight: totalWeight }),
-      });
-      const data = await res.json();
-      setShippingRates(data.costs || []);
-    } catch {
-      setShippingRates([]);
-    } finally {
-      setShippingLoading(false);
-    }
-  }, [totalWeight]);
-
   useEffect(() => {
-    if (selectedCourier) fetchShippingCost(selectedCourier);
-  }, [selectedCourier, fetchShippingCost]);
+    if (!selectedCourier) return;
+    startTransition(() => {
+      setSelectedService('');
+      setShippingCost(0);
+      setShippingRates([]);
+      setShippingLoading(true);
+    });
+    fetch(`/api/shipping/cost`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courier: selectedCourier, weight: totalWeight }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setShippingRates(data.costs || []);
+      })
+      .catch(() => setShippingRates([]))
+      .finally(() => setShippingLoading(false));
+  }, [selectedCourier, totalWeight]);
 
   const onAddressSubmit = () => setStep(2);
 
   const handleCreateOrder = async () => {
     setLoading(true);
     try {
-      const addr = watch();
+      const addr = getValues();
       const orderPayload = {
         items: items.map((i) => ({
           productId: i.productId,
@@ -178,8 +197,8 @@ export default function CheckoutPage() {
       setOrderResult(result.order);
       setStep(4);
       clearCart();
-    } catch (err: any) {
-      toast(err.message || 'Gagal membuat pesanan', 'error');
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Gagal membuat pesanan', 'error');
     } finally {
       setLoading(false);
     }
@@ -324,7 +343,7 @@ export default function CheckoutPage() {
                             Menghitung ongkir...
                           </div>
                         ) : shippingRates.length > 0 ? (
-                          shippingRates.map((rate: any) => (
+                          shippingRates.map((rate) => (
                             <button
                               key={rate.service}
                               type="button"
@@ -455,40 +474,46 @@ export default function CheckoutPage() {
             <div>
               <h3 className="font-semibold text-sm text-[#1C1C1E] mb-2">Instruksi Pembayaran</h3>
               <div className="bg-[#F2F2F7] rounded-xl p-4 space-y-3">
-                {orderResult.paymentInstructions?.bank && (
-                  <div>
-                    <p className="text-xs text-[#8E8E93] mb-1">Bank</p>
-                    <p className="font-semibold text-[#1C1C1E]">{orderResult.paymentInstructions.bank}</p>
-                  </div>
-                )}
-                {orderResult.paymentInstructions?.vaNumber && (
-                  <div>
-                    <p className="text-xs text-[#8E8E93] mb-1">Nomor Virtual Account</p>
-                    <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-3 border border-[#E5E5EA]">
-                      <p className="text-xl font-bold font-mono text-[#1C1C1E] tracking-wider flex-1">{orderResult.paymentInstructions.vaNumber}</p>
-                      <button onClick={() => copyToClipboard(orderResult.paymentInstructions.vaNumber)} className="p-2 rounded-lg hover:bg-[#F2F2F7] transition-colors">
-                        {copied ? <CheckCircle className="w-5 h-5 text-[#34C759]" /> : <Copy className="w-5 h-5 text-[#8E8E93]" />}
-                      </button>
+                {(() => {
+                  const pi = orderResult.paymentInstructions;
+                  if (!pi) return null;
+                  return <>
+                    {pi.bank && (
+                      <div>
+                        <p className="text-xs text-[#8E8E93] mb-1">Bank</p>
+                        <p className="font-semibold text-[#1C1C1E]">{pi.bank}</p>
+                      </div>
+                    )}
+                    {pi.vaNumber && (
+                      <div>
+                        <p className="text-xs text-[#8E8E93] mb-1">Nomor Virtual Account</p>
+                        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-3 border border-[#E5E5EA]">
+                          <p className="text-xl font-bold font-mono text-[#1C1C1E] tracking-wider flex-1">{pi.vaNumber}</p>
+                          <button onClick={() => copyToClipboard(pi.vaNumber!)} className="p-2 rounded-lg hover:bg-[#F2F2F7] transition-colors">
+                            {copied ? <CheckCircle className="w-5 h-5 text-[#34C759]" /> : <Copy className="w-5 h-5 text-[#8E8E93]" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {pi.qr && (
+                      <div className="flex flex-col items-center py-3">
+                        <Image src={pi.qr} alt="QRIS" width={160} height={160} className="rounded-xl" />
+                        <p className="text-xs text-[#8E8E93] mt-2">Scan QRIS dengan e-wallet</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-[#8E8E93] mb-1.5">Langkah-langkah:</p>
+                      <ol className="space-y-1.5">
+                        {pi.instructions?.map((inst: string, i: number) => (
+                          <li key={i} className="text-sm text-[#1C1C1E] flex items-start gap-2">
+                            <span className="w-5 h-5 rounded-full bg-[#F5A623]/10 text-[#F5A623] text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                            {inst}
+                          </li>
+                        ))}
+                      </ol>
                     </div>
-                  </div>
-                )}
-                {orderResult.paymentInstructions?.qr && (
-                  <div className="flex flex-col items-center py-3">
-                    <Image src={orderResult.paymentInstructions.qr} alt="QRIS" width={160} height={160} className="rounded-xl" />
-                    <p className="text-xs text-[#8E8E93] mt-2">Scan QRIS dengan e-wallet</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs text-[#8E8E93] mb-1.5">Langkah-langkah:</p>
-                  <ol className="space-y-1.5">
-                    {orderResult.paymentInstructions?.instructions?.map((inst: string, i: number) => (
-                      <li key={i} className="text-sm text-[#1C1C1E] flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-[#F5A623]/10 text-[#F5A623] text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                        {inst}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+                  </>;
+                })()}
               </div>
             </div>
 

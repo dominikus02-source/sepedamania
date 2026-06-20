@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { Search, ShoppingCart, Menu } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -13,7 +12,7 @@ export function Header() {
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-[#E5E5EA]">
       <div className="max-w-lg mx-auto flex items-center justify-between h-12 px-4">
         <Sheet>
-          <SheetTrigger asChild>
+          <SheetTrigger>
             <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F2F2F7] transition-colors">
               <Menu className="w-5 h-5 text-[#1C1C1E]" />
             </button>

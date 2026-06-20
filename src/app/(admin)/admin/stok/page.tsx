@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { mockProducts } from '@/lib/mock-data';
 import { mockStockLogs, StockLog } from '@/lib/mock-admin-data';
-import { formatPrice, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toaster';
 import { Search, Plus, ChevronDown, ChevronUp, PackageSearch } from 'lucide-react';
 

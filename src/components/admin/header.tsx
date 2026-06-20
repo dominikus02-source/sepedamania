@@ -4,7 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 
-export function AdminHeader({ user }: { user: any }) {
+interface AdminUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+}
+
+export function AdminHeader({ user }: { user: AdminUser }) {
   const pathname = usePathname();
   const title = pathname.split('/').filter(Boolean).pop() || 'Dashboard';
   const displayTitle = title.charAt(0).toUpperCase() + title.slice(1);
