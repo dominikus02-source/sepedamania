@@ -18,10 +18,13 @@ interface CartStore {
   items: CartItem[];
   voucherCode: string | null;
   voucherDiscount: number;
+  isOpen: boolean;
   addItem: (item: CartItem) => void;
   removeItem: (productId: string, variantId?: string) => void;
   updateQty: (productId: string, variantId: string | undefined, qty: number) => void;
   clearCart: () => void;
+  openCart: () => void;
+  closeCart: () => void;
   getTotal: () => number;
   getSubtotal: () => number;
   getCount: () => number;
@@ -41,6 +44,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
       voucherCode: null,
       voucherDiscount: 0,
+      isOpen: false,
 
       addItem: (newItem) => {
         const items = get().items;
@@ -54,9 +58,10 @@ export const useCartStore = create<CartStore>()(
                 ? { ...i, qty: Math.min(i.qty + newItem.qty, i.maxStock) }
                 : i
             ),
+            isOpen: true,
           });
         } else {
-          set({ items: [...items, newItem] });
+          set({ items: [...items, newItem], isOpen: true });
         }
       },
 
@@ -79,6 +84,9 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => set({ items: [], voucherCode: null, voucherDiscount: 0 }),
+
+      openCart: () => set({ isOpen: true }),
+      closeCart: () => set({ isOpen: false }),
 
   getTotal: () => get().items.reduce((sum, i) => sum + i.price * i.qty, 0),
 

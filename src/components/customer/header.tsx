@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Search, ShoppingBag, Heart, User, Menu, X } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
-import { CartDrawer, CartBadge } from './cart-drawer';
+import { CartBadge } from './cart-drawer';
 
 const NAV_ITEMS = [
   { href: '/kategori/mtb', label: 'MTB' },
@@ -17,9 +17,9 @@ const NAV_ITEMS = [
 ];
 
 export function Header() {
-  const [cartOpen, setCartOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const totalItems = useCartStore((s) => s.getCount());
+  const openCart = useCartStore((s) => s.openCart);
 
   return (
     <>
@@ -70,7 +70,7 @@ export function Header() {
 
               {/* Cart */}
               <button
-                onClick={() => setCartOpen(true)}
+                onClick={openCart}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F1F5F9] transition-colors"
               >
                 <ShoppingBag className="w-5 h-5 text-[#0F172A]" />
@@ -115,7 +115,7 @@ export function Header() {
                 <Search className="w-5 h-5 text-[#0F172A]" />
               </Link>
               <button
-                onClick={() => setCartOpen(true)}
+                onClick={openCart}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F1F5F9] transition-colors"
               >
                 <ShoppingBag className="w-5 h-5 text-[#0F172A]" />
@@ -177,7 +177,6 @@ export function Header() {
         </div>
       )}
 
-      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }
