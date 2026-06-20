@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Bike, ArrowUpRight, Route, Flag, Navigation, Settings2 } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -7,23 +8,33 @@ interface Category {
   image?: string | null;
 }
 
+const categoryIcons: Record<string, typeof Bike> = {
+  mtb: ArrowUpRight,
+  'road-bike': Route,
+  bmx: Bike,
+  fixie: Flag,
+  'city-bike': Navigation,
+  aksesoris: Settings2,
+};
+
 export function CategoryChips({ categories }: { categories: Category[] }) {
   return (
-    <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-      <div className="flex gap-3 pb-1">
-        {categories.map((cat) => (
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+      {categories.map((cat) => {
+        const Icon = categoryIcons[cat.slug] || Bike;
+        return (
           <Link
             key={cat.id}
             href={`/kategori/${cat.slug}`}
-            className="flex flex-col items-center gap-1.5 min-w-[72px]"
+            className="flex flex-col items-center gap-2 p-4 sm:p-5 bg-white rounded-2xl border border-[#E2E8F0] hover:shadow-md hover:border-[#0F172A]/20 transition-all duration-200"
           >
-            <div className="w-16 h-16 rounded-full bg-[#F2F2F7] border border-[#E5E5EA] flex items-center justify-center text-xs font-medium text-[#1C1C1E] hover:border-[#F5A623] transition-colors">
-              <span className="text-center px-1 leading-tight text-[10px]">{cat.name}</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#F1F5F9] flex items-center justify-center">
+              <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#64748B]" />
             </div>
-            <span className="text-[11px] text-[#8E8E93] font-medium">{cat.name}</span>
+            <span className="text-xs sm:text-sm font-medium text-[#0F172A] text-center">{cat.name}</span>
           </Link>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

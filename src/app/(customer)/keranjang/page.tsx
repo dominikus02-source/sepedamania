@@ -51,25 +51,25 @@ export default function CartPage() {
         {items.map((item) => {
           const cartKey = `${item.productId}::${item.variantId || ''}`;
           return (
-          <div key={cartKey} className="flex gap-3 p-3 bg-white rounded-xl border border-[#E5E5EA]">
-            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F2F2F7] flex-shrink-0">
+          <div key={cartKey} className="flex gap-3 p-3 bg-white rounded-xl border border-[#E2E8F0]">
+            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F1F5F9] flex-shrink-0">
               <Image src={item.image || '/images/placeholder.svg'} alt={item.name} fill className="object-cover" sizes="80px" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-medium text-[#1C1C1E] truncate">{item.name}</h3>
-                  {item.variantLabel && <p className="text-xs text-[#8E8E93] mt-0.5">Varian: {item.variantLabel}</p>}
+                  <h3 className="text-sm font-medium text-[#0F172A] truncate">{item.name}</h3>
+                  {item.variantLabel && <p className="text-xs text-[#64748B] mt-0.5">Varian: {item.variantLabel}</p>}
                 </div>
-                <button onClick={() => { removeItem(item.productId, item.variantId); toast('Produk dihapus', 'info'); }} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#F2F2F7] flex-shrink-0">
-                  <Trash2 className="w-4 h-4 text-[#8E8E93]" />
+                <button onClick={() => { removeItem(item.productId, item.variantId); toast('Produk dihapus', 'info'); }} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#F1F5F9] flex-shrink-0">
+                  <Trash2 className="w-4 h-4 text-[#EF4444]" />
                 </button>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <span className="font-semibold text-sm text-[#1C1C1E]">{formatPrice(item.price)}</span>
+                <span className="font-semibold text-sm text-[#0F172A]">{formatPrice(item.price)}</span>
                 <QuantityPicker value={item.qty} min={1} max={item.maxStock} size="sm" onChange={(q) => updateQty(item.productId, item.variantId, q)} />
               </div>
-              <p className="text-xs text-[#8E8E93] mt-1">Subtotal: {formatPrice(item.price * item.qty)}</p>
+              <p className="text-xs text-[#64748B] mt-1">Subtotal: {formatPrice(item.price * item.qty)}</p>
             </div>
           </div>
         )})}
