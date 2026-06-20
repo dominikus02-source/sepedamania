@@ -85,8 +85,8 @@ const productImages: Record<string, string[]> = {
     'https://images.unsplash.com/photo-1559348349-86f1f65817fe?w=600&q=80',
   ],
   'helm-sepedamania-pro': [
-    'https://images.unsplash.com/photo-1626248801379-51a0748a5f96?w=600&q=80',
-    'https://images.unsplash.com/photo-1599733589046-10c7f0d8e4e2?w=600&q=80',
+    'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=600&q=80',
+    'https://images.unsplash.com/photo-1576435778678-68b69c49e36e?w=600&q=80',
   ],
 };
 
