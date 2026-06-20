@@ -4,6 +4,8 @@ import { ProductCard } from '@/components/customer/product-card';
 import { FilterBar } from './filter-bar';
 import { mockCategories, getMockProductsByCategory } from '@/lib/mock-data';
 
+export const revalidate = 300;
+
 interface Props {
   params: Promise<{ slug: string }>;
 }

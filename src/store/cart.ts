@@ -23,7 +23,9 @@ interface CartStore {
   updateQty: (productId: string, variantId: string | undefined, qty: number) => void;
   clearCart: () => void;
   getTotal: () => number;
+  getSubtotal: () => number;
   getCount: () => number;
+  getTotalItems: () => number;
   getTotalWeight: () => number;
   applyVoucher: (code: string, discount: number) => void;
   removeVoucher: () => void;
@@ -78,11 +80,15 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: () => set({ items: [], voucherCode: null, voucherDiscount: 0 }),
 
-      getTotal: () => get().items.reduce((sum, i) => sum + i.price * i.qty, 0),
+  getTotal: () => get().items.reduce((sum, i) => sum + i.price * i.qty, 0),
 
-      getCount: () => get().items.reduce((sum, i) => sum + i.qty, 0),
+  getSubtotal: () => get().items.reduce((sum, i) => sum + i.price * i.qty, 0),
 
-      getTotalWeight: () => get().items.reduce((sum, i) => sum + i.weight * i.qty, 0),
+  getCount: () => get().items.reduce((sum, i) => sum + i.qty, 0),
+
+  getTotalItems: () => get().items.length,
+
+  getTotalWeight: () => get().items.reduce((sum, i) => sum + i.weight * i.qty, 0),
 
       applyVoucher: (code, discount) => {
         set({ voucherCode: code, voucherDiscount: discount });

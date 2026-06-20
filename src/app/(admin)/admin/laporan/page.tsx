@@ -1,167 +1,71 @@
 'use client';
 
+import { Suspense, lazy } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
-import { mockDashboardStats, mockRevenueData, mockOrderStatusCounts } from '@/lib/mock-admin-data';
+import { mockDashboardStats, mockRevenueData } from '@/lib/mock-admin-data';
 import { mockProducts } from '@/lib/mock-data';
 import { Download } from 'lucide-react';
 import Papa from 'papaparse';
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+
+const AdminRevenueChart = lazy(() => import('./revenue-chart').then((m) => ({ default: m.AdminRevenueChart })));
+const AdminOrdersChart = lazy(() => import('./orders-chart').then((m) => ({ default: m.AdminOrdersChart })));
+
+const topProducts = [...mockProducts]
+  .sort((a, b) => b.sold - a.sold)
+  .slice(0, 5);
+
+const summaryCards = [
+  { label: 'Total Pendapatan', value: formatPrice(mockDashboardStats.monthlyRevenue) },
+  { label: 'Total Produk Terjual', value: topProducts.reduce((s, p) => s + p.sold, 0) },
+  { label: 'Total Pesanan', value: mockDashboardStats.totalOrders },
+  { label: 'Rata-rata Transaksi', value: formatPrice(mockDashboardStats.totalOrders > 0 ? Math.round(mockDashboardStats.monthlyRevenue / mockDashboardStats.totalOrders) : 0) },
+];
 
 export default function AdminReportsPage() {
-  const topProducts = [...mockProducts]
-    .sort((a, b) => b.sold - a.sold)
-    .slice(0, 5);
-
-  const summaryCards = [
-    { label: 'Total Pendapatan', value: formatPrice(mockDashboardStats.monthlyRevenue) },
-    { label: 'Total Pesanan', value: mockDashboardStats.totalOrders },
-    { label: 'Produk Aktif', value: mockDashboardStats.totalProducts },
-    { label: 'Pelanggan', value: mockDashboardStats.totalCustomers },
-  ];
-
-  const formatRevenueTick = (val: number) => {
-    if (val >= 1_000_000) return `Rp${(val / 1_000_000).toFixed(0)}jt`;
-    if (val >= 1_000) return `Rp${(val / 1_000).toFixed(0)}rb`;
-    return `Rp${val}`;
-  };
-
-  const handleExportCSV = () => {
-    const csvData = mockRevenueData.map((d) => ({
-      Tanggal: d.date,
-      Pendapatan: d.revenue,
-      Pesanan: d.orders,
-    }));
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'laporan-pendapatan.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#1C1C1E]">Laporan</h1>
-        <Badge variant="info">
-          {new Date().toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </Badge>
+        <Badge variant="info">Bulan {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</Badge>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((item) => (
-          <Card key={item.label}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((card) => (
+          <Card key={card.label}>
             <CardContent className="p-4">
-              <p className="text-xs text-[#8E8E93] mb-1">{item.label}</p>
-              <p className="text-xl font-bold text-[#1C1C1E]">{item.value}</p>
+              <p className="text-xs text-[#8E8E93] mb-1">{card.label}</p>
+              <p className="text-lg font-bold text-[#1C1C1E]">{card.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Revenue Chart */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle>Tren Pendapatan (14 Hari)</CardTitle>
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockRevenueData}>
-                <defs>
-                  <linearGradient id="reportRevenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F5A623" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#F5A623" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5EA" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 12, fill: '#8E8E93' }}
-                  axisLine={{ stroke: '#E5E5EA' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#8E8E93' }}
-                  tickFormatter={formatRevenueTick}
-                  axisLine={{ stroke: '#E5E5EA' }}
-                />
-                <Tooltip
-                  formatter={(val) => [formatPrice(Number(val)), 'Pendapatan']}
-                  labelFormatter={(label) => `Tanggal: ${label}`}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#F5A623"
-                  fill="url(#reportRevenueGradient)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<div className="h-80 bg-[#F2F2F7] rounded-xl animate-pulse" />}>
+              <AdminRevenueChart data={mockRevenueData} />
+            </Suspense>
           </div>
         </CardContent>
       </Card>
 
-      {/* Orders by Status + Top Products — Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Pesanan per Status</CardTitle>
+            <CardTitle>Pesanan per Hari</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockOrderStatusCounts}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E5EA" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11, fill: '#8E8E93' }}
-                    axisLine={{ stroke: '#E5E5EA' }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#8E8E93' }}
-                    axisLine={{ stroke: '#E5E5EA' }}
-                  />
-                  <Tooltip
-                    formatter={(val) => [val, 'Jumlah']}
-                    labelFormatter={(label) => `Status: ${label}`}
-                  />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {mockOrderStatusCounts.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div className="h-72 bg-[#F2F2F7] rounded-xl animate-pulse" />}>
+                <AdminOrdersChart data={mockRevenueData} />
+              </Suspense>
             </div>
           </CardContent>
         </Card>
@@ -171,21 +75,16 @@ export default function AdminReportsPage() {
             <CardTitle>Produk Terlaris</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {topProducts.map((p, i) => (
-                <div key={p.id} className="flex items-center justify-between">
+                <div key={p.id} className="flex items-center justify-between py-2 border-b border-[#E5E5EA] last:border-0">
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#F5A623] text-white text-xs font-bold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-[#1C1C1E]">{p.name}</p>
-                      <p className="text-xs text-[#8E8E93]">{formatPrice(p.price)}</p>
-                    </div>
+                    <span className="text-xs font-bold text-[#8E8E93] w-5">#{i + 1}</span>
+                    <p className="text-sm text-[#1C1C1E]">{p.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-[#1C1C1E]">{p.sold}</p>
-                    <p className="text-xs text-[#8E8E93]">terjual</p>
+                    <p className="text-sm font-semibold">{formatPrice(p.salePrice ?? p.price)}</p>
+                    <p className="text-xs text-[#8E8E93]">{p.sold} terjual</p>
                   </div>
                 </div>
               ))}
@@ -193,6 +92,64 @@ export default function AdminReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Data Stok</span>
+            <Button variant="outline" size="sm" onClick={() => exportCSV()}>
+              <Download className="w-4 h-4 mr-1" /> Export CSV
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#E5E5EA]">
+                  <th className="text-left py-2 px-3 text-[#8E8E93] font-medium">Produk</th>
+                  <th className="text-right py-2 px-3 text-[#8E8E93] font-medium">SKU</th>
+                  <th className="text-right py-2 px-3 text-[#8E8E93] font-medium">Stok</th>
+                  <th className="text-right py-2 px-3 text-[#8E8E93] font-medium">Terjual</th>
+                  <th className="text-right py-2 px-3 text-[#8E8E93] font-medium">Harga</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockProducts.map((p) => (
+                  <tr key={p.id} className="border-b border-[#E5E5EA] hover:bg-[#F2F2F7]">
+                    <td className="py-2 px-3 text-[#1C1C1E]">{p.name}</td>
+                    <td className="py-2 px-3 text-right text-[#8E8E93]">{p.sku}</td>
+                    <td className="py-2 px-3 text-right">
+                      <Badge variant={p.stock <= 5 ? 'destructive' : 'success'}>{p.stock}</Badge>
+                    </td>
+                    <td className="py-2 px-3 text-right text-[#1C1C1E]">{p.sold}</td>
+                    <td className="py-2 px-3 text-right font-semibold">{formatPrice(p.salePrice ?? p.price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
+}
+
+function exportCSV() {
+  const rows = mockProducts.map((p) => ({
+    name: p.name,
+    sku: p.sku,
+    stock: p.stock,
+    sold: p.sold,
+    price: p.salePrice ?? p.price,
+    category: p.category?.name ?? '',
+  }));
+  const csv = Papa.unparse(rows);
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sepedamania-laporan-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
@@ -143,6 +144,7 @@ export default function RootLayout({
         >
           <main id="main-content">{children}</main>
           <Toaster />
+          <ServiceWorkerRegistration />
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

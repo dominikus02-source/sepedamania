@@ -3,14 +3,18 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #F2F2F7;
-  --color-foreground: #1C1C1E;
+  --color-background: #F8F9FA;
+  --color-foreground: #111827;
   --color-card: #FFFFFF;
-  --color-border: #E5E5EA;
-  --color-accent: #F5A623;
-  --color-destructive: #FF3B30;
-  --color-success: #34C759;
-  --color-muted: #8E8E93;
+  --color-border: #E5E7EB;
+  --color-accent: #0EA5E9;
+  --color-accent-hover: #0284C7;
+  --color-destructive: #EF4444;
+  --color-success: #22C55E;
+  --color-muted: #6B7280;
+  --color-surface: #FFFFFF;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
 }
 
 * {
@@ -20,21 +24,23 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
 
 .font-display {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.03em;
+  font-weight: 700;
 }
 
 .font-mono {
-  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
 }
 
 .scrollbar-hide {
@@ -50,4 +56,31 @@ body {
 }
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Premium card hover */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Skeleton animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* Blur backdrop */
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

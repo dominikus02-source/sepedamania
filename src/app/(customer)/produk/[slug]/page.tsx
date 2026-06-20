@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { ProductDetail } from './product-detail';
 import { getMockProduct, getMockRelatedProducts } from '@/lib/mock-data';
 
+export const revalidate = 300;
+
 interface Props {
   params: Promise<{ slug: string }>;
 }

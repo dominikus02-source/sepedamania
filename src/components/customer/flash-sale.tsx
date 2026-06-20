@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ProductCard } from './product-card';
+import { Zap } from 'lucide-react';
 
 interface FlashSaleProduct {
   id: string;
@@ -32,28 +33,29 @@ export function FlashSale({ products }: { products: FlashSaleProduct[] }) {
     return () => clearInterval(timer);
   }, []);
 
-  const pad = (n: number) => String(n).padStart(2, '0');
+  const pad = (n: number) => n.toString().padStart(2, '0');
 
   return (
-    <section className="px-4 mt-6">
-      <div className="flex items-center justify-between mb-3">
+    <section>
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#FF3B30] animate-pulse" />
-          <h2 className="text-lg font-bold text-[#1C1C1E]">Flash Sale</h2>
-          <div className="flex items-center gap-1 text-sm font-mono">
-            <span className="bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded text-xs">{pad(timeLeft.hours)}</span>
-            <span className="text-[#1C1C1E]">:</span>
-            <span className="bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded text-xs">{pad(timeLeft.minutes)}</span>
-            <span className="text-[#1C1C1E]">:</span>
-            <span className="bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded text-xs">{pad(timeLeft.seconds)}</span>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0EA5E9] to-[#0284C7] flex items-center justify-center">
+            <Zap className="w-4 h-4 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-[#111827] font-display">Flash Sale</h2>
+          <div className="flex items-center gap-1 text-sm font-mono font-bold text-[#EF4444]">
+            <span className="bg-[#FEE2E2] px-1.5 py-0.5 rounded">{pad(timeLeft.hours)}</span>
+            <span>:</span>
+            <span className="bg-[#FEE2E2] px-1.5 py-0.5 rounded">{pad(timeLeft.minutes)}</span>
+            <span>:</span>
+            <span className="bg-[#FEE2E2] px-1.5 py-0.5 rounded">{pad(timeLeft.seconds)}</span>
           </div>
         </div>
-        <button className="text-xs text-[#F5A623] font-medium">Lihat Semua</button>
       </div>
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-        <div className="flex gap-3">
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-4 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
           {products.map((product) => (
-            <div key={product.id} className="min-w-[160px] max-w-[160px]">
+            <div key={product.id} className="min-w-[160px] sm:min-w-0">
               <ProductCard product={product} />
             </div>
           ))}

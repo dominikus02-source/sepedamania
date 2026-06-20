@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ success: true });
 }
 
-export async function PUT(req: Request) {
+export async function PUT(_req: Request) {
   const session = await (await import('@/lib/auth')).auth();
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

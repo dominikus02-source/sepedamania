@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
+import type { Prisma } from '@prisma/client';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
@@ -55,7 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             updateData.lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
           }
 
-          await prisma.user.update({ where: { id: user.id }, data: updateData as any });
+          await prisma.user.update({ where: { id: user.id }, data: updateData as Prisma.UserUpdateInput });
           return null;
         }
 

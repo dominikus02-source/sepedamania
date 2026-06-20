@@ -1,26 +1,28 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
 import { ShoppingCart, DollarSign, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 
 import type { DashboardStats, RevenuePoint, OrderStatusCount, AdminOrder } from '@/lib/mock-admin-data';
+
+const RevenueChart = dynamic(() => import('./revenue-chart').then((m) => m.RevenueChart), {
+  ssr: false,
+  loading: () => <div className="h-64 bg-[#F2F2F7] rounded-xl animate-pulse" />,
+});
+
+const OrdersChart = dynamic(() => import('./orders-chart').then((m) => m.OrdersChart), {
+  ssr: false,
+  loading: () => <div className="h-64 bg-[#F2F2F7] rounded-xl animate-pulse" />,
+});
+
+const StatusPieChart = dynamic(() => import('./status-pie-chart').then((m) => m.StatusPieChart), {
+  ssr: false,
+  loading: () => <div className="h-64 bg-[#F2F2F7] rounded-xl animate-pulse" />,
+});
 
 export function AdminDashboard({
   stats,
@@ -41,12 +43,6 @@ export function AdminDashboard({
     { label: 'Total Pesanan', value: stats.totalOrders, icon: Package, color: 'text-[#F5A623]' },
     { label: 'Pendapatan Bulan Ini', value: formatPrice(stats.monthlyRevenue), icon: TrendingUp, color: 'text-[#FF3B30]' },
   ];
-
-  const formatRevenueTick = (val: number) => {
-    if (val >= 1_000_000) return `Rp${(val / 1_000_000).toFixed(0)}jt`;
-    if (val >= 1_000) return `Rp${(val / 1_000).toFixed(0)}rb`;
-    return `Rp${val}`;
-  };
 
   return (
     <div className="space-y-6">
@@ -81,50 +77,19 @@ export function AdminDashboard({
         })}
       </div>
 
-      {/* Revenue AreaChart - Full Width */}
+      {/* Revenue Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Tren Pendapatan (14 Hari)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F5A623" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#F5A623" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E5EA" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 12, fill: '#8E8E93' }}
-                  axisLine={{ stroke: '#E5E5EA' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#8E8E93' }}
-                  tickFormatter={formatRevenueTick}
-                  axisLine={{ stroke: '#E5E5EA' }}
-                />
-                <Tooltip
-                  formatter={(val) => [formatPrice(Number(val)), 'Pendapatan']}
-                  labelFormatter={(label) => `Tanggal: ${label}`}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#F5A623"
-                  fill="url(#revenueGradient)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <RevenueChart data={revenueData} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Orders BarChart + PieChart — Side by Side */}
+      {/* Orders Chart + Status Pie — Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -132,25 +97,7 @@ export function AdminDashboard({
           </CardHeader>
           <CardContent>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E5EA" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: '#8E8E93' }}
-                    axisLine={{ stroke: '#E5E5EA' }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#8E8E93' }}
-                    axisLine={{ stroke: '#E5E5EA' }}
-                  />
-                  <Tooltip
-                    formatter={(val) => [Number(val), 'Pesanan']}
-                    labelFormatter={(label) => `Tanggal: ${label}`}
-                  />
-                  <Bar dataKey="orders" fill="#007AFF" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <OrdersChart data={revenueData} />
             </div>
           </CardContent>
         </Card>
@@ -161,27 +108,7 @@ export function AdminDashboard({
           </CardHeader>
           <CardContent>
             <div className="h-72 flex flex-col items-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={orderStatusCounts}
-                    dataKey="count"
-                    nameKey="label"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    innerRadius={40}
-                    label={({ name, percent }: { name?: string; percent?: number }) =>
-                      `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
-                    }
-                  >
-                    {orderStatusCounts.map((entry: OrderStatusCount, index: number) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(val, name) => [Number(val), name]} />
-                </PieChart>
-              </ResponsiveContainer>
+              <StatusPieChart data={orderStatusCounts} />
             </div>
           </CardContent>
         </Card>
