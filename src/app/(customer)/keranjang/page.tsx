@@ -98,7 +98,7 @@ export default function CartPage() {
         <div className="flex justify-between font-semibold text-[#1C1C1E]"><span>Total</span><span>{formatPrice(total)}</span></div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E5E5EA] px-4 py-3 pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">
         <div className="max-w-lg mx-auto">
           <Button variant="accent" className="w-full h-12 text-base" onClick={() => router.push('/checkout')}>
             Lanjut ke Pembayaran <ChevronRight className="w-4 h-4 ml-1" />

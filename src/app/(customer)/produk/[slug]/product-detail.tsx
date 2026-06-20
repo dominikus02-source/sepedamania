@@ -135,7 +135,7 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-32">
       {/* Image Gallery */}
       <div className="relative">
         <div className="relative aspect-square bg-[#F3F4F6]">
@@ -344,14 +344,14 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
       )}
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E5E7EB] px-4 py-3 pb-safe">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <Button variant="outline" className="flex-1 h-12 text-sm" onClick={handleAdd}>
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <Button variant="outline" className="flex-1 h-11 text-sm" onClick={handleAdd}>
             <ShoppingCart className="w-4 h-4 mr-2" />
             Keranjang
           </Button>
           <Button
-            className="flex-1 h-12 text-sm font-semibold bg-[#0EA5E9] hover:bg-[#0284C7] text-white"
+            className="flex-1 h-11 text-sm font-semibold bg-[#0F172A] hover:bg-[#1E293B] text-white"
             onClick={handleBuy}
           >
             Beli Sekarang
