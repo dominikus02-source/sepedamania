@@ -1,10 +1,24 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { ProductCard } from '@/components/customer/product-card';
 import { FilterBar } from './filter-bar';
 import { mockCategories, getMockProductsByCategory } from '@/lib/mock-data';
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const category = mockCategories.find((c) => c.slug === slug);
+  if (!category) return { title: 'Kategori tidak ditemukan' };
+  const title = `${category.name} Terbaik | SEPEDAMANIA`;
+  const description = `Temukan koleksi ${category.name} terlengkap di SEPEDAMANIA. Harga kompetitif, produk original, pengiriman ke seluruh Indonesia.`;
+  return {
+    title,
+    description,
+    openGraph: { title, description, images: [{ url: '/og-default.jpg', width: 1200, height: 630 }] },
+  };
 }
 
 export default async function CategoryPage({ params }: Props) {

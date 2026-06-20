@@ -227,6 +227,7 @@ export default function AdminOrderDetailPage() {
       );
       setActing(false);
       toast('Resi berhasil disimpan & status berubah ke Dikirim', 'success');
+      toast('Email notifikasi pengiriman telah dikirim', 'success');
     }, 600);
   };
 
