@@ -230,3 +230,46 @@ export async function sendWelcomeEmail(user: { name: string; email: string }) {
     return { success: false, error };
   }
 }
+
+export async function sendVerificationEmail({ email, name, token }: { email: string; name: string; token: string }) {
+  const verificationUrl = `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/verify-email?token=${token}`;
+
+  if (!resend) {
+    console.warn('[Email] Resend not configured, skipping verification email');
+    return { success: false, error: 'Email not configured' };
+  }
+
+  try {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; padding: 40px 20px;">
+        <div style="max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+          <div style="background: linear-gradient(135deg, #F5A623, #F57C00); padding: 32px 24px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 24px; margin: 0;">SEPEDAMANIA</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0;">Verifikasi Alamat Email</p>
+          </div>
+          <div style="padding: 32px 24px;">
+            <p style="margin: 0 0 16px;">Halo <strong>${name}</strong>,</p>
+            <p style="margin: 0 0 16px; color: #666;">Terima kasih telah mendaftar di SEPEDAMANIA. Klik tombol di bawah untuk memverifikasi alamat email kamu.</p>
+            <a href="${verificationUrl}" style="display: block; text-align: center; background: #F5A623; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0;">Verifikasi Email</a>
+            <p style="margin: 0; color: #999; font-size: 12px;">Link ini akan kadaluarsa dalam 24 jam.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: '🔐 Verifikasi Email SEPEDAMANIA',
+      html,
+    });
+    return { success: true, email };
+  } catch (error) {
+    console.error('[Email] Failed to send verification email:', error);
+    return { success: false, error };
+  }
+}

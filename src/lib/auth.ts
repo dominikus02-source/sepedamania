@@ -5,9 +5,15 @@ import Google from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_DURATION_MINUTES = 15;
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   pages: {
     signIn: '/masuk',
     newUser: '/daftar',
@@ -26,14 +32,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+        const email = (credentials.email as string).toLowerCase().trim();
+        const user = await prisma.user.findUnique({ where: { email } });
 
         if (!user || !user.password) return null;
 
+        // Check if account is locked
+        if (user.lockedUntil && new Date() < user.lockedUntil) {
+          const remainingMs = user.lockedUntil.getTime() - Date.now();
+          const remainingMin = Math.ceil(remainingMs / 60000);
+          throw new Error(`Akun terkunci. Coba lagi dalam ${remainingMin} menit.`);
+        }
+
         const isValid = await bcrypt.compare(credentials.password as string, user.password);
-        if (!isValid) return null;
+
+        if (!isValid) {
+          // Increment failed login attempts
+          const attempts = (user.failedLoginAttempts ?? 0) + 1;
+          const updateData: Record<string, unknown> = { failedLoginAttempts: attempts };
+
+          if (attempts >= MAX_FAILED_ATTEMPTS) {
+            updateData.lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
+          }
+
+          await prisma.user.update({ where: { id: user.id }, data: updateData as any });
+          return null;
+        }
+
+        // Reset failed login attempts on successful login
+        if (user.failedLoginAttempts || user.lockedUntil) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0, lockedUntil: null },
+          });
+        }
 
         return {
           id: user.id,
@@ -41,15 +73,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           role: user.role,
           image: user.image,
+          emailVerified: user.emailVerified,
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === 'update' && session) {
+        token.emailVerified = session.emailVerified;
+        return token;
+      }
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.emailVerified = user.emailVerified;
       }
       return token;
     },
@@ -57,6 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.emailVerified = token.emailVerified as Date | null;
       }
       return session;
     },

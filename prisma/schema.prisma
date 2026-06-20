@@ -42,6 +42,10 @@ model User {
   password  String?
   image     String?
   emailVerified DateTime?
+  failedLoginAttempts Int @default(0)
+  lockedUntil DateTime?
+  totpSecret String?
+  totpEnabled Boolean @default(false)
   accounts  Account[]
   sessions  Session[]
   addresses Address[]
