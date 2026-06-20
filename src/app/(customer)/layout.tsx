@@ -6,7 +6,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   return (
     <>
       <Header />
-      <main className="max-w-lg mx-auto pb-20 min-h-screen">
+      <main className="max-w-7xl mx-auto pb-24 lg:pb-12 min-h-screen">
         {children}
       </main>
       <BottomNav />

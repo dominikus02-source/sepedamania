@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { ProductCard } from './product-card';
-import { Zap } from 'lucide-react';
+import { Zap, ChevronRight } from 'lucide-react';
 
 interface FlashSaleProduct {
   id: string;
@@ -37,25 +38,30 @@ export function FlashSale({ products }: { products: FlashSaleProduct[] }) {
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0EA5E9] to-[#0284C7] flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center shadow-sm">
+            <Zap className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-[#111827] font-display">Flash Sale</h2>
-          <div className="flex items-center gap-1 text-sm font-mono font-bold text-[#EF4444]">
-            <span className="bg-[#FEE2E2] px-1.5 py-0.5 rounded">{pad(timeLeft.hours)}</span>
-            <span>:</span>
-            <span className="bg-[#FEE2E2] px-1.5 py-0.5 rounded">{pad(timeLeft.minutes)}</span>
-            <span>:</span>
-            <span className="bg-[#FEE2E2] px-1.5 py-0.5 rounded">{pad(timeLeft.seconds)}</span>
+          <div>
+            <h2 className="text-xl font-bold text-[#0F172A] font-display">Flash Sale</h2>
+            <div className="flex items-center gap-1 text-xs font-mono font-bold text-[#EF4444] mt-0.5">
+              <span className="bg-[#FEF2F2] px-1.5 py-0.5 rounded">{pad(timeLeft.hours)}</span>
+              <span>:</span>
+              <span className="bg-[#FEF2F2] px-1.5 py-0.5 rounded">{pad(timeLeft.minutes)}</span>
+              <span>:</span>
+              <span className="bg-[#FEF2F2] px-1.5 py-0.5 rounded">{pad(timeLeft.seconds)}</span>
+            </div>
           </div>
         </div>
+        <Link href="/kategori?sort=sold" className="flex items-center gap-1 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
+          Lihat Semua <ChevronRight className="w-4 h-4" />
+        </Link>
       </div>
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-4 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
+        <div className="flex gap-4 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:gap-5">
           {products.map((product) => (
-            <div key={product.id} className="min-w-[160px] sm:min-w-0">
+            <div key={product.id} className="min-w-[170px] sm:min-w-0">
               <ProductCard product={product} />
             </div>
           ))}
