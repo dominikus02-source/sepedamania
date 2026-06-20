@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getMockOrder, updateMockOrderPayment } from '@/lib/mock-orders';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { validateOrigin } from '@/lib/csrf';
+
+const webhookSchema = z.object({
+  external_id: z.string().min(1),
+  status: z.enum(['PAID', 'EXPIRED']),
+});
 
 export async function POST(req: Request) {
   try {
@@ -18,27 +24,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json();
-
-    if (!body.external_id || !body.status) {
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    // C5: Validate webhook payload with Zod
+    const parsed = webhookSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid payload', details: parsed.error.issues },
+        { status: 400 },
+      );
     }
 
-    // C2: Validate body.status is one of the allowed values
-    if (!['PAID', 'EXPIRED'].includes(body.status)) {
-      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
-    }
+    const { external_id, status } = parsed.data;
 
-    if (body.status === 'PAID') {
-      updateMockOrderPayment(body.external_id, 'PAID', 'PROCESSING');
-      const order = getMockOrder(body.external_id);
+    if (status === 'PAID') {
+      updateMockOrderPayment(external_id, 'PAID', 'PROCESSING');
+      const order = getMockOrder(external_id);
       if (order) {
         // Normalize null → undefined for OrderEmail compatibility
         const { trackingNumber, ...rest } = order;
         await sendOrderConfirmationEmail({ ...rest, trackingNumber: trackingNumber ?? undefined });
       }
-    } else if (body.status === 'EXPIRED') {
-      updateMockOrderPayment(body.external_id, 'EXPIRED', 'CANCELLED');
+    } else if (status === 'EXPIRED') {
+      updateMockOrderPayment(external_id, 'EXPIRED', 'CANCELLED');
     }
 
     return NextResponse.json({ success: true });
