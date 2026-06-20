@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
@@ -28,10 +29,13 @@ interface ProductCardProps {
 export function ProductCard({ product, variant = 'default' }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const { toast } = useToast();
+  const [imgError, setImgError] = useState(false);
 
   const isOnSale = product.salePrice && product.salePrice < product.price;
   const dp = isOnSale ? product.salePrice! : product.price;
   const hasBadge = isOnSale || product.stock <= 5;
+
+  const imgSrc = !imgError && product.images?.[0] ? product.images[0] : null;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -56,14 +60,26 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         className="flex gap-3 p-3 bg-white rounded-xl border border-[#E5E7EB] card-hover active:scale-[0.99] transition-transform"
       >
         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-[#F3F4F6] flex-shrink-0">
-          <Image
-            src={product.images[0] || '/images/placeholder.svg'}
-            alt={product.name}
-            fill
-            className="object-cover"
-            sizes="80px"
-            loading="lazy"
-          />
+          {imgSrc ? (
+            <Image
+              src={imgSrc}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="80px"
+              loading="lazy"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#E5E7EB] to-[#F3F4F6] flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 mx-auto rounded-full bg-white/60 flex items-center justify-center mb-1">
+                  <ShoppingBag className="w-4 h-4 text-[#9CA3AF]" />
+                </div>
+                <span className="text-[10px] text-[#9CA3AF] font-medium">{product.name.charAt(0)}</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs text-[#6B7280] mb-0.5">{product.category?.name}</p>
@@ -91,14 +107,24 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
   return (
     <Link href={`/produk/${product.slug}`} className="group block">
       <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F3F4F6] mb-2 card-hover">
-        <Image
-          src={product.images[0] || '/images/placeholder.svg'}
-          alt={product.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-          sizes="(max-width: 640px) 50vw, 33vw"
-          loading="lazy"
-        />
+        {imgSrc ? (
+          <Image
+            src={imgSrc}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 640px) 50vw, 33vw"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#E5E7EB] to-[#F3F4F6] flex items-center justify-center">
+            <div className="text-center">
+              <ShoppingBag className="w-8 h-8 text-[#9CA3AF] mx-auto mb-2" />
+              <span className="text-xs text-[#9CA3AF] font-medium">{product.name}</span>
+            </div>
+          </div>
+        )}
         {hasBadge && (
           <div className="absolute top-2 left-2 flex gap-1">
             {isOnSale && (

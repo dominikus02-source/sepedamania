@@ -1,5 +1,3 @@
-'use client';
-
 import { mockProducts } from './mock-data';
 
 export interface AdminOrder {

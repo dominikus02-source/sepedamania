@@ -419,6 +419,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate">{item.name}</p>
+                  {item.variantLabel && <p className="text-[10px] text-[#6B7280]">{item.variantLabel}</p>}
                   <p className="text-xs text-[#8E8E93]">{item.qty}x {formatPrice(item.price)}</p>
                 </div>
                 <span className="text-sm font-medium">{formatPrice(item.price * item.qty)}</span>
