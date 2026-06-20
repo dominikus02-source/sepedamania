@@ -147,6 +147,7 @@ model Product {
   updatedAt   DateTime        @updatedAt
 
   @@index([categoryId])
+  @@index([brandId])
   @@index([isActive])
   @@index([slug])
 }
@@ -205,6 +206,9 @@ model OrderItem {
   price     Decimal
   qty       Int
   image     String
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Review {
