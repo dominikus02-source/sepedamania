@@ -344,7 +344,7 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
       )}
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
           <Button variant="outline" className="flex-1 h-11 text-sm" onClick={handleAdd}>
             <ShoppingCart className="w-4 h-4 mr-2" />
