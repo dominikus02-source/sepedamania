@@ -5,6 +5,6 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: '*', allow: '/', disallow: ['/admin', '/api', '/checkout', '/pesanan', '/profil'] },
     ],
-    sitemap: `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'}/sitemap.xml`,
+    sitemap: `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/sitemap.xml`,
   }
 }

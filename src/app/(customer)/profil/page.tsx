@@ -4,7 +4,7 @@ export default function ProfilePageServer() {
   const mockUser = {
     id: 'guest',
     name: 'Pengunjung',
-    email: 'guest@sepedamania.store',
+    email: 'guest@sepedamania.com',
     phone: '',
     image: null,
     role: 'CUSTOMER',

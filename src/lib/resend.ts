@@ -21,7 +21,7 @@ export async function sendOrderConfirmation(params: {
     .join('');
 
   await resend.emails.send({
-    from: 'SEPEDAMANIA <noreply@sepedamania.store>',
+    from: 'SEPEDAMANIA <noreply@sepedamania.com>',
     to: params.email,
     subject: `Konfirmasi Pesanan #${params.orderId}`,
     html: `
