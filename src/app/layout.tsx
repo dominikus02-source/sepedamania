@@ -12,7 +12,7 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'
+const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),

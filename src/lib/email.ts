@@ -11,7 +11,7 @@ const resend =
     ? new Resend(process.env.RESEND_API_KEY)
     : null;
 
-const FROM = 'SEPEDAMANIA <noreply@sepedamania.com>';
+const FROM = 'SEPEDAMANIA <noreply@sepedamania.store>';
 
 // ─── Order Confirmation ─────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export async function sendOrderConfirmationEmail(order: any) {
 
   const orderUrl =
     order.orderUrl ||
-    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/pesanan/${order.id}`;
+    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'}/pesanan/${order.id}`;
 
   if (!resend) {
     console.log(`[Email] Order Confirmation sent to ${email} for order #${order.id}`);
@@ -87,7 +87,7 @@ export async function sendOrderShippedEmail(order: any) {
 
   const orderUrl =
     order.orderUrl ||
-    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/pesanan/${order.id}`;
+    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'}/pesanan/${order.id}`;
 
   if (!resend) {
     console.log(`[Email] Order Shipped sent to ${email} for order #${order.id}`);
@@ -132,7 +132,7 @@ export async function sendOrderDeliveredEmail(order: any) {
 
   const orderUrl =
     order.orderUrl ||
-    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/pesanan/${order.id}`;
+    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'}/pesanan/${order.id}`;
 
   if (!resend) {
     console.log(`[Email] Order Delivered sent to ${email} for order #${order.id}`);
@@ -172,7 +172,7 @@ export async function sendWelcomeEmail(user: { name: string; email: string }) {
   }
 
   const loginUrl =
-    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/login`;
+    `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'}/login`;
 
   if (!resend) {
     console.log(`[Email] Welcome sent to ${email} for user ${name}`);

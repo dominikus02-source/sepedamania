@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [product.images[0] || '/og-default.jpg'],
     },
     alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'}/produk/${slug}`,
+      canonical: `${process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'}/produk/${slug}`,
     },
   };
 }

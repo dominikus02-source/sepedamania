@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { mockProducts, mockCategories } from '@/lib/mock-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://sepedamania.store'
 
   const productEntries = mockProducts.filter(p => p.isActive).map(p => ({
     url: `${baseUrl}/produk/${p.slug}`,

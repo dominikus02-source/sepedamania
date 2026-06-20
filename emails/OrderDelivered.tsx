@@ -66,7 +66,7 @@ export default function OrderDelivered({
             </Section>
             <Section style={ctaSectionSecondary}>
               <Button
-                href="https://sepedamania.com"
+                href="https://sepedamania.store"
                 style={ctaButtonSecondary}
               >
                 Beli Lagi
