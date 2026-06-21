@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, Package, ShoppingCart, Users, PackageSearch, Tags, Percent, Truck, CreditCard, BarChart3, Settings, MessageCircle } from 'lucide-react';
 
@@ -20,6 +21,34 @@ const navItems = [
   { href: '/admin/pengaturan', label: 'Pengaturan', icon: Settings },
 ];
 
+const SidebarItem = memo(function SidebarItem({
+  href,
+  label,
+  icon: Icon,
+  isActive,
+}: {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      prefetch={true}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
+        isActive
+          ? 'bg-[#EFF6FF] text-[#2563EB]'
+          : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'
+      )}
+    >
+      <Icon className="w-5 h-5" />
+      {label}
+    </Link>
+  );
+});
+
 export function AdminSidebar() {
   const pathname = usePathname();
 
@@ -27,22 +56,15 @@ export function AdminSidebar() {
     <aside className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-white border-r border-[#E2E8F0] overflow-y-auto z-30">
       <nav className="p-3 space-y-0.5">
         {navItems.map((item) => {
-          const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
           return (
-            <Link
+            <SidebarItem
               key={item.href}
               href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-[#EFF6FF] text-[#2563EB]'
-                  : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'
-              )}
-            >
-              <Icon className="w-5 h-5" />
-              {item.label}
-            </Link>
+              label={item.label}
+              icon={item.icon}
+              isActive={isActive}
+            />
           );
         })}
       </nav>
