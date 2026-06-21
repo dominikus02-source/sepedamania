@@ -40,7 +40,7 @@ export function AdminDashboard({
   const kpis = [
     { label: 'Pesanan Hari Ini', value: stats.todayOrders, icon: ShoppingCart, color: 'text-[#007AFF]' },
     { label: 'Pendapatan Hari Ini', value: formatPrice(stats.todayRevenue), icon: DollarSign, color: 'text-[#34C759]' },
-    { label: 'Total Pesanan', value: stats.totalOrders, icon: Package, color: 'text-[#F5A623]' },
+    { label: 'Total Pesanan', value: stats.totalOrders, icon: Package, color: 'text-[#2563EB]' },
     { label: 'Pendapatan Bulan Ini', value: formatPrice(stats.monthlyRevenue), icon: TrendingUp, color: 'text-[#FF3B30]' },
   ];
 

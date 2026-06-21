@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (session.user.role !== 'ADMIN') redirect('/');
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7]">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <AdminHeader user={session.user} />
       <div className="flex">
         <AdminSidebar />
