@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth';
+import type { Adapter } from 'next-auth/adapters';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import type { Prisma } from '@prisma/client';
 import Credentials from 'next-auth/providers/credentials';
@@ -9,8 +10,31 @@ import { prisma } from './prisma';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 
+// Demo accounts for when database is unavailable
+function getDemoUsers(): Map<string, { name: string; password: string; role: string }> {
+  const users = new Map<string, { name: string; password: string; role: string }>();
+  users.set('admin@sepedamania.com', {
+    name: 'Admin SEPEDAMANIA',
+    password: bcrypt.hashSync('admin123', 12),
+    role: 'ADMIN',
+  });
+  users.set('user@sepedamania.com', {
+    name: 'User Sepedamania',
+    password: bcrypt.hashSync('user123', 12),
+    role: 'CUSTOMER',
+  });
+  return users;
+}
+
+let adapter: Adapter | undefined = undefined;
+try {
+  adapter = PrismaAdapter(prisma);
+} catch {
+  // Database not available — will use demo accounts
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter,
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -34,48 +58,64 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         const email = (credentials.email as string).toLowerCase().trim();
-        const user = await prisma.user.findUnique({ where: { email } });
+        const plainPassword = credentials.password as string;
 
-        if (!user || !user.password) return null;
+        // Try Prisma first
+        try {
+          const user = await prisma.user.findUnique({ where: { email } });
 
-        // Check if account is locked
-        if (user.lockedUntil && new Date() < user.lockedUntil) {
-          const remainingMs = user.lockedUntil.getTime() - Date.now();
-          const remainingMin = Math.ceil(remainingMs / 60000);
-          throw new Error(`Akun terkunci. Coba lagi dalam ${remainingMin} menit.`);
-        }
+          if (!user || !user.password) return null;
 
-        const isValid = await bcrypt.compare(credentials.password as string, user.password);
-
-        if (!isValid) {
-          // Increment failed login attempts
-          const attempts = (user.failedLoginAttempts ?? 0) + 1;
-          const updateData: Record<string, unknown> = { failedLoginAttempts: attempts };
-
-          if (attempts >= MAX_FAILED_ATTEMPTS) {
-            updateData.lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
+          if (user.lockedUntil && new Date() < user.lockedUntil) {
+            const remainingMs = user.lockedUntil.getTime() - Date.now();
+            const remainingMin = Math.ceil(remainingMs / 60000);
+            throw new Error(`Akun terkunci. Coba lagi dalam ${remainingMin} menit.`);
           }
 
-          await prisma.user.update({ where: { id: user.id }, data: updateData as Prisma.UserUpdateInput });
-          return null;
-        }
+          const isValid = await bcrypt.compare(plainPassword, user.password);
 
-        // Reset failed login attempts on successful login
-        if (user.failedLoginAttempts || user.lockedUntil) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { failedLoginAttempts: 0, lockedUntil: null },
-          });
-        }
+          if (!isValid) {
+            const attempts = (user.failedLoginAttempts ?? 0) + 1;
+            const updateData: Record<string, unknown> = { failedLoginAttempts: attempts };
+            if (attempts >= MAX_FAILED_ATTEMPTS) {
+              updateData.lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
+            }
+            await prisma.user.update({ where: { id: user.id }, data: updateData as Prisma.UserUpdateInput });
+            return null;
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          image: user.image,
-          emailVerified: user.emailVerified,
-        };
+          if (user.failedLoginAttempts || user.lockedUntil) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { failedLoginAttempts: 0, lockedUntil: null },
+            });
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            image: user.image,
+            emailVerified: user.emailVerified,
+          };
+        } catch {
+          // Database unavailable — try demo accounts
+          const demo = getDemoUsers().get(email);
+          if (!demo) return null;
+
+          const isValid = bcrypt.compareSync(plainPassword, demo.password);
+          if (!isValid) return null;
+
+          return {
+            id: email,
+            email,
+            name: demo.name,
+            role: demo.role,
+            image: null,
+            emailVerified: null,
+          };
+        }
       },
     }),
   ],
