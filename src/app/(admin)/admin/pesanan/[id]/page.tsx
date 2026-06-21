@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { mockOrders, AdminOrder } from '@/lib/mock-admin-data';
 import { formatPrice, formatDate, formatDateShort } from '@/lib/utils';
@@ -253,12 +253,7 @@ export default function AdminOrderDetailPage() {
   // ── Not Found ────────────────────────────────────────────────────
 
   if (!order) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <h1 className="text-2xl font-bold text-[#1C1C1E]">Pesanan Tidak Ditemukan</h1>
-        <Link href="/admin/pesanan" className="text-[#F5A623] hover:underline text-sm">Kembali ke daftar pesanan</Link>
-      </div>
-    );
+    notFound();
   }
 
   // ── Derived Values ─────────────────────────────────────────────────────────

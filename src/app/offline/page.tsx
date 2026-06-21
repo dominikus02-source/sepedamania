@@ -1,23 +1,32 @@
 'use client';
 
+import { WifiOff } from 'lucide-react';
+import Link from 'next/link';
+
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center p-6">
-      <div className="w-16 h-16 rounded-full bg-[#F5A623]/10 flex items-center justify-center mb-4">
-        <svg className="w-8 h-8 text-[#F5A623]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m-2.829-2.829a5 5 0 000-7.07m-4.243 4.243a1 1 0 010-1.414" />
-        </svg>
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-sm bg-white rounded-2xl border border-[#E2E8F0] p-8 flex flex-col items-center text-center">
+        <div className="w-14 h-14 rounded-full bg-[#F1F5F9] flex items-center justify-center mb-5">
+          <WifiOff className="w-7 h-7 text-[#64748B]" />
+        </div>
+        <h1 className="text-xl font-bold text-[#0F172A] mb-2">Kamu sedang offline</h1>
+        <p className="text-sm text-[#64748B] mb-6 leading-relaxed">
+          Beberapa fitur belanja membutuhkan internet.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="w-full bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+        >
+          Coba Lagi
+        </button>
+        <Link
+          href="/"
+          className="mt-3 text-sm text-[#64748B] hover:text-[#0F172A] transition-colors"
+        >
+          Kembali ke Home
+        </Link>
       </div>
-      <h1 className="text-xl font-bold text-[#1C1C1E] mb-2">Koneksi Terputus</h1>
-      <p className="text-sm text-[#8E8E93] text-center mb-6">
-        Kamu sedang offline. Periksa koneksi internetmu dan coba lagi.
-      </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="bg-[#F5A623] text-white px-6 py-2 rounded-lg font-medium text-sm"
-      >
-        Coba Lagi
-      </button>
     </div>
   );
 }

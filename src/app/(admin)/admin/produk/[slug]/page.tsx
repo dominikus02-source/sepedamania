@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -27,8 +27,6 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-
   const [form, setForm] = useState({
     name: '',
     sku: '',
@@ -52,7 +50,7 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
     params.then(({ slug: resolvedSlug }) => {
       const product = mockProducts.find((p) => p.slug === resolvedSlug);
       if (!product) {
-        setNotFound(true);
+        notFound();
         return;
       }
       setForm({
@@ -86,15 +84,6 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
     setLoading(false);
     router.push('/admin/produk');
   };
-
-  if (notFound) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <h1 className="text-2xl font-bold text-[#1C1C1E]">Produk Tidak Ditemukan</h1>
-        <Link href="/admin/produk" className="text-[#F5A623] hover:underline text-sm">Kembali ke daftar produk</Link>
-      </div>
-    );
-  }
 
   return (
     <div>

@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
+import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from '@/components/providers'
@@ -87,7 +88,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#1A1A1A',
+  themeColor: '#0F172A',
 }
 
 export default function RootLayout({
@@ -147,6 +148,7 @@ export default function RootLayout({
             <main id="main-content">{children}</main>
             <Toaster />
             <ServiceWorkerRegistration />
+            <InstallPrompt />
           </ThemeProvider>
         </Providers>
         <Analytics />

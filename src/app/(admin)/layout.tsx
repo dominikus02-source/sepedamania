@@ -6,7 +6,12 @@ import { AdminHeader } from '@/components/admin/header';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    session = null;
+  }
   if (!session?.user) redirect('/masuk');
   if (session.user.role !== 'ADMIN') redirect('/');
 
