@@ -148,6 +148,13 @@ export function Header() {
               >
                 Profil
               </Link>
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-3 rounded-xl hover:bg-[#F1F5F9] text-[#64748B] font-medium text-sm"
+              >
+                Admin Panel
+              </Link>
             </nav>
           </div>
         </div>

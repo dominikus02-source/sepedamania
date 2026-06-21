@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Package, MapPin, Star, Heart, Settings, LogOut, ChevronRight, Bell } from 'lucide-react';
+import { Package, MapPin, Star, Heart, Settings, LogOut, ChevronRight, Bell, Shield } from 'lucide-react';
 
 interface ProfileUser {
   name: string;
@@ -25,6 +25,7 @@ export function ProfilePage({ user }: { user: ProfileUser }) {
     { icon: Heart, label: 'Wishlist / Favorit', href: '#' },
     { icon: Bell, label: 'Pengaturan Notifikasi', href: '#' },
     { icon: Settings, label: 'Pengaturan Akun', href: '#' },
+    ...(user.role === 'ADMIN' ? [{ icon: Shield, label: 'Admin Panel', href: '/admin' }] : []),
   ];
 
   return (
