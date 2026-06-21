@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingBag, Heart, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, Heart, User, Menu, X, Shield } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { SepedamaniaLogo } from '@/components/brand/sepedamania-logo';
 import { CartBadge } from './cart-drawer';
@@ -67,6 +67,15 @@ export function Header() {
                 <ShoppingBag className="w-5 h-5 text-[#0F172A]" />
                 <CartBadge count={totalItems} />
               </button>
+
+              {/* Admin link */}
+              <Link
+                href="/admin"
+                className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-[#64748B] hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Admin
+              </Link>
 
               {/* Profile */}
               <Link
