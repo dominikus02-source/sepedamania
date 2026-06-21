@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Search, ShoppingBag, Heart, User, Menu, X } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
+import { SepedamaniaLogo } from '@/components/brand/sepedamania-logo';
 import { CartBadge } from './cart-drawer';
 
 const NAV_ITEMS = [
@@ -28,16 +28,7 @@ export function Header() {
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between h-16 px-6">
             {/* Logo */}
-            <Link href="/" className="flex items-center shrink-0">
-              <Image
-                src="/images/logo-sepedamania.webp"
-                alt="SEPEDAMANIA"
-                width={140}
-                height={32}
-                className="h-7 w-auto object-contain"
-                priority
-              />
-            </Link>
+            <SepedamaniaLogo />
 
             {/* Desktop nav */}
             <nav className="flex items-center gap-0.5">
@@ -96,16 +87,7 @@ export function Header() {
               <Menu className="w-5 h-5 text-[#0F172A]" />
             </button>
 
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/images/logo-sepedamania.webp"
-                alt="SEPEDAMANIA"
-                width={110}
-                height={26}
-                className="h-6 w-auto object-contain"
-                priority
-              />
-            </Link>
+            <SepedamaniaLogo variant="compact" />
 
             <div className="flex items-center gap-1">
               <Link
@@ -132,13 +114,7 @@ export function Header() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
           <div className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl">
             <div className="flex items-center justify-between px-4 h-14 border-b border-[#E2E8F0]">
-              <Image
-                src="/images/logo-sepedamania.webp"
-                alt="SEPEDAMANIA"
-                width={120}
-                height={28}
-                className="h-6 w-auto"
-              />
+              <SepedamaniaLogo variant="compact" />
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F1F5F9]"
