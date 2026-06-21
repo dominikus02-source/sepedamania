@@ -64,7 +64,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = (credentials.email as string).toLowerCase().trim();
         const plainPassword = credentials.password as string;
 
-        // Try Prisma first
+        // Check demo accounts first
+        const demo = getDemoUsers().get(email);
+        if (demo) {
+          const isValid = bcrypt.compareSync(plainPassword, demo.password);
+          if (!isValid) return null;
+
+          return {
+            id: email,
+            email,
+            name: demo.name,
+            role: demo.role,
+            image: null,
+            emailVerified: null,
+          };
+        }
+
+        // Try database for non-demo accounts
         try {
           const user = await prisma.user.findUnique({ where: { email } });
 
@@ -104,21 +120,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             emailVerified: user.emailVerified,
           };
         } catch {
-          // Database unavailable — try demo accounts
-          const demo = getDemoUsers().get(email);
-          if (!demo) return null;
-
-          const isValid = bcrypt.compareSync(plainPassword, demo.password);
-          if (!isValid) return null;
-
-          return {
-            id: email,
-            email,
-            name: demo.name,
-            role: demo.role,
-            image: null,
-            emailVerified: null,
-          };
+          // Database unavailable
+          return null;
         }
       },
     }),
