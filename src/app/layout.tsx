@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Providers } from '@/components/providers'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -136,16 +137,18 @@ export default function RootLayout({
         >
           Langsung ke konten
         </a>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <main id="main-content">{children}</main>
-          <Toaster />
-          <ServiceWorkerRegistration />
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <main id="main-content">{children}</main>
+            <Toaster />
+            <ServiceWorkerRegistration />
+          </ThemeProvider>
+        </Providers>
         <Analytics />
         <SpeedInsights />
       </body>

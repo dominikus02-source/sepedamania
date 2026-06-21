@@ -5,7 +5,9 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';
-import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote, Smartphone, QrCode, Loader2, Clock, CheckCircle, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote, Smartphone, QrCode, Loader2, Clock, CheckCircle, Copy, LogIn } from 'lucide-react';
 
 const addressSchema = z.object({
   recipient: z.string().min(2, 'Nama minimal 2 karakter'),
@@ -51,6 +53,7 @@ const COURIERS = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const { items, getTotal, getTotalWeight, voucherDiscount, voucherCode, clearCart } = useCartStore();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -87,6 +90,9 @@ export default function CheckoutPage() {
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState(24 * 60 * 60);
+
+  // Check authentication
+  const isLoggedIn = !!session;
 
   // Countdown timer untuk step 4
   useEffect(() => {
@@ -227,18 +233,56 @@ export default function CheckoutPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Loading state
+  if (status === 'loading') {
+    return (
+      <div className="p-4 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+      </div>
+    );
+  }
+
+  // Not logged in - show login prompt
+  if (!isLoggedIn) {
+    return (
+      <div className="p-4 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
+            <LogIn className="w-8 h-8 text-[#2563EB]" />
+          </div>
+          <h2 className="text-xl font-bold text-[#0F172A] mb-2">Masuk untuk Checkout</h2>
+          <p className="text-sm text-[#64748B] mb-6">
+            Kamu perlu masuk terlebih dahulu untuk melanjutkan proses checkout
+          </p>
+          <Link
+            href="/masuk?callbackUrl=/checkout"
+            className="block w-full bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold py-3 rounded-xl transition-colors text-center"
+          >
+            Masuk Sekarang
+          </Link>
+          <Link
+            href="/"
+            className="block w-full mt-3 border border-[#E2E8F0] text-[#0F172A] font-medium py-3 rounded-xl hover:bg-[#F8FAFC] transition-colors text-center"
+          >
+            Kembali Berbelanja
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0 && !orderResult) {
     return (
       <div className="p-4 text-center py-16">
-        <Package className="w-12 h-12 text-[#E5E5EA] mx-auto mb-3" />
-        <p className="text-[#8E8E93]">Keranjang kosong. Mulai belanja dulu!</p>
-        <Button variant="accent" className="mt-4" onClick={() => router.push('/')}>Belanja Sekarang</Button>
+        <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-3" />
+        <p className="text-[#64748B]">Keranjang kosong. Mulai belanja dulu!</p>
+        <Button className="mt-4 bg-[#0F172A] hover:bg-[#1E293B] text-white" onClick={() => router.push('/')}>Belanja Sekarang</Button>
       </div>
     );
   }
 
   return (
-    <div className="p-4 pb-32">
+    <div className="p-4 pb-32 max-w-2xl mx-auto">
       {/* Stepper */}
       <div className="flex items-center justify-center gap-2 mb-6">
         {[
@@ -248,11 +292,11 @@ export default function CheckoutPage() {
           { num: 4, label: 'Konfirmasi', icon: CheckCircle },
         ].map((s, i) => (
           <div key={s.num} className="flex items-center gap-1.5">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= s.num ? 'bg-[#F5A623] text-white' : 'bg-[#F2F2F7] text-[#8E8E93]'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= s.num ? 'bg-[#2563EB] text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
               {step > s.num ? <CheckCircle className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
             </div>
-            <span className={`text-xs font-medium hidden sm:block ${step >= s.num ? 'text-[#1C1C1E]' : 'text-[#8E8E93]'}`}>{s.label}</span>
-            {i < 3 && <div className={`w-8 sm:w-12 h-0.5 ${step > s.num ? 'bg-[#F5A623]' : 'bg-[#E5E5EA]'}`} />}
+            <span className={`text-xs font-medium hidden sm:block ${step >= s.num ? 'text-[#0F172A]' : 'text-[#94A3B8]'}`}>{s.label}</span>
+            {i < 3 && <div className={`w-8 sm:w-12 h-0.5 ${step > s.num ? 'bg-[#2563EB]' : 'bg-[#E2E8F0]'}`} />}
           </div>
         ))}
       </div>
@@ -260,50 +304,50 @@ export default function CheckoutPage() {
       {/* Step 1: Alamat */}
       {step === 1 && (
         <form onSubmit={handleSubmit(onAddressSubmit)} className="space-y-4">
-          <h2 className="text-lg font-bold text-[#1C1C1E]">Alamat Pengiriman</h2>
-          <div className="space-y-3 bg-white rounded-xl border border-[#E5E5EA] p-4">
+          <h2 className="text-lg font-bold text-[#0F172A]">Alamat Pengiriman</h2>
+          <div className="space-y-3 bg-white rounded-2xl border border-[#E2E8F0] p-4">
             <div>
               <Label>Nama Penerima</Label>
               <Input {...register('recipient')} placeholder="Nama lengkap" />
-              {errors.recipient && <p className="text-xs text-[#FF3B30] mt-1">{errors.recipient.message}</p>}
+              {errors.recipient && <p className="text-xs text-[#EF4444] mt-1">{errors.recipient.message}</p>}
             </div>
             <div>
               <Label>No. HP</Label>
               <Input {...register('phone')} placeholder="08123456789" type="tel" />
-              {errors.phone && <p className="text-xs text-[#FF3B30] mt-1">{errors.phone.message}</p>}
+              {errors.phone && <p className="text-xs text-[#EF4444] mt-1">{errors.phone.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Provinsi</Label>
-                <select {...register('province')} className="w-full h-10 rounded-lg border border-[#E5E5EA] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#F5A623]">
+                <select {...register('province')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#2563EB]">
                   <option value="">Pilih Provinsi</option>
                   {provinces.map((p) => <option key={p.province_id} value={p.province_id}>{p.province}</option>)}
                 </select>
-                {errors.province && <p className="text-xs text-[#FF3B30] mt-1">{errors.province.message}</p>}
+                {errors.province && <p className="text-xs text-[#EF4444] mt-1">{errors.province.message}</p>}
               </div>
               <div>
                 <Label>Kota</Label>
-                <select {...register('city')} className="w-full h-10 rounded-lg border border-[#E5E5EA] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#F5A623]" disabled={!selectedProvince}>
+                <select {...register('city')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#2563EB]" disabled={!selectedProvince}>
                   <option value="">Pilih Kota</option>
                   {cities.map((c) => <option key={c.city_id} value={c.city_name}>{c.city_name}</option>)}
                 </select>
-                {errors.city && <p className="text-xs text-[#FF3B30] mt-1">{errors.city.message}</p>}
+                {errors.city && <p className="text-xs text-[#EF4444] mt-1">{errors.city.message}</p>}
               </div>
             </div>
             <div>
               <Label>Kecamatan</Label>
               <Input {...register('district')} placeholder="Menteng" />
-              {errors.district && <p className="text-xs text-[#FF3B30] mt-1">{errors.district.message}</p>}
+              {errors.district && <p className="text-xs text-[#EF4444] mt-1">{errors.district.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Kode Pos</Label>
                 <Input {...register('postalCode')} placeholder="12345" maxLength={5} />
-                {errors.postalCode && <p className="text-xs text-[#FF3B30] mt-1">{errors.postalCode.message}</p>}
+                {errors.postalCode && <p className="text-xs text-[#EF4444] mt-1">{errors.postalCode.message}</p>}
               </div>
               <div>
                 <Label>Label Alamat</Label>
-                <select className="w-full h-10 rounded-lg border border-[#E5E5EA] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#F5A623]" defaultValue="Rumah">
+                <select className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#2563EB]" defaultValue="Rumah">
                   <option>Rumah</option>
                   <option>Kantor</option>
                   <option>Lainnya</option>
@@ -312,11 +356,11 @@ export default function CheckoutPage() {
             </div>
             <div>
               <Label>Alamat Lengkap</Label>
-              <textarea {...register('detail')} className="w-full min-h-[80px] rounded-lg border border-[#E5E5EA] p-3 text-sm resize-none outline-none focus:ring-1 focus:ring-[#F5A623]" placeholder="Jalan, nomor, RT/RW, gedung, dll." />
-              {errors.detail && <p className="text-xs text-[#FF3B30] mt-1">{errors.detail.message}</p>}
+              <textarea {...register('detail')} className="w-full min-h-[80px] rounded-lg border border-[#E2E8F0] p-3 text-sm resize-none outline-none focus:ring-1 focus:ring-[#2563EB]" placeholder="Jalan, nomor, RT/RW, gedung, dll." />
+              {errors.detail && <p className="text-xs text-[#EF4444] mt-1">{errors.detail.message}</p>}
             </div>
           </div>
-          <Button type="submit" className="w-full h-12">
+          <Button type="submit" className="w-full h-12 bg-[#0F172A] hover:bg-[#1E293B] text-white">
             Lanjut ke Pengiriman <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </form>
@@ -325,20 +369,20 @@ export default function CheckoutPage() {
       {/* Step 2: Pengiriman */}
       {step === 2 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#1C1C1E]">Pilih Jasa Pengiriman</h2>
+          <h2 className="text-lg font-bold text-[#0F172A]">Pilih Jasa Pengiriman</h2>
           <div className="space-y-2">
             <RadioGroup value={selectedCourier} onValueChange={setSelectedCourier}>
               {COURIERS.map((c) => (
                 <RadioGroupItem key={c.id} value={c.id}>
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <Truck className="w-5 h-5 text-[#F5A623]" />
+                      <Truck className="w-5 h-5 text-[#2563EB]" />
                       <span className="font-medium text-sm">{c.label}</span>
                     </div>
                     {selectedCourier === c.id && (
                       <div className="mt-3 space-y-2 pl-8">
                         {shippingLoading ? (
-                          <div className="flex items-center gap-2 text-sm text-[#8E8E93] py-3">
+                          <div className="flex items-center gap-2 text-sm text-[#64748B] py-3">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             Menghitung ongkir...
                           </div>
@@ -350,19 +394,19 @@ export default function CheckoutPage() {
                               onClick={() => { setSelectedService(rate.service); setShippingCost(rate.cost); }}
                               className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-sm transition-all ${
                                 selectedService === rate.service
-                                  ? 'border-[#F5A623] bg-[#F5A623]/5'
-                                  : 'border-[#E5E5EA] bg-white'
+                                  ? 'border-[#2563EB] bg-[#EFF6FF]'
+                                  : 'border-[#E2E8F0] bg-white'
                               }`}
                             >
                               <div className="text-left">
-                                <p className="font-medium text-[#1C1C1E]">{rate.service}</p>
-                                <p className="text-xs text-[#8E8E93]">{rate.description} — {rate.etd}</p>
+                                <p className="font-medium text-[#0F172A]">{rate.service}</p>
+                                <p className="text-xs text-[#64748B]">{rate.description} — {rate.etd}</p>
                               </div>
                               <span className="font-semibold">{formatPrice(rate.cost)}</span>
                             </button>
                           ))
                         ) : (
-                          <p className="text-sm text-[#8E8E93] py-3">Tidak ada layanan tersedia</p>
+                          <p className="text-sm text-[#64748B] py-3">Tidak ada layanan tersedia</p>
                         )}
                       </div>
                     )}
@@ -375,7 +419,7 @@ export default function CheckoutPage() {
             <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(1)}>
               <ChevronLeft className="w-4 h-4 mr-1" /> Kembali
             </Button>
-            <Button className="flex-1 h-12" onClick={() => setStep(3)} disabled={!selectedService}>
+            <Button className="flex-1 h-12 bg-[#0F172A] hover:bg-[#1E293B] text-white" onClick={() => setStep(3)} disabled={!selectedService}>
               Lanjut ke Pembayaran <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
@@ -385,8 +429,8 @@ export default function CheckoutPage() {
       {/* Step 3: Pembayaran */}
       {step === 3 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#1C1C1E]">Metode Pembayaran</h2>
-          <div className="bg-white rounded-xl border border-[#E5E5EA] divide-y divide-[#E5E5EA]">
+          <h2 className="text-lg font-bold text-[#0F172A]">Metode Pembayaran</h2>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] divide-y divide-[#E2E8F0]">
             {PAYMENT_METHODS.map((pm) => {
               const Icon = pm.icon;
               return (
@@ -395,51 +439,51 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={() => setPaymentMethod(pm.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
-                    paymentMethod === pm.id ? 'bg-[#F5A623]/5' : ''
+                    paymentMethod === pm.id ? 'bg-[#EFF6FF]' : ''
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    paymentMethod === pm.id ? 'border-[#F5A623]' : 'border-[#C7C7CC]'
+                    paymentMethod === pm.id ? 'border-[#2563EB]' : 'border-[#CBD5E1]'
                   }`}>
-                    {paymentMethod === pm.id && <div className="w-3 h-3 rounded-full bg-[#F5A623]" />}
+                    {paymentMethod === pm.id && <div className="w-3 h-3 rounded-full bg-[#2563EB]" />}
                   </div>
-                  <Icon className="w-5 h-5 text-[#F5A623]" />
+                  <Icon className="w-5 h-5 text-[#2563EB]" />
                   <span className="text-sm font-medium">{pm.label}</span>
                 </button>
               );
             })}
           </div>
 
-          <div className="bg-white rounded-xl border border-[#E5E5EA] p-4 space-y-2">
-            <h3 className="font-semibold text-sm text-[#1C1C1E] mb-2">Ringkasan Pesanan</h3>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 space-y-2">
+            <h3 className="font-semibold text-sm text-[#0F172A] mb-2">Ringkasan Pesanan</h3>
             {items.map((item) => (
               <div key={`${item.productId}::${item.variantId || ''}`} className="flex items-center gap-2 text-sm">
-                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#F2F2F7] flex-shrink-0">
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#F1F5F9] flex-shrink-0">
                   <Image src={item.image || '/images/placeholder.svg'} alt={item.name} fill className="object-cover" sizes="40px" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate">{item.name}</p>
-                  {item.variantLabel && <p className="text-[10px] text-[#6B7280]">{item.variantLabel}</p>}
-                  <p className="text-xs text-[#8E8E93]">{item.qty}x {formatPrice(item.price)}</p>
+                  {item.variantLabel && <p className="text-[10px] text-[#64748B]">{item.variantLabel}</p>}
+                  <p className="text-xs text-[#64748B]">{item.qty}x {formatPrice(item.price)}</p>
                 </div>
                 <span className="text-sm font-medium">{formatPrice(item.price * item.qty)}</span>
               </div>
             ))}
             <Separator />
-            <div className="flex justify-between text-sm"><span className="text-[#8E8E93]">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-[#8E8E93]">Ongkos Kirim ({selectedCourier.toUpperCase()} {selectedService})</span><span>{formatPrice(shippingCost)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-[#64748B]">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-[#64748B]">Ongkos Kirim ({selectedCourier.toUpperCase()} {selectedService})</span><span>{formatPrice(shippingCost)}</span></div>
             {voucherDiscount > 0 && (
-              <div className="flex justify-between text-sm"><span className="text-[#34C759]">Diskon ({voucherCode})</span><span className="text-[#34C759]">-{formatPrice(voucherDiscount)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-[#16A34A]">Diskon ({voucherCode})</span><span className="text-[#16A34A]">-{formatPrice(voucherDiscount)}</span></div>
             )}
             <Separator />
-            <div className="flex justify-between font-bold text-lg text-[#1C1C1E]"><span>Total</span><span>{formatPrice(total)}</span></div>
+            <div className="flex justify-between font-bold text-lg text-[#0F172A]"><span>Total</span><span>{formatPrice(total)}</span></div>
           </div>
 
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(2)}>
               <ChevronLeft className="w-4 h-4 mr-1" /> Kembali
             </Button>
-            <Button variant="accent" className="flex-1 h-12" onClick={handleCreateOrder} disabled={!paymentMethod || loading}>
+            <Button className="flex-1 h-12 bg-[#0F172A] hover:bg-[#1E293B] text-white" onClick={handleCreateOrder} disabled={!paymentMethod || loading}>
               {loading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...</>
               ) : (
@@ -454,44 +498,44 @@ export default function CheckoutPage() {
       {step === 4 && orderResult && (
         <div className="space-y-4">
           <div className="text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-[#34C759]/10 flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-8 h-8 text-[#34C759]" />
+            <div className="w-16 h-16 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-8 h-8 text-[#16A34A]" />
             </div>
-            <h2 className="text-xl font-bold text-[#1C1C1E]">Pesanan Dibuat!</h2>
-            <p className="text-sm text-[#8E8E93] mt-1">Silakan selesaikan pembayaran</p>
+            <h2 className="text-xl font-bold text-[#0F172A]">Pesanan Dibuat!</h2>
+            <p className="text-sm text-[#64748B] mt-1">Silakan selesaikan pembayaran</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-[#E5E5EA] p-4 space-y-3">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#8E8E93]">ID Pesanan</span>
+              <span className="text-sm text-[#64748B]">ID Pesanan</span>
               <span className="text-sm font-mono font-bold">{orderResult.id}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#8E8E93]">Total Bayar</span>
-              <span className="text-lg font-bold text-[#FF3B30]">{formatPrice(orderResult.total)}</span>
+              <span className="text-sm text-[#64748B]">Total Bayar</span>
+              <span className="text-lg font-bold text-[#EF4444]">{formatPrice(orderResult.total)}</span>
             </div>
             <Separator />
 
             <div>
-              <h3 className="font-semibold text-sm text-[#1C1C1E] mb-2">Instruksi Pembayaran</h3>
-              <div className="bg-[#F2F2F7] rounded-xl p-4 space-y-3">
+              <h3 className="font-semibold text-sm text-[#0F172A] mb-2">Instruksi Pembayaran</h3>
+              <div className="bg-[#F8FAFC] rounded-xl p-4 space-y-3">
                 {(() => {
                   const pi = orderResult.paymentInstructions;
                   if (!pi) return null;
                   return <>
                     {pi.bank && (
                       <div>
-                        <p className="text-xs text-[#8E8E93] mb-1">Bank</p>
-                        <p className="font-semibold text-[#1C1C1E]">{pi.bank}</p>
+                        <p className="text-xs text-[#64748B] mb-1">Bank</p>
+                        <p className="font-semibold text-[#0F172A]">{pi.bank}</p>
                       </div>
                     )}
                     {pi.vaNumber && (
                       <div>
-                        <p className="text-xs text-[#8E8E93] mb-1">Nomor Virtual Account</p>
-                        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-3 border border-[#E5E5EA]">
-                          <p className="text-xl font-bold font-mono text-[#1C1C1E] tracking-wider flex-1">{pi.vaNumber}</p>
-                          <button onClick={() => copyToClipboard(pi.vaNumber!)} className="p-2 rounded-lg hover:bg-[#F2F2F7] transition-colors">
-                            {copied ? <CheckCircle className="w-5 h-5 text-[#34C759]" /> : <Copy className="w-5 h-5 text-[#8E8E93]" />}
+                        <p className="text-xs text-[#64748B] mb-1">Nomor Virtual Account</p>
+                        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-3 border border-[#E2E8F0]">
+                          <p className="text-xl font-bold font-mono text-[#0F172A] tracking-wider flex-1">{pi.vaNumber}</p>
+                          <button onClick={() => copyToClipboard(pi.vaNumber!)} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
+                            {copied ? <CheckCircle className="w-5 h-5 text-[#16A34A]" /> : <Copy className="w-5 h-5 text-[#64748B]" />}
                           </button>
                         </div>
                       </div>
@@ -499,15 +543,15 @@ export default function CheckoutPage() {
                     {pi.qr && (
                       <div className="flex flex-col items-center py-3">
                         <Image src={pi.qr} alt="QRIS" width={160} height={160} className="rounded-xl" />
-                        <p className="text-xs text-[#8E8E93] mt-2">Scan QRIS dengan e-wallet</p>
+                        <p className="text-xs text-[#64748B] mt-2">Scan QRIS dengan e-wallet</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-xs text-[#8E8E93] mb-1.5">Langkah-langkah:</p>
+                      <p className="text-xs text-[#64748B] mb-1.5">Langkah-langkah:</p>
                       <ol className="space-y-1.5">
                         {pi.instructions?.map((inst: string, i: number) => (
-                          <li key={i} className="text-sm text-[#1C1C1E] flex items-start gap-2">
-                            <span className="w-5 h-5 rounded-full bg-[#F5A623]/10 text-[#F5A623] text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                          <li key={i} className="text-sm text-[#0F172A] flex items-start gap-2">
+                            <span className="w-5 h-5 rounded-full bg-[#EFF6FF] text-[#2563EB] text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                             {inst}
                           </li>
                         ))}
@@ -518,22 +562,22 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FFF3E0]">
-              <Clock className="w-4 h-4 text-[#F5A623] shrink-0" />
-              <span className="text-xs text-[#8E8E93]">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FEF3C7]">
+              <Clock className="w-4 h-4 text-[#F59E0B] shrink-0" />
+              <span className="text-xs text-[#92400E]">
                 Sisa waktu: <strong>{Math.floor(countdown / 3600)}j {Math.floor((countdown % 3600) / 60)}m {countdown % 60}d</strong> — Pesanan akan dibatalkan jika tidak dibayar.
               </span>
             </div>
           </div>
 
-          <Button variant="accent" className="w-full h-12" onClick={handleConfirmPayment} disabled={confirmLoading}>
+          <Button className="w-full h-12 bg-[#0F172A] hover:bg-[#1E293B] text-white" onClick={handleConfirmPayment} disabled={confirmLoading}>
             {confirmLoading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...</>
             ) : (
               'Saya Sudah Bayar'
             )}
           </Button>
-          <p className="text-xs text-[#8E8E93] text-center">Setelah transfer, klik tombol di atas untuk konfirmasi pembayaran</p>
+          <p className="text-xs text-[#64748B] text-center">Setelah transfer, klik tombol di atas untuk konfirmasi pembayaran</p>
         </div>
       )}
     </div>

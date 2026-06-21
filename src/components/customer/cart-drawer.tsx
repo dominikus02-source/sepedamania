@@ -3,11 +3,13 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import { useCartStore } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
-import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, Trash2, ShoppingBag, LogIn } from 'lucide-react';
 
 export function CartDrawer() {
+  const { data: session } = useSession();
   const { items, isOpen, closeCart, removeItem, updateQty, getSubtotal, getCount } = useCartStore();
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +31,8 @@ export function CartDrawer() {
   }, [closeCart]);
 
   if (!isOpen) return null;
+
+  const isLoggedIn = !!session;
 
   return (
     <>
@@ -95,12 +99,36 @@ export function CartDrawer() {
               <span className="text-sm text-[#64748B]">Subtotal</span>
               <span className="text-lg font-bold text-[#0F172A]">{formatPrice(getSubtotal())}</span>
             </div>
-            <Link href="/keranjang" onClick={closeCart} className="block w-full text-center bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold py-3 rounded-xl transition-colors text-sm">
-              Lihat Keranjang
-            </Link>
-            <Link href="/checkout" onClick={closeCart} className="block w-full text-center border border-[#E2E8F0] text-[#0F172A] font-medium py-3 rounded-xl hover:bg-[#F1F5F9] transition-colors text-sm">
-              Checkout
-            </Link>
+
+            {isLoggedIn ? (
+              <>
+                <Link href="/keranjang" onClick={closeCart} className="block w-full text-center bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                  Lihat Keranjang
+                </Link>
+                <Link href="/checkout" onClick={closeCart} className="block w-full text-center border border-[#E2E8F0] text-[#0F172A] font-medium py-3 rounded-xl hover:bg-[#F1F5F9] transition-colors text-sm">
+                  Checkout
+                </Link>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg">
+                  <p className="text-xs text-[#1E40AF]">
+                    <span className="font-medium">Masuk dulu</span> untuk melanjutkan checkout
+                  </p>
+                </div>
+                <Link
+                  href={`/masuk?callbackUrl=/checkout`}
+                  onClick={closeCart}
+                  className="flex items-center justify-center gap-2 w-full bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Masuk untuk Checkout
+                </Link>
+                <Link href="/keranjang" onClick={closeCart} className="block w-full text-center border border-[#E2E8F0] text-[#0F172A] font-medium py-3 rounded-xl hover:bg-[#F1F5F9] transition-colors text-sm">
+                  Lihat Keranjang
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>
