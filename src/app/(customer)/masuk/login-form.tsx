@@ -63,10 +63,8 @@ export function LoginForm() {
       <div className="max-w-md mx-auto w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-[#0F172A] flex items-center justify-center mx-auto mb-3 p-3">
-              <img src="/images/logo-sepedamania.png" alt="SEPEDAMANIA" className="w-full h-full brightness-0 invert" />
-            </div>
+          <Link href="/" className="inline-block mb-4 mx-auto max-w-[200px]">
+            <img src="/images/logo-sepedamania.webp" alt="SEPEDAMANIA" className="w-full h-auto" />
           </Link>
           <h1 className="text-2xl font-bold text-[#0F172A]">Masuk ke Sepedamania</h1>
           <p className="text-sm text-[#64748B] mt-1">Belanja sepeda dengan mudah dan aman</p>
