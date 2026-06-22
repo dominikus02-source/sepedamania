@@ -2,198 +2,320 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronRight, ShieldCheck, PackageCheck, Truck, CreditCard } from 'lucide-react';
+import { ChevronRight, TrendingUp, Star, ShieldCheck } from 'lucide-react';
 
 const slides = [
   {
     id: 1,
-    title: 'Upgrade Gowesmu Hari Ini',
-    subtitle: 'Pilihan sepeda MTB, road bike, fixie, BMX, dan aksesoris terbaik untuk semua gaya berkendara.',
-    cta: 'Belanja Sekarang',
+    badge: 'New Collection',
+    title: 'Gowes Lebih Jauh,',
+    titleAccent: 'Lebih Cepat',
+    subtitle: 'Dari MTB trail hingga road bike aerodinamis — temukan sepeda yang cocok dengan gaya ridingmu.',
+    cta: 'Jelajahi Sekarang',
     ctaLink: '/kategori',
-    secondaryCta: 'Lihat Flash Sale',
-    secondaryLink: '#flash-sale',
-    image: '/images/banners/banner-1.jpg',
-    gradient: 'from-[#0F172A] via-[#1E293B] to-[#0F172A]',
+    image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=1200&q=85',
+    mobileImage: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=600&q=80',
+    accent: '#2563EB',
   },
   {
     id: 2,
-    title: 'Koleksi Road Bike Premium',
-    subtitle: 'Kecepatan tanpa batas. Dari Polygon hingga United, semua tersedia di sini.',
-    cta: 'Lihat Koleksi',
+    badge: 'Premium Pick',
+    title: 'Road Bike Pilihan',
+    titleAccent: 'Untuk Juara',
+    subtitle: 'Polygon, United, dan merek ternama siap menemani perjalananmu. Mulai dari Rp 4,5 Juta.',
+    cta: 'Lihat Road Bike',
     ctaLink: '/kategori/road-bike',
-    secondaryCta: 'Mulai dari Rp 4,5 Juta',
-    secondaryLink: '/kategori/road-bike',
-    image: '/images/banners/banner-2.jpg',
-    gradient: 'from-[#1E3A5F] via-[#1E293B] to-[#0F172A]',
+    image: 'https://images.unsplash.com/photo-1485965120184-e220f79d9d13?w=1200&q=85',
+    mobileImage: 'https://images.unsplash.com/photo-1485965120184-e220f79d9d13?w=600&q=80',
+    accent: '#7C3AED',
   },
   {
     id: 3,
-    title: 'Style Urban dengan Fixie',
-    subtitle: 'Tampil beda di jalanan kota. Koleksi Fixie terbaru dengan harga spesial.',
-    cta: 'Lihat Fixie',
-    ctaLink: '/kategori/fixie',
-    secondaryCta: 'Free Helmet',
-    secondaryLink: '/kategori/fixie',
-    image: '/images/banners/banner-3.jpg',
-    gradient: 'from-[#1A1A2E] via-[#16213E] to-[#0F172A]',
+    badge: 'Best Deal',
+    title: 'Flash Sale Spesial,',
+    titleAccent: 'Diskon hingga 15%',
+    subtitle: 'Jangan lewatkan penawaran terbatas untuk sepeda pilihan. Stok terbatas, cepat checkout!',
+    cta: 'Lihat Flash Sale',
+    ctaLink: '/kategori?sort=flash-sale',
+    image: 'https://images.unsplash.com/photo-1576435778678-68b69c49e36e?w=1200&q=85',
+    mobileImage: 'https://images.unsplash.com/photo-1576435778678-68b69c49e36e?w=600&q=80',
+    accent: '#DC2626',
   },
 ];
 
-const trustBadges = [
-  { icon: ShieldCheck, text: 'Produk Original' },
-  { icon: PackageCheck, text: 'Siap Kirim Cepat' },
-  { icon: CreditCard, text: 'Bayar Aman' },
-  { icon: Truck, text: 'Gratis Ongkir*' },
+const stats = [
+  { icon: Star, value: '500+', label: 'Produk' },
+  { icon: TrendingUp, value: '10rb+', label: 'Pelanggan' },
+  { icon: ShieldCheck, value: '5', label: 'Brand Ternama' },
+  { icon: ChevronRight, value: 'Gratis*', label: 'Ongkir' },
 ];
+
+function ChainringPattern({ className }: { className?: string }) {
+  return (
+    <svg className={cn('absolute opacity-[0.04] pointer-events-none', className)} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="85" stroke="currentColor" strokeWidth="0.5" />
+      <circle cx="100" cy="100" r="70" stroke="currentColor" strokeWidth="0.5" />
+      <circle cx="100" cy="100" r="55" stroke="currentColor" strokeWidth="0.5" />
+      <circle cx="100" cy="100" r="12" stroke="currentColor" strokeWidth="0.5" />
+      {[...Array(12)].map((_, i) => (
+        <line
+          key={i}
+          x1={100 + 55 * Math.cos((i * 30 * Math.PI) / 180)}
+          y1={100 + 55 * Math.sin((i * 30 * Math.PI) / 180)}
+          x2={100 + 70 * Math.cos((i * 30 * Math.PI) / 180)}
+          y2={100 + 70 * Math.sin((i * 30 * Math.PI) / 180)}
+          stroke="currentColor"
+          strokeWidth="0.5"
+        />
+      ))}
+      {[...Array(18)].map((_, i) => (
+        <circle
+          key={i}
+          cx={100 + 85 * Math.cos((i * 20 * Math.PI) / 180)}
+          cy={100 + 85 * Math.sin((i * 20 * Math.PI) / 180)}
+          r="3"
+          stroke="currentColor"
+          strokeWidth="0.5"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function SpeedLines({ className }: { className?: string }) {
+  return (
+    <svg className={cn('absolute pointer-events-none', className)} viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {[...Array(8)].map((_, i) => (
+        <line
+          key={i}
+          x1={50 + i * 45}
+          y1={40 + i * 15}
+          x2={50 + i * 55}
+          y2={40 + i * 15}
+          stroke="currentColor"
+          strokeWidth="1"
+          className="opacity-[0.06]"
+          strokeLinecap="round"
+        />
+      ))}
+      {[...Array(6)].map((_, i) => (
+        <line
+          key={i}
+          x1={60 + i * 55}
+          y1={130 - i * 10}
+          x2={60 + i * 70}
+          y2={130 - i * 10}
+          stroke="currentColor"
+          strokeWidth="1"
+          className="opacity-[0.04]"
+          strokeLinecap="round"
+        />
+      ))}
+    </svg>
+  );
+}
 
 export function HeroBanner() {
   const [current, setCurrent] = useState(0);
+  const slide = slides[current];
+
+  const next = useCallback(() => setCurrent((c) => (c + 1) % slides.length), []);
+  const prev = useCallback(() => setCurrent((c) => (c - 1 + slides.length) % slides.length), []);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrent((c) => (c + 1) % slides.length), 6000);
+    const timer = setInterval(next, 6000);
     return () => clearInterval(timer);
-  }, []);
-
-  const slide = slides[current];
+  }, [next]);
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[#0F172A]">
-      {/* Desktop: 2-column */}
-      <div className="hidden lg:grid lg:grid-cols-2 lg:min-h-[420px]">
+      {/* Desktop layout */}
+      <div className="hidden lg:relative lg:grid lg:grid-cols-2 lg:min-h-[500px]">
+        {/* Background image */}
+        {slides.map((s, i) => (
+          <div
+            key={s.id}
+            className={cn(
+              'absolute inset-0 transition-opacity duration-700',
+              i === current ? 'opacity-100' : 'opacity-0 pointer-events-none',
+            )}
+          >
+            <Image
+              src={s.image}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority={i === 0}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A] via-[#0F172A]/90 to-[#0F172A]/70" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/40 to-transparent" />
+          </div>
+        ))}
+
+        {/* Chainring decorative */}
+        <ChainringPattern className="text-white right-4 top-4 w-40 h-40 hidden xl:block" />
+        <SpeedLines className="text-white bottom-0 left-1/2 w-full h-24" />
+
         {/* Left: Content */}
-        <div className="relative z-10 flex flex-col justify-center px-10 py-12">
-          <p className="text-xs font-medium text-[#94A3B8] uppercase tracking-[0.2em] mb-3">
-            {current === 0 ? 'Featured' : current === 1 ? 'Premium' : 'New Collection'}
+        <div className="relative z-10 flex flex-col justify-center px-12 py-14">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full mb-5 w-fit">
+            <span className={cn(
+              'w-1.5 h-1.5 rounded-full',
+              current === 0 ? 'bg-[#2563EB]' : current === 1 ? 'bg-[#7C3AED]' : 'bg-[#DC2626]',
+            )} />
+            {slide.badge}
           </p>
-          <h1 className="text-4xl font-bold text-white font-display leading-tight mb-4">
+
+          <h1 className="text-5xl font-extrabold text-white font-display leading-[1.1] mb-1">
             {slide.title}
           </h1>
-          <p className="text-[#94A3B8] text-base mb-6 max-w-md leading-relaxed">
+          <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 font-display leading-[1.1] mb-4">
+            {slide.titleAccent}
+          </h1>
+          <p className="text-[#94A3B8] text-base mb-7 max-w-md leading-relaxed">
             {slide.subtitle}
           </p>
           <div className="flex items-center gap-3">
             <Link
               href={slide.ctaLink}
-              className="inline-flex items-center gap-1.5 bg-white text-[#0F172A] font-semibold px-6 py-3 rounded-xl hover:bg-[#F1F5F9] transition-colors text-sm"
+              className="inline-flex items-center gap-2 bg-white text-[#0F172A] font-semibold px-7 py-3.5 rounded-xl hover:bg-[#F1F5F9] transition-all text-sm active:scale-[0.97]"
             >
               {slide.cta} <ChevronRight className="w-4 h-4" />
             </Link>
             <Link
-              href={slide.secondaryLink}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#94A3B8] hover:text-white px-4 py-3 transition-colors"
+              href="/produk"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#94A3B8] hover:text-white px-4 py-3.5 transition-colors"
             >
-              {slide.secondaryCta}
+              Lihat Semua Produk
             </Link>
           </div>
+        </div>
 
-          {/* Trust badges */}
-          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/10">
-            {trustBadges.map((badge) => {
-              const Icon = badge.icon;
+        {/* Right: Stats + visual */}
+        <div className="relative z-10 flex flex-col justify-end px-12 py-14">
+          <div className="grid grid-cols-2 gap-3">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
               return (
-                <div key={badge.text} className="flex items-center gap-1.5 text-xs text-[#64748B]">
-                  <Icon className="w-3.5 h-3.5" />
-                  {badge.text}
+                <div key={stat.label} className={cn(
+                  'rounded-xl border p-4 backdrop-blur-sm',
+                  'border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors',
+                )}>
+                  <Icon className="w-4 h-4 text-[#94A3B8] mb-2" />
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-[#64748B] mt-0.5">{stat.label}</p>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Right: Visual */}
-        <div className="relative h-full min-h-[420px]">
-          <div className={cn('absolute inset-0 bg-gradient-to-r', slide.gradient)} />
-          {slide.image && (
-            <Image
-              src={slide.image}
-              alt={slide.title}
-              fill
-              className="object-cover mix-blend-overlay"
-              sizes="50vw"
-              priority={current === 0}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Mobile: Full-width carousel */}
-      <div className="lg:hidden">
-        <div className="relative h-64 sm:h-72">
-          {slides.map((s, index) => (
-            <Link
-              key={s.id}
-              href={s.ctaLink}
-              className={cn(
-                'absolute inset-0 transition-all duration-500',
-                index === current ? 'opacity-100' : 'opacity-0 pointer-events-none',
-              )}
-            >
-              <div className={cn('absolute inset-0 bg-gradient-to-r', s.gradient)} />
-              {s.image && (
-                <Image
-                  src={s.image}
-                  alt={s.title}
-                  fill
-                  className="object-cover mix-blend-overlay"
-                  sizes="100vw"
-                  priority={index === 0}
-                />
-              )}
-              <div className="absolute inset-0 flex flex-col justify-center px-6">
-                <p className="text-xs font-medium text-[#94A3B8] uppercase tracking-widest mb-2">
-                  {index === 0 ? 'Featured' : index === 1 ? 'Premium' : 'New'}
-                </p>
-                <h2 className="text-2xl font-bold text-white font-display mb-2">{s.title}</h2>
-                <p className="text-sm text-[#94A3B8] mb-4 max-w-xs">{s.subtitle}</p>
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-white bg-white/20 backdrop-blur-sm px-5 py-2.5 rounded-full w-fit">
-                  {s.cta} <ChevronRight className="w-4 h-4" />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {/* Arrows */}
+        <button
+          onClick={prev}
+          className="absolute left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+        >
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <button
+          onClick={next}
+          className="absolute right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+        >
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        </button>
 
         {/* Dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-          {slides.map((_, index) => (
+        <div className="absolute bottom-5 left-12 z-20 flex gap-2">
+          {slides.map((_, i) => (
             <button
-              key={index}
-              onClick={() => setCurrent(index)}
+              key={i}
+              onClick={() => setCurrent(i)}
               className={cn(
-                'h-1.5 rounded-full transition-all duration-300',
-                index === current ? 'bg-white w-5' : 'bg-white/30 w-1.5',
+                'rounded-full transition-all duration-300',
+                i === current ? 'bg-white w-6 h-2' : 'bg-white/30 w-2 h-2 hover:bg-white/50',
               )}
             />
           ))}
         </div>
       </div>
 
-      {/* Desktop arrows */}
-      <button
-        onClick={() => setCurrent((c) => (c - 1 + slides.length) % slides.length)}
-        className="hidden lg:flex absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm items-center justify-center hover:bg-white/20 transition-colors"
-      >
-        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-      </button>
-      <button
-        onClick={() => setCurrent((c) => (c + 1) % slides.length)}
-        className="hidden lg:flex absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm items-center justify-center hover:bg-white/20 transition-colors"
-      >
-        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-      </button>
-
-      {/* Desktop dots */}
-      <div className="hidden lg:flex absolute bottom-4 left-10 gap-1.5">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrent(index)}
-            className={cn('h-1.5 rounded-full transition-all', index === current ? 'bg-white w-5' : 'bg-white/30 w-1.5')}
-          />
+      {/* Mobile layout */}
+      <div className="lg:hidden relative">
+        {slides.map((s, i) => (
+          <Link
+            key={s.id}
+            href={s.ctaLink}
+            className={cn(
+              'relative h-[420px] transition-opacity duration-500',
+              i === current ? 'block' : 'hidden',
+            )}
+          >
+            <Image
+              src={s.mobileImage}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority={i === 0}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/60 to-transparent" />
+            <ChainringPattern className="text-white right-0 top-0 w-32 h-32" />
+            <div className="absolute inset-0 flex flex-col justify-end p-6 pb-16">
+              <p className={cn(
+                'inline-flex items-center gap-1.5 text-[10px] font-semibold text-white/70 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full mb-3 w-fit',
+              )}>
+                <span className={cn(
+                  'w-1.5 h-1.5 rounded-full',
+                  i === 0 ? 'bg-[#2563EB]' : i === 1 ? 'bg-[#7C3AED]' : 'bg-[#DC2626]',
+                )} />
+                {s.badge}
+              </p>
+              <h2 className="text-3xl font-extrabold text-white font-display leading-tight mb-1">
+                {s.title}
+              </h2>
+              <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 font-display leading-tight mb-2">
+                {s.titleAccent}
+              </h2>
+              <p className="text-sm text-[#94A3B8] mb-5 max-w-xs">
+                {s.subtitle}
+              </p>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-white bg-white/20 backdrop-blur-md px-5 py-3 rounded-xl w-fit active:scale-[0.97] transition-transform">
+                {s.cta} <ChevronRight className="w-4 h-4" />
+              </span>
+            </div>
+          </Link>
         ))}
+
+        {/* Dots */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={cn(
+                'rounded-full transition-all duration-300',
+                i === current ? 'bg-white w-5 h-1.5' : 'bg-white/30 w-1.5 h-1.5',
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Mobile stats row */}
+        <div className="grid grid-cols-4 gap-1.5 px-4 py-3 bg-[#0F172A]">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div key={stat.label} className="text-center">
+                <Icon className="w-3 h-3 text-[#94A3B8] mx-auto mb-0.5" />
+                <p className="text-xs font-bold text-white">{stat.value}</p>
+                <p className="text-[9px] text-[#64748B]">{stat.label}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
