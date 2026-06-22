@@ -5,6 +5,7 @@ import { CategoryChips } from '@/components/customer/category-chips';
 import { FlashSale } from '@/components/customer/flash-sale';
 import { BrandStrip } from '@/components/customer/brand-strip';
 import { ProductCard } from '@/components/customer/product-card';
+import { TrustBadges } from '@/components/customer/trust-badges';
 import { Container, Section, SectionHeader } from '@/components/ui/container';
 import { mockCategories, mockBrands, mockProducts } from '@/lib/mock-data';
 import { ChevronRight } from 'lucide-react';
@@ -55,7 +56,7 @@ export default function HomePage() {
           <SectionHeader
             title="Terlaris"
             action={
-              <Link href="/kategori?sort=sold" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
+              <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
                 Lihat Semua <ChevronRight className="w-4 h-4" />
               </Link>
             }
@@ -74,7 +75,7 @@ export default function HomePage() {
           <SectionHeader
             title="Baru"
             action={
-              <Link href="/kategori?sort=newest" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
+              <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
                 Lihat Semua <ChevronRight className="w-4 h-4" />
               </Link>
             }
@@ -84,6 +85,13 @@ export default function HomePage() {
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
+        </Container>
+      </Section>
+
+      {/* Trust Badges */}
+      <Section>
+        <Container>
+          <TrustBadges variant="full" />
         </Container>
       </Section>
     </div>

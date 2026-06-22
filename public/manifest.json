@@ -2,7 +2,7 @@
   "name": "SEPEDAMANIA",
   "short_name": "SEPEDAMANIA",
   "description": "Toko Sepeda Online Terlengkap — MTB, Road Bike, BMX, Fixie & Aksesoris",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait-primary",
@@ -22,10 +22,14 @@
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
+    { "name": "Bike Finder", "short_name": "Finder", "description": "Cari sepeda sesuai kebutuhan", "url": "/bike-finder", "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
     { "name": "Cari Sepeda", "short_name": "Cari", "description": "Cari produk sepeda", "url": "/cari", "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
     { "name": "Keranjang", "short_name": "Keranjang", "description": "Lihat keranjang belanja", "url": "/keranjang", "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
-    { "name": "Pesanan Saya", "short_name": "Pesanan", "description": "Cek status pesanan", "url": "/pesanan", "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] }
+    { "name": "Pesanan Saya", "short_name": "Pesanan", "description": "Cek status pesanan", "url": "/pesanan", "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] },
+    { "name": "Panduan", "short_name": "Panduan", "description": "Panduan & tips sepeda", "url": "/panduan", "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }] }
   ]
 }

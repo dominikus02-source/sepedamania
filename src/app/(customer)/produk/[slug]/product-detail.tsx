@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProductCard } from '@/components/customer/product-card';
 import { StarRating } from '@/components/customer/star-rating';
+import { TrustBadges } from '@/components/customer/trust-badges';
 import { useCartStore } from '@/store/cart';
+import { useCompareStore } from '@/store/compare-store';
 import { useToast } from '@/components/ui/toaster';
-import { ShoppingCart, ChevronLeft, Heart, Truck, Shield, RotateCcw, Minus, Plus } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, Heart, Truck, Shield, RotateCcw, Minus, Plus, BarChart3 } from 'lucide-react';
 
 interface ProductData {
   id: string;
@@ -42,6 +44,7 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
   const [tab, setTab] = useState('deskripsi');
   const [imgError, setImgError] = useState<Record<number, boolean>>({});
   const addItem = useCartStore(s => s.addItem);
+  const { addItem: addCompareItem, isInCompare } = useCompareStore();
   const { toast } = useToast();
 
   const isSale = product.salePrice && product.salePrice < product.price;
@@ -203,6 +206,11 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
             </>
           )}
         </div>
+
+        {/* Trust Badges */}
+        <div className="mt-4">
+          <TrustBadges variant="full" />
+        </div>
       </div>
 
       {/* Variations */}
@@ -345,7 +353,43 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-11 px-2.5 text-xs"
+            onClick={() => {
+              const inCompare = isInCompare(product.id);
+              if (inCompare) {
+                router.push('/compare');
+              } else {
+                const result = addCompareItem({
+                  productId: product.id,
+                  name: product.name,
+                  slug: product.slug,
+                  image: product.images[0] || '/images/placeholder.svg',
+                  price: Number(product.price),
+                  salePrice: product.salePrice ? Number(product.salePrice) : null,
+                  specs: (product.specs as Record<string, string>) || {},
+                  category: product.category?.name || '',
+                  brand: product.brand?.name || '',
+                  stock: product.stock,
+                  weight: product.weight || 0,
+                  rating: product.rating || 0,
+                  reviewCount: product.reviewCount || 0,
+                });
+                if (result.success) {
+                  toast('Ditambahkan ke perbandingan', 'success');
+                  router.push('/compare');
+                } else {
+                  toast(result.message || 'Gagal menambahkan', 'error');
+                }
+              }
+            }}
+          >
+            <BarChart3 className="w-4 h-4 mr-1" />
+            {isInCompare(product.id) ? 'Lihat' : 'Bandingkan'}
+          </Button>
           <Button variant="outline" className="flex-1 h-11 text-sm" onClick={handleAdd}>
             <ShoppingCart className="w-4 h-4 mr-2" />
             Keranjang

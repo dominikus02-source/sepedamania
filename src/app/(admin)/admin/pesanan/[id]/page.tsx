@@ -31,6 +31,7 @@ import {
   Save,
   ClipboardCheck,
   Send,
+  MessageCircle,
 } from 'lucide-react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -436,6 +437,15 @@ export default function AdminOrderDetailPage() {
             <ClipboardCheck className="w-4 h-4 text-[#8E8E93]" />
             Aksi Admin
           </CardTitle>
+          <a
+            href={`https://wa.me/${order.user.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(order.user.name)}%2C%20saya%20dari%20SEPEDAMANIA.%20Ada%20yang%20ingin%20saya%20sampaikan%20terkait%20pesanan%20%23${order.id}.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#25D366] hover:text-[#1DA851] transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            Hubungi via WhatsApp
+          </a>
         </CardHeader>
         <CardContent>
           {isCancelled && (

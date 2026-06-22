@@ -4,8 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
-import { Star, ShoppingBag } from 'lucide-react';
+import { Star, ShoppingBag, Plus, Check } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
+import { useCompareStore } from '@/store/compare-store';
 import { useToast } from '@/components/ui/toaster';
 
 interface ProductCardProps {
@@ -21,11 +22,15 @@ interface ProductCardProps {
     category?: { name: string };
     stock: number;
     weight: number;
+    brand?: { name: string };
+    specs?: Record<string, string | undefined>;
+    reviewCount?: number;
   };
 }
 
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const { addItem: addCompare, removeItem: removeCompare, isInCompare } = useCompareStore();
   const { toast } = useToast();
   const [imgError, setImgError] = useState(false);
 
@@ -89,6 +94,52 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="text-white font-semibold text-xs bg-black/70 px-3 py-1 rounded-full">Habis</span>
           </div>
         )}
+
+        {/* Compare toggle */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const inCompare = isInCompare(product.id);
+            if (inCompare) {
+              removeCompare(product.id);
+              toast('Dihapus dari perbandingan', 'info');
+            } else {
+              const result = addCompare({
+                productId: product.id,
+                name: product.name,
+                slug: product.slug,
+                image: product.images[0] || '/images/placeholder.svg',
+                price: product.price,
+                salePrice: product.salePrice,
+                specs: (product.specs as Record<string, string>) || {},
+                category: product.category?.name || '',
+                brand: product.brand?.name || '',
+                stock: product.stock,
+                weight: product.weight || 0,
+                rating: product.rating || 0,
+                reviewCount: product.reviewCount || 0,
+              });
+              if (result.success) {
+                toast('Ditambahkan ke perbandingan', 'success');
+              } else {
+                toast(result.message || 'Gagal menambahkan', 'error');
+              }
+            }
+          }}
+          className={`absolute top-2 right-2 w-7 h-7 rounded-full shadow-sm flex items-center justify-center transition-all duration-200 ${
+            isInCompare(product.id)
+              ? 'bg-[#2563EB] text-white'
+              : 'bg-white/80 text-[#64748B] opacity-0 group-hover:opacity-100 hover:bg-white'
+          }`}
+          aria-label={isInCompare(product.id) ? 'Hapus dari perbandingan' : 'Tambah ke perbandingan'}
+        >
+          {isInCompare(product.id) ? (
+            <Check className="w-3.5 h-3.5" />
+          ) : (
+            <Plus className="w-3.5 h-3.5" />
+          )}
+        </button>
 
         {/* Quick add — visible on hover */}
         {product.stock > 0 && (

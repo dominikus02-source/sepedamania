@@ -8,6 +8,7 @@ import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from '@/components/providers'
+import { WhatsAppFloating } from '@/components/customer/whatsapp-floating'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -68,6 +69,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'SEPEDAMANIA',
   },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -75,6 +79,7 @@ export const metadata: Metadata = {
     ],
     apple: [
       { url: '/icons/apple-touch-icon.png', sizes: '180x180' },
+      { url: '/icons/apple-touch-icon-180.png', sizes: '180x180' },
       { url: '/icons/apple-touch-icon-167.png', sizes: '167x167' },
       { url: '/icons/apple-touch-icon-152.png', sizes: '152x152' },
     ],
@@ -107,27 +112,7 @@ export default function RootLayout({
           content="black-translucent"
         />
         <meta name="mobile-web-app-capable" content="yes" />
-        {/* iOS splash screens */}
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/splash-1242x2688.png"
-          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/splash-1125x2436.png"
-          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
-        />
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/splash-828x1792.png"
-          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)"
-        />
-        <link
-          rel="apple-touch-startup-image"
-          href="/icons/splash-750x1334.png"
-          media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
-        />
+        <meta name="apple-mobile-web-app-title" content="SEPEDAMANIA" />
       </head>
       <body
         className={`${inter.className} min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E]`}
@@ -145,7 +130,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <main id="main-content">{children}</main>
+            <main id="main-content">
+              {children}
+              <WhatsAppFloating />
+            </main>
             <Toaster />
             <ServiceWorkerRegistration />
             <InstallPrompt />

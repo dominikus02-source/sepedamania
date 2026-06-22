@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { OrderStatusBadge } from '@/components/customer/order-status-badge';
 import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
+import { useCartStore } from '@/store/cart';
+import { mockProducts } from '@/lib/mock-data';
 
 const STATUS_STEPS = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'] as const;
 
@@ -212,23 +214,20 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             variant="outline"
             className="w-full"
             onClick={() => {
-              const items = order.items.map((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }) => ({
-                productId: item.productId,
-                variantId: item.variantId,
-                name: item.name,
-                price: item.price,
-                image: item.image,
-                qty: item.qty,
-                maxStock: 999,
-                weight: 0,
-              }));
-              items.forEach((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string; maxStock?: number; weight?: number }) => {
-                const stored = localStorage.getItem('sepedamania-cart');
-                const cart = stored ? JSON.parse(stored) : { state: { items: [] }, version: 0 };
-                const existing = cart.state.items.find((i: { productId: string; variantId?: string }) => i.productId === item.productId && i.variantId === item.variantId);
-                if (existing) existing.qty += item.qty;
-                else cart.state.items.push({ ...item, qty: item.qty, id: `${item.productId}-${item.variantId || 'default'}` });
-                localStorage.setItem('sepedamania-cart', JSON.stringify(cart));
+              const addItem = useCartStore.getState().addItem;
+              order.items.forEach((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }) => {
+                const product = mockProducts.find((p) => p.id === item.productId);
+                addItem({
+                  productId: item.productId,
+                  variantId: item.variantId,
+                  name: item.name,
+                  slug: product?.slug || item.productId,
+                  image: item.image || '/images/placeholder.svg',
+                  price: item.price,
+                  qty: item.qty,
+                  maxStock: 999,
+                  weight: product?.weight || 0,
+                });
               });
               toast('Produk ditambahkan ke keranjang!', 'success');
             }}

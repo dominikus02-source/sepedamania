@@ -39,6 +39,9 @@ export function Header() {
               <Link href="/produk-terlaris" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
                 Terlaris
               </Link>
+              <Link href="/bike-finder" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
+                Bike Finder
+              </Link>
             </nav>
 
             {/* Desktop Actions */}
@@ -101,6 +104,9 @@ export function Header() {
               </Link>
               <Link href="/produk-terlaris" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-medium text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg">
                 Terlaris
+              </Link>
+              <Link href="/bike-finder" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-medium text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg">
+                Bike Finder
               </Link>
               <div className="border-t border-[#E2E8F0] my-2" />
               {isLoggedIn ? (

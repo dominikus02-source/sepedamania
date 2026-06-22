@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, startTransition } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,9 +14,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { TrustBadges } from '@/components/customer/trust-badges';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';
-import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote, Smartphone, QrCode, Loader2, Clock, CheckCircle, Copy, LogIn } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote, Smartphone, QrCode, Loader2, LogIn } from 'lucide-react';
 
 const addressSchema = z.object({
   recipient: z.string().min(2, 'Nama minimal 2 karakter'),
@@ -58,7 +59,6 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [confirmLoading, setConfirmLoading] = useState(false);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [provinces, setProvinces] = useState<{ province_id: string; province: string }[]>([]);
   const [cities, setCities] = useState<{ city_id: string; city_name: string }[]>([]);
@@ -72,39 +72,10 @@ export default function CheckoutPage() {
     etd: string;
   }
 
-  interface OrderResult {
-    id: string;
-    total: number;
-    paymentInstructions?: {
-      bank?: string;
-      vaNumber?: string;
-      qr?: string;
-      ewallet?: string;
-      instructions?: string[];
-    };
-    [key: string]: unknown;
-  }
-
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [countdown, setCountdown] = useState(24 * 60 * 60);
 
-  // Check authentication
   const isLoggedIn = !!session;
-
-  // Countdown timer untuk step 4
-  useEffect(() => {
-    if (step !== 4 || !orderResult) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) { clearInterval(timer); return 0; }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [step, orderResult]);
 
   const subtotal = getTotal();
   const totalWeight = getTotalWeight();
@@ -125,7 +96,6 @@ export default function CheckoutPage() {
 
   const selectedProvince = useWatch({ control: form.control, name: 'province' });
 
-  // Load provinces
   useEffect(() => {
     fetch('/api/shipping')
       .then((r) => r.json())
@@ -135,7 +105,6 @@ export default function CheckoutPage() {
       .catch(() => {});
   }, []);
 
-  // Load cities when province changes
   useEffect(() => {
     if (!selectedProvince) return;
     fetch(`/api/shipping/cities?provinceId=${selectedProvince}`)
@@ -149,12 +118,10 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!selectedCourier) return;
-    startTransition(() => {
-      setSelectedService('');
-      setShippingCost(0);
-      setShippingRates([]);
-      setShippingLoading(true);
-    });
+    setSelectedService('');
+    setShippingCost(0);
+    setShippingRates([]);
+    setShippingLoading(true);
     fetch(`/api/shipping/cost`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -200,9 +167,13 @@ export default function CheckoutPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Gagal membuat pesanan');
 
-      setOrderResult(result.order);
-      setStep(4);
       clearCart();
+
+      if (result.snapRedirectUrl) {
+        window.location.href = result.snapRedirectUrl;
+      } else {
+        router.push(`/pesanan/${result.orderId}`);
+      }
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : 'Gagal membuat pesanan', 'error');
     } finally {
@@ -210,30 +181,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleConfirmPayment = async () => {
-    if (!orderResult) return;
-    setConfirmLoading(true);
-    try {
-      await fetch(`/api/orders/${orderResult.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentStatus: 'PAID', status: 'PROCESSING' }),
-      });
-      router.push(`/pesanan/${orderResult.id}`);
-    } catch {
-      toast('Gagal konfirmasi pembayaran', 'error');
-    } finally {
-      setConfirmLoading(false);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Loading state
   if (status === 'loading') {
     return (
       <div className="p-4 flex items-center justify-center min-h-[400px]">
@@ -242,7 +189,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // Not logged in - show login prompt
   if (!isLoggedIn) {
     return (
       <div className="p-4 max-w-md mx-auto">
@@ -271,7 +217,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (items.length === 0 && !orderResult) {
+  if (items.length === 0) {
     return (
       <div className="p-4 text-center py-16">
         <Package className="w-12 h-12 text-[#E2E8F0] mx-auto mb-3" />
@@ -283,25 +229,22 @@ export default function CheckoutPage() {
 
   return (
     <div className="p-4 pb-32 max-w-2xl mx-auto">
-      {/* Stepper */}
       <div className="flex items-center justify-center gap-2 mb-6">
         {[
           { num: 1, label: 'Alamat', icon: MapPin },
           { num: 2, label: 'Kirim', icon: Truck },
           { num: 3, label: 'Bayar', icon: CreditCard },
-          { num: 4, label: 'Konfirmasi', icon: CheckCircle },
         ].map((s, i) => (
           <div key={s.num} className="flex items-center gap-1.5">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= s.num ? 'bg-[#2563EB] text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
-              {step > s.num ? <CheckCircle className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
+              {step > s.num ? <ChevronRight className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
             </div>
             <span className={`text-xs font-medium hidden sm:block ${step >= s.num ? 'text-[#0F172A]' : 'text-[#94A3B8]'}`}>{s.label}</span>
-            {i < 3 && <div className={`w-8 sm:w-12 h-0.5 ${step > s.num ? 'bg-[#2563EB]' : 'bg-[#E2E8F0]'}`} />}
+            {i < 2 && <div className={`w-8 sm:w-12 h-0.5 ${step > s.num ? 'bg-[#2563EB]' : 'bg-[#E2E8F0]'}`} />}
           </div>
         ))}
       </div>
 
-      {/* Step 1: Alamat */}
       {step === 1 && (
         <form onSubmit={handleSubmit(onAddressSubmit)} className="space-y-4">
           <h2 className="text-lg font-bold text-[#0F172A]">Alamat Pengiriman</h2>
@@ -366,7 +309,6 @@ export default function CheckoutPage() {
         </form>
       )}
 
-      {/* Step 2: Pengiriman */}
       {step === 2 && (
         <div className="space-y-4">
           <h2 className="text-lg font-bold text-[#0F172A]">Pilih Jasa Pengiriman</h2>
@@ -426,7 +368,6 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      {/* Step 3: Pembayaran */}
       {step === 3 && (
         <div className="space-y-4">
           <h2 className="text-lg font-bold text-[#0F172A]">Metode Pembayaran</h2>
@@ -479,7 +420,11 @@ export default function CheckoutPage() {
             <div className="flex justify-between font-bold text-lg text-[#0F172A]"><span>Total</span><span>{formatPrice(total)}</span></div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="mt-4">
+            <TrustBadges variant="full" />
+          </div>
+
+          <div className="flex gap-3 mt-4">
             <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(2)}>
               <ChevronLeft className="w-4 h-4 mr-1" /> Kembali
             </Button>
@@ -491,93 +436,6 @@ export default function CheckoutPage() {
               )}
             </Button>
           </div>
-        </div>
-      )}
-
-      {/* Step 4: Konfirmasi Pembayaran */}
-      {step === 4 && orderResult && (
-        <div className="space-y-4">
-          <div className="text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-8 h-8 text-[#16A34A]" />
-            </div>
-            <h2 className="text-xl font-bold text-[#0F172A]">Pesanan Dibuat!</h2>
-            <p className="text-sm text-[#64748B] mt-1">Silakan selesaikan pembayaran</p>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#64748B]">ID Pesanan</span>
-              <span className="text-sm font-mono font-bold">{orderResult.id}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#64748B]">Total Bayar</span>
-              <span className="text-lg font-bold text-[#EF4444]">{formatPrice(orderResult.total)}</span>
-            </div>
-            <Separator />
-
-            <div>
-              <h3 className="font-semibold text-sm text-[#0F172A] mb-2">Instruksi Pembayaran</h3>
-              <div className="bg-[#F8FAFC] rounded-xl p-4 space-y-3">
-                {(() => {
-                  const pi = orderResult.paymentInstructions;
-                  if (!pi) return null;
-                  return <>
-                    {pi.bank && (
-                      <div>
-                        <p className="text-xs text-[#64748B] mb-1">Bank</p>
-                        <p className="font-semibold text-[#0F172A]">{pi.bank}</p>
-                      </div>
-                    )}
-                    {pi.vaNumber && (
-                      <div>
-                        <p className="text-xs text-[#64748B] mb-1">Nomor Virtual Account</p>
-                        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-3 border border-[#E2E8F0]">
-                          <p className="text-xl font-bold font-mono text-[#0F172A] tracking-wider flex-1">{pi.vaNumber}</p>
-                          <button onClick={() => copyToClipboard(pi.vaNumber!)} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
-                            {copied ? <CheckCircle className="w-5 h-5 text-[#16A34A]" /> : <Copy className="w-5 h-5 text-[#64748B]" />}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {pi.qr && (
-                      <div className="flex flex-col items-center py-3">
-                        <Image src={pi.qr} alt="QRIS" width={160} height={160} className="rounded-xl" />
-                        <p className="text-xs text-[#64748B] mt-2">Scan QRIS dengan e-wallet</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs text-[#64748B] mb-1.5">Langkah-langkah:</p>
-                      <ol className="space-y-1.5">
-                        {pi.instructions?.map((inst: string, i: number) => (
-                          <li key={i} className="text-sm text-[#0F172A] flex items-start gap-2">
-                            <span className="w-5 h-5 rounded-full bg-[#EFF6FF] text-[#2563EB] text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                            {inst}
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  </>;
-                })()}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FEF3C7]">
-              <Clock className="w-4 h-4 text-[#F59E0B] shrink-0" />
-              <span className="text-xs text-[#92400E]">
-                Sisa waktu: <strong>{Math.floor(countdown / 3600)}j {Math.floor((countdown % 3600) / 60)}m {countdown % 60}d</strong> — Pesanan akan dibatalkan jika tidak dibayar.
-              </span>
-            </div>
-          </div>
-
-          <Button className="w-full h-12 bg-[#0F172A] hover:bg-[#1E293B] text-white" onClick={handleConfirmPayment} disabled={confirmLoading}>
-            {confirmLoading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...</>
-            ) : (
-              'Saya Sudah Bayar'
-            )}
-          </Button>
-          <p className="text-xs text-[#64748B] text-center">Setelah transfer, klik tombol di atas untuk konfirmasi pembayaran</p>
         </div>
       )}
     </div>

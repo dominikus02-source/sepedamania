@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   '/icons/icon-512.png',
   '/icons/icon-maskable-192.png',
   '/icons/icon-maskable-512.png',
+
 ];
 
 // Install: pre-cache critical assets

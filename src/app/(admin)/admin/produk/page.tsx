@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/components/ui/toaster';
+import { AdminStore } from '@/lib/admin-store';
 
 const PAGE_SIZE = 10;
 
 export default function AdminProductsPage() {
-  const { products, loading } = useAdminProducts();
+  const { products, loading, refresh } = useAdminProducts();
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
@@ -44,6 +46,20 @@ export default function AdminProductsPage() {
 
   const getCatName = (id: string) => mockCategories.find((c) => c.id === id)?.name || '-';
   const getBrandName = (id: string) => mockBrands.find((b) => b.id === id)?.name || '-';
+  const { toast } = useToast();
+
+  const handleToggleActive = (slug: string, current: boolean) => {
+    AdminStore.updateProduct(slug, { isActive: !current });
+    refresh();
+    toast(`Produk ${current ? 'dinonaktifkan' : 'diaktifkan'}`, 'success');
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    if (!window.confirm(`Hapus "${name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+    AdminStore.deleteProduct(id);
+    refresh();
+    toast('Produk berhasil dihapus', 'success');
+  };
 
   if (loading) {
     return (
@@ -165,12 +181,29 @@ export default function AdminProductsPage() {
                   </Badge>
                 </td>
                 <td className="p-3 text-right">
-                  <Link
-                    href={`/admin/produk/${p.slug}`}
-                    className="text-xs font-medium text-[#F5A623] hover:text-[#E09E1F] hover:underline transition-colors"
-                  >
-                    Edit
-                  </Link>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => handleToggleActive(p.slug, p.isActive)}
+                      className="p-1.5 rounded-lg hover:bg-[#F2F2F7] transition-colors"
+                      title={p.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                    >
+                      {p.isActive ? <EyeOff className="w-3.5 h-3.5 text-[#8E8E93]" /> : <Eye className="w-3.5 h-3.5 text-[#34C759]" />}
+                    </button>
+                    <Link
+                      href={`/admin/produk/${p.slug}`}
+                      className="p-1.5 rounded-lg hover:bg-[#F2F2F7] transition-colors"
+                      title="Edit"
+                    >
+                      <span className="text-xs font-medium text-[#F5A623]">Edit</span>
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(p.id, p.name)}
+                      className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10 transition-colors"
+                      title="Hapus"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

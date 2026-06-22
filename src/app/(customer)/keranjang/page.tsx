@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { QuantityPicker } from '@/components/ui/quantity-picker';
 import { EmptyState } from '@/components/ui/empty-state';
+import { TrustBadges } from '@/components/customer/trust-badges';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';
 import { Trash2, ShoppingBag, ChevronRight, Tag } from 'lucide-react';
@@ -96,6 +97,11 @@ export default function CartPage() {
         <div className="flex justify-between text-sm"><span className="text-[#8E8E93]">Ongkos Kirim</span><span>Dihitung nanti</span></div>
         <Separator />
         <div className="flex justify-between font-semibold text-[#1C1C1E]"><span>Total</span><span>{formatPrice(total)}</span></div>
+      </div>
+
+      {/* Trust Badges */}
+      <div className="mt-4">
+        <TrustBadges variant="full" />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">

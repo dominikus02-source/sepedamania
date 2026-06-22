@@ -161,6 +161,16 @@ export function HeroBanner() {
 
         {/* Left: Content */}
         <div className="relative z-10 flex flex-col justify-center px-12 py-14">
+          <div className="mb-5">
+            <Image
+              src="/images/logo-sepedamania.png"
+              alt="SEPEDAMANIA"
+              width={180}
+              height={48}
+              className="h-10 w-auto brightness-0 invert"
+              priority
+            />
+          </div>
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/70 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full mb-5 w-fit">
             <span className={cn(
               'w-1.5 h-1.5 rounded-full',
@@ -264,6 +274,16 @@ export function HeroBanner() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/60 to-transparent" />
             <ChainringPattern className="text-white right-0 top-0 w-32 h-32" />
             <div className="absolute inset-0 flex flex-col justify-end p-6 pb-16">
+              <div className="mb-3">
+                <Image
+                  src="/images/logo-sepedamania.png"
+                  alt="SEPEDAMANIA"
+                  width={140}
+                  height={36}
+                  className="h-8 w-auto brightness-0 invert"
+                  priority
+                />
+              </div>
               <p className={cn(
                 'inline-flex items-center gap-1.5 text-[10px] font-semibold text-white/70 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full mb-3 w-fit',
               )}>
