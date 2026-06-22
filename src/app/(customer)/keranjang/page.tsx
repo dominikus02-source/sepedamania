@@ -26,7 +26,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="p-4">
-        <EmptyState icon={<ShoppingBag className="w-8 h-8 text-[#8E8E93]" />} title="Keranjang Kosong" description="Belum ada produk di keranjang. Yuk, mulai belanja!"
+        <EmptyState icon={<ShoppingBag className="w-8 h-8 text-[#94A3B8]" />} title="Keranjang Kosong" description="Belum ada produk di keranjang. Yuk, mulai belanja!"
           action={<Link href="/"><Button variant="accent">Mulai Belanja</Button></Link>} />
       </div>
     );
@@ -92,11 +92,11 @@ export default function CartPage() {
       </div>
 
       <div className="mt-4 p-4 bg-white rounded-xl border border-[#E5E5EA] space-y-2">
-        <div className="flex justify-between text-sm"><span className="text-[#8E8E93]">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-        {voucherDiscount > 0 && <div className="flex justify-between text-sm"><span className="text-[#34C759]">Diskon</span><span className="text-[#34C759]">-{formatPrice(voucherDiscount)}</span></div>}
+        <div className="flex justify-between text-sm"><span className="text-[#8E8E93]">Subtotal</span><span className="font-semibold">{formatPrice(subtotal)}</span></div>
+        {voucherDiscount > 0 && <div className="flex justify-between text-sm"><span className="text-[#22C55E]">Diskon</span><span className="text-[#22C55E]">-{formatPrice(voucherDiscount)}</span></div>}
         <div className="flex justify-between text-sm"><span className="text-[#8E8E93]">Ongkos Kirim</span><span>Dihitung nanti</span></div>
         <Separator />
-        <div className="flex justify-between font-semibold text-[#1C1C1E]"><span>Total</span><span>{formatPrice(total)}</span></div>
+        <div className="flex justify-between font-semibold text-[#1C1C1E]"><span>Total</span><span className="text-[#0F172A]">{formatPrice(total)}</span></div>
       </div>
 
       {/* Trust Badges */}
@@ -106,7 +106,7 @@ export default function CartPage() {
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E2E8F0] px-4 py-3 pb-[72px] lg:pb-safe">
         <div className="max-w-lg mx-auto">
-          <Button variant="accent" className="w-full h-12 text-base" onClick={() => router.push('/checkout')}>
+          <Button className="w-full h-12 text-base bg-[#FBBF24] text-[#0F172A] hover:bg-[#F59E0B] font-semibold" onClick={() => router.push('/checkout')}>
             Lanjut ke Pembayaran <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </div>

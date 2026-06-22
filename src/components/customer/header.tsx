@@ -30,16 +30,17 @@ export function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-6">
-              <Link href="/kategori" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
+              <Link href="/kategori" className="text-sm font-medium text-[#0F172A] hover:text-[#F97316] transition-colors hover:bg-[#FEF3C7] px-2 py-1 rounded-lg">
                 Kategori
               </Link>
-              <Link href="/flash-sale" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
+              <Link href="/flash-sale" className="text-sm font-medium text-[#EF4444] hover:text-[#DC2626] transition-colors flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] animate-pulse" />
                 Flash Sale
               </Link>
-              <Link href="/produk-terlaris" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
+              <Link href="/produk-terlaris" className="text-sm font-medium text-[#0F172A] hover:text-[#F97316] transition-colors hover:bg-[#FEF3C7] px-2 py-1 rounded-lg">
                 Terlaris
               </Link>
-              <Link href="/bike-finder" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
+              <Link href="/bike-finder" className="text-sm font-medium text-[#0F172A] hover:text-[#F97316] transition-colors hover:bg-[#FEF3C7] px-2 py-1 rounded-lg">
                 Bike Finder
               </Link>
             </nav>
@@ -61,7 +62,7 @@ export function Header() {
               {isLoggedIn ? (
                 <UserMenu userName={userName} userRole={userRole} onSignOut={() => signOut({ callbackUrl: '/' })} />
               ) : (
-                <Link href="/masuk" className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-medium rounded-lg transition-colors">
+                <Link href="/masuk" className="flex items-center gap-2 px-4 py-2 bg-[#FBBF24] hover:bg-[#F59E0B] text-[#0F172A] text-sm font-semibold rounded-lg transition-colors">
                   Masuk
                 </Link>
               )}
@@ -118,18 +119,18 @@ export function Header() {
                     Pesanan Saya
                   </Link>
                   {userRole === 'ADMIN' && (
-                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-medium text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg">
+                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-medium text-[#F97316] hover:bg-[#FFEDD5] rounded-lg">
                       Admin Panel
                     </Link>
                   )}
                   <div className="border-t border-[#E2E8F0] my-2" />
-                  <button onClick={() => signOut({ callbackUrl: '/' })} className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg">
+                  <button onClick={() => signOut({ callbackUrl: '/' })} className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-[#EF4444] hover:bg-[#FEE2E2] rounded-lg">
                     <LogOut className="w-4 h-4" />
                     Keluar
                   </button>
                 </>
               ) : (
-                <Link href="/masuk" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-medium text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg">
+                <Link href="/masuk" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-sm font-medium text-[#F97316] hover:bg-[#FFEDD5] rounded-lg">
                   Masuk / Daftar
                 </Link>
               )}
@@ -169,11 +170,11 @@ function UserMenu({ userName, userRole, onSignOut }: { userName: string; userRol
               <Link href="/pesanan" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg">
                 Pesanan Saya
               </Link>
-              {userRole === 'ADMIN' && (
-                <Link href="/admin" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg">
-                  Admin Panel
-                </Link>
-              )}
+                  {userRole === 'ADMIN' && (
+                  <Link href="/admin" onClick={() => setOpen(false)} className="block px-3 py-2 text-sm text-[#F97316] hover:bg-[#FFEDD5] rounded-lg">
+                    Admin Panel
+                  </Link>
+                )}
               <div className="border-t border-[#E2E8F0] my-1" />
               <button onClick={onSignOut} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg">
                 <LogOut className="w-4 h-4" />

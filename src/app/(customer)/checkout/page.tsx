@@ -236,11 +236,11 @@ export default function CheckoutPage() {
           { num: 3, label: 'Bayar', icon: CreditCard },
         ].map((s, i) => (
           <div key={s.num} className="flex items-center gap-1.5">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= s.num ? 'bg-[#2563EB] text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= s.num ? 'bg-[#FBBF24] text-[#0F172A]' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
               {step > s.num ? <ChevronRight className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
             </div>
             <span className={`text-xs font-medium hidden sm:block ${step >= s.num ? 'text-[#0F172A]' : 'text-[#94A3B8]'}`}>{s.label}</span>
-            {i < 2 && <div className={`w-8 sm:w-12 h-0.5 ${step > s.num ? 'bg-[#2563EB]' : 'bg-[#E2E8F0]'}`} />}
+            {i < 2 && <div className={`w-8 sm:w-12 h-0.5 ${step > s.num ? 'bg-[#FBBF24]' : 'bg-[#E2E8F0]'}`} />}
           </div>
         ))}
       </div>
@@ -262,7 +262,7 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Provinsi</Label>
-                <select {...register('province')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#2563EB]">
+                  <select {...register('province')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#FBBF24]">
                   <option value="">Pilih Provinsi</option>
                   {provinces.map((p) => <option key={p.province_id} value={p.province_id}>{p.province}</option>)}
                 </select>
@@ -270,7 +270,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <Label>Kota</Label>
-                <select {...register('city')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#2563EB]" disabled={!selectedProvince}>
+                <select {...register('city')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#FBBF24]" disabled={!selectedProvince}>
                   <option value="">Pilih Kota</option>
                   {cities.map((c) => <option key={c.city_id} value={c.city_name}>{c.city_name}</option>)}
                 </select>
@@ -290,7 +290,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <Label>Label Alamat</Label>
-                <select className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#2563EB]" defaultValue="Rumah">
+                <select className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#FBBF24]" defaultValue="Rumah">
                   <option>Rumah</option>
                   <option>Kantor</option>
                   <option>Lainnya</option>
@@ -299,7 +299,7 @@ export default function CheckoutPage() {
             </div>
             <div>
               <Label>Alamat Lengkap</Label>
-              <textarea {...register('detail')} className="w-full min-h-[80px] rounded-lg border border-[#E2E8F0] p-3 text-sm resize-none outline-none focus:ring-1 focus:ring-[#2563EB]" placeholder="Jalan, nomor, RT/RW, gedung, dll." />
+              <textarea {...register('detail')} className="w-full min-h-[80px] rounded-lg border border-[#E2E8F0] p-3 text-sm resize-none outline-none focus:ring-1 focus:ring-[#FBBF24]" placeholder="Jalan, nomor, RT/RW, gedung, dll." />
               {errors.detail && <p className="text-xs text-[#EF4444] mt-1">{errors.detail.message}</p>}
             </div>
           </div>
@@ -318,7 +318,7 @@ export default function CheckoutPage() {
                 <RadioGroupItem key={c.id} value={c.id}>
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <Truck className="w-5 h-5 text-[#2563EB]" />
+                      <Truck className="w-5 h-5 text-[#F97316]" />
                       <span className="font-medium text-sm">{c.label}</span>
                     </div>
                     {selectedCourier === c.id && (
@@ -336,7 +336,7 @@ export default function CheckoutPage() {
                               onClick={() => { setSelectedService(rate.service); setShippingCost(rate.cost); }}
                               className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-sm transition-all ${
                                 selectedService === rate.service
-                                  ? 'border-[#2563EB] bg-[#EFF6FF]'
+                                  ? 'border-[#FBBF24] bg-[#FFFBEB]'
                                   : 'border-[#E2E8F0] bg-white'
                               }`}
                             >
@@ -380,15 +380,15 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={() => setPaymentMethod(pm.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
-                    paymentMethod === pm.id ? 'bg-[#EFF6FF]' : ''
+                    paymentMethod === pm.id ? 'bg-[#FFFBEB]' : ''
                   }`}
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    paymentMethod === pm.id ? 'border-[#2563EB]' : 'border-[#CBD5E1]'
+                    paymentMethod === pm.id ? 'border-[#FBBF24]' : 'border-[#CBD5E1]'
                   }`}>
-                    {paymentMethod === pm.id && <div className="w-3 h-3 rounded-full bg-[#2563EB]" />}
+                    {paymentMethod === pm.id && <div className="w-3 h-3 rounded-full bg-[#FBBF24]" />}
                   </div>
-                  <Icon className="w-5 h-5 text-[#2563EB]" />
+                  <Icon className="w-5 h-5 text-[#F97316]" />
                   <span className="text-sm font-medium">{pm.label}</span>
                 </button>
               );
@@ -424,7 +424,7 @@ export default function CheckoutPage() {
             <TrustBadges variant="full" />
           </div>
           <div className="mt-2 text-center">
-            <Link href="/pengembalian" className="text-xs text-[#64748B] hover:text-[#F5A623] transition-colors">
+            <Link href="/pengembalian" className="text-xs text-[#64748B] hover:text-[#F97316] transition-colors">
               Kebijakan Pengembalian Barang
             </Link>
           </div>

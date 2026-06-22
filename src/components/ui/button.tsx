@@ -7,13 +7,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-[#1A1A1A] text-white hover:bg-[#333] shadow-sm',
-        destructive: 'bg-[#FF3B30] text-white hover:bg-[#FF3B30]/90',
-        outline: 'border border-[#E5E5EA] bg-white hover:bg-[#F2F2F7] text-[#1C1C1E]',
-        secondary: 'bg-[#F2F2F7] text-[#1C1C1E] hover:bg-[#E5E5EA]',
-        ghost: 'hover:bg-[#F2F2F7] text-[#1C1C1E]',
-        link: 'text-[#F5A623] underline-offset-4 hover:underline',
-        accent: 'bg-[#F5A623] text-[#1A1A1A] hover:bg-[#F5A623]/90 font-semibold shadow-sm',
+        default: 'bg-[#0F172A] text-white hover:bg-[#1E293B] shadow-sm',
+        destructive: 'bg-[#EF4444] text-white hover:bg-[#DC2626]',
+        outline: 'border border-[#E2E8F0] bg-white hover:bg-[#FFFBEB] hover:border-[#FBBF24] text-[#0F172A]',
+        secondary: 'bg-[#F1F5F9] text-[#0F172A] hover:bg-[#E2E8F0]',
+        ghost: 'hover:bg-[#FEF3C7] text-[#0F172A]',
+        link: 'text-[#F97316] underline-offset-4 hover:underline',
+        accent: 'bg-[#FBBF24] text-[#0F172A] hover:bg-[#F59E0B] font-semibold shadow-sm',
+        sale: 'bg-[#EF4444] text-white hover:bg-[#DC2626] font-semibold shadow-sm',
+        success: 'bg-[#22C55E] text-white hover:bg-[#16A34A] shadow-sm',
       },
       size: {
         default: 'h-10 px-4 py-2',

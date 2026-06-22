@@ -19,7 +19,10 @@ export function Section({ children, className }: { children: React.ReactNode; cl
 export function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-4 sm:mb-5">
-      <h2 className="text-lg sm:text-xl font-bold text-[#0F172A]">{title}</h2>
+      <h2 className="text-lg sm:text-xl font-bold text-[#0F172A] flex items-center gap-2">
+        <span className="w-1 h-6 bg-[#FBBF24] rounded-full inline-block" />
+        {title}
+      </h2>
       {action}
     </div>
   );

@@ -40,21 +40,22 @@ export function FlashSale({ products }: { products: FlashSaleProduct[] }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#EF4444] to-[#DC2626] flex items-center justify-center shadow-sm">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-[#0F172A]">Flash Sale</h2>
+            <p className="text-[10px] sm:text-xs text-[#EF4444] font-medium -mt-0.5">Buru, stok terbatas!</p>
           </div>
-          <div className="flex items-center gap-0.5 text-xs font-mono font-bold text-[#EF4444] ml-1 bg-[#FEF2F2] px-2 py-1 rounded-lg">
-            <span>{pad(timeLeft.hours)}</span>
-            <span className="text-[#FCA5A5]">:</span>
-            <span>{pad(timeLeft.minutes)}</span>
-            <span className="text-[#FCA5A5]">:</span>
-            <span>{pad(timeLeft.seconds)}</span>
+          <div className="flex items-center gap-0.5 text-xs font-mono font-bold text-white bg-[#0F172A] px-2 py-1.5 rounded-lg shadow-sm">
+            <span className="text-[#FBBF24]">{pad(timeLeft.hours)}</span>
+            <span className="text-[#64748B]">:</span>
+            <span className="text-[#FBBF24]">{pad(timeLeft.minutes)}</span>
+            <span className="text-[#64748B]">:</span>
+            <span className="text-[#FBBF24]">{pad(timeLeft.seconds)}</span>
           </div>
         </div>
-        <Link href="/kategori?sort=sold" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
+        <Link href="/kategori?sort=sold" className="flex items-center gap-0.5 text-sm font-medium text-[#EF4444] hover:text-[#DC2626] transition-colors">
           Lihat Semua <ChevronRight className="w-4 h-4" />
         </Link>
       </div>

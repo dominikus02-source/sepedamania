@@ -3,20 +3,34 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #F8FAFC;
+  --color-background: #FFF7ED;
   --color-foreground: #0F172A;
   --color-card: #FFFFFF;
   --color-border: #E2E8F0;
   --color-accent: #0F172A;
   --color-accent-hover: #1E293B;
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
+
+  --color-brand-yellow: #FBBF24;
+  --color-brand-yellow-light: #FEF3C7;
+  --color-brand-yellow-dark: #F59E0B;
+  --color-brand-red: #EF4444;
+  --color-brand-red-light: #FEE2E2;
+  --color-brand-red-dark: #DC2626;
+  --color-brand-orange: #F97316;
+  --color-brand-orange-light: #FFEDD5;
+  --color-brand-blue: #0EA5E9;
+  --color-brand-blue-light: #E0F2FE;
+  --color-brand-green: #22C55E;
+  --color-brand-green-light: #DCFCE7;
+
+  --color-primary: #0F172A;
+  --color-primary-hover: #1E293B;
   --color-destructive: #EF4444;
-  --color-success: #16A34A;
+  --color-success: #22C55E;
   --color-muted: #64748B;
   --color-surface: #FFFFFF;
-  --color-warning: #F59E0B;
-  --color-sale: #EF4444;
+  --color-warm-bg: #FFFBEB;
+
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -57,7 +71,6 @@ body {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* Premium card */
 .card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -65,7 +78,6 @@ body {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* Skeleton shimmer */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -77,10 +89,13 @@ body {
   border-radius: 8px;
 }
 
-/* Product card image zoom */
 .product-img-zoom {
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .group:hover .product-img-zoom {
   transform: scale(1.05);
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, #FBBF24 0%, #F97316 50%, #EF4444 100%);
 }

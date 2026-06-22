@@ -31,13 +31,13 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 'relative flex flex-col items-center justify-center w-16 h-full transition-colors',
-                isActive ? 'text-[#0F172A]' : 'text-[#94A3B8]'
+                isActive ? 'text-[#F97316]' : 'text-[#94A3B8]'
               )}
             >
               <div className="relative">
                 <Icon className={cn('w-5 h-5', isActive && 'stroke-[2.5]')} />
                 {item.cart && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#0F172A] text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center">
                     {totalItems > 9 ? '9+' : totalItems}
                   </span>
                 )}

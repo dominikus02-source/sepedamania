@@ -56,9 +56,9 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Link href={`/produk/${product.slug}`} className="group block bg-white rounded-2xl border border-[#E2E8F0] p-2.5 card-hover">
+    <Link href={`/produk/${product.slug}`} className="group block bg-white rounded-2xl border border-[#E2E8F0] p-2.5 card-hover hover:border-[#FDE68A]">
       {/* Image */}
-      <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F1F5F9] mb-2.5">
+      <div className="relative aspect-square rounded-xl overflow-hidden bg-[#FFF7ED] mb-2.5">
         {imgSrc ? (
           <Image
             src={imgSrc}
@@ -70,8 +70,8 @@ export function ProductCard({ product }: ProductCardProps) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#E2E8F0] to-[#F1F5F9] flex items-center justify-center">
-            <ShoppingBag className="w-8 h-8 text-[#94A3B8]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FEF3C7] to-[#FFEDD5] flex items-center justify-center">
+            <ShoppingBag className="w-8 h-8 text-[#F97316]/40" />
           </div>
         )}
 
@@ -83,8 +83,13 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
           {product.stock > 0 && product.stock <= 5 && (
-            <span className="bg-[#0F172A] text-white text-[10px] font-medium px-1.5 py-0.5 rounded-md">
+            <span className="bg-[#F97316] text-white text-[10px] font-medium px-1.5 py-0.5 rounded-md">
               Sisa {product.stock}
+            </span>
+          )}
+          {!isOnSale && product.stock > 5 && (
+            <span className="bg-[#DCFCE7] text-[#16A34A] text-[10px] font-medium px-1.5 py-0.5 rounded-md">
+              Ready
             </span>
           )}
         </div>
@@ -129,7 +134,7 @@ export function ProductCard({ product }: ProductCardProps) {
           }}
           className={`absolute top-2 right-2 w-7 h-7 rounded-full shadow-sm flex items-center justify-center transition-all duration-200 ${
             isInCompare(product.id)
-              ? 'bg-[#2563EB] text-white'
+              ? 'bg-[#F97316] text-white'
               : 'bg-white/80 text-[#64748B] opacity-0 group-hover:opacity-100 hover:bg-white'
           }`}
           aria-label={isInCompare(product.id) ? 'Hapus dari perbandingan' : 'Tambah ke perbandingan'}
@@ -145,7 +150,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {product.stock > 0 && (
           <button
             onClick={handleAdd}
-            className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#0F172A] hover:text-white"
+            className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#FBBF24] hover:text-[#0F172A]"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
           </button>
@@ -161,16 +166,20 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="flex items-center gap-1.5 text-[10px] text-[#64748B]">
           {product.rating && (
             <span className="flex items-center gap-0.5">
-              <Star className="w-3 h-3 fill-[#F59E0B] text-[#F59E0B]" />
+              <Star className="w-3 h-3 fill-[#FBBF24] text-[#FBBF24]" />
               {product.rating}
             </span>
           )}
           <span>{product.sold} terjual</span>
         </div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-sm sm:text-base font-bold text-[#0F172A]">{formatPrice(dp)}</span>
-          {isOnSale && (
-            <span className="text-[10px] sm:text-xs text-[#94A3B8] line-through">{formatPrice(product.price)}</span>
+          {isOnSale ? (
+            <>
+              <span className="text-sm sm:text-base font-bold text-[#EF4444]">{formatPrice(dp)}</span>
+              <span className="text-[10px] sm:text-xs text-[#94A3B8] line-through">{formatPrice(product.price)}</span>
+            </>
+          ) : (
+            <span className="text-sm sm:text-base font-bold text-[#0F172A]">{formatPrice(dp)}</span>
           )}
         </div>
       </div>

@@ -139,7 +139,7 @@ export function CartDrawer() {
 export function CartBadge({ count }: { count: number }) {
   if (count === 0) return null;
   return (
-    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#0F172A] text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
+    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#EF4444] text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
       {count > 9 ? '9+' : count}
     </span>
   );

@@ -40,8 +40,8 @@ const SidebarItem = memo(function SidebarItem({
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
         isActive
-          ? 'bg-[#EFF6FF] text-[#2563EB]'
-          : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'
+          ? 'bg-[#FEF3C7] text-[#D97706]'
+          : 'text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#F97316]'
       )}
     >
       <Icon className="w-5 h-5" />

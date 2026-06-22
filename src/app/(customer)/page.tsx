@@ -56,7 +56,7 @@ export default function HomePage() {
           <SectionHeader
             title="Terlaris"
             action={
-              <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
+              <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#F97316] hover:text-[#EA580C] transition-colors">
                 Lihat Semua <ChevronRight className="w-4 h-4" />
               </Link>
             }
@@ -75,7 +75,7 @@ export default function HomePage() {
           <SectionHeader
             title="Baru"
             action={
-              <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors">
+              <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#F97316] hover:text-[#EA580C] transition-colors">
                 Lihat Semua <ChevronRight className="w-4 h-4" />
               </Link>
             }
