@@ -3,17 +3,22 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create admin user
-  await prisma.user.upsert({
-    where: { email: 'admin@sepedamania.com' },
-    update: {},
-    create: {
-      email: 'admin@sepedamania.com',
-      name: 'Admin SEPEDAMANIA',
-      password: '$2a$10$...',
-      role: 'ADMIN',
-    },
-  });
+  // Create admin users
+  for (const admin of [
+    { email: 'admin@sepedamania.com', name: 'Admin SEPEDAMANIA' },
+    { email: 'sepedamania7@gmail.com', name: 'Super Admin SEPEDAMANIA' },
+  ]) {
+    await prisma.user.upsert({
+      where: { email: admin.email },
+      update: {},
+      create: {
+        email: admin.email,
+        name: admin.name,
+        password: '$2a$10$...',
+        role: 'ADMIN',
+      },
+    });
+  }
 
   // Create categories
   const categories = await Promise.all([
@@ -167,7 +172,7 @@ async function main() {
   await prisma.storeSettings.create({
     data: {
       storeName: 'SEPEDAMANIA',
-      waNumber: '6281234567890',
+      waNumber: '6281318986320',
       storeAddress: 'Jl. Sepeda No. 1',
       storeCity: 'Jakarta Pusat',
       storeProvince: 'DKI Jakarta',

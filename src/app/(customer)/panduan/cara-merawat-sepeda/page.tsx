@@ -368,7 +368,7 @@ export default function CaraMerawatSepedaPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <a
-            href="https://wa.me/6281234567890?text=Halo%20SEPEDAMANIA%2C%20saya%20ingin%20konsultasi%20perawatan%20sepeda"
+            href="https://wa.me/6281318986320?text=Halo%20SEPEDAMANIA%2C%20saya%20ingin%20konsultasi%20perawatan%20sepeda"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-white/10 text-white font-medium px-6 py-3 rounded-xl hover:bg-white/20 transition-colors border border-white/10"

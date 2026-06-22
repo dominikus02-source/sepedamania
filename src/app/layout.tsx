@@ -8,7 +8,7 @@ import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from '@/components/providers'
-import { WhatsAppFloating } from '@/components/customer/whatsapp-floating'
+
 
 const inter = Inter({
   subsets: ['latin'],
@@ -132,7 +132,6 @@ export default function RootLayout({
           >
             <main id="main-content">
               {children}
-              <WhatsAppFloating />
             </main>
             <Toaster />
             <ServiceWorkerRegistration />

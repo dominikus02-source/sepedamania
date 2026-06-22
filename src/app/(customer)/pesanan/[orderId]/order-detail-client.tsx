@@ -204,7 +204,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
 
         <div className="mt-6 flex gap-3">
           <Button variant="outline" className="flex-1" onClick={() => copyToClipboard(order.id)}><Copy className="w-4 h-4 mr-1" /> Salin ID</Button>
-          <a href={`https://wa.me/6281234567890?text=Halo,%20saya%20ingin%20bertanya%20tentang%20pesanan%20#${order.id.slice(0, 8)}`} target="_blank" className="flex-1">
+          <a href={`https://wa.me/6281318986320?text=Halo,%20saya%20ingin%20bertanya%20tentang%20pesanan%20#${order.id.slice(0, 8)}`} target="_blank" className="flex-1">
             <Button variant="accent" className="w-full"><MessageCircle className="w-4 h-4 mr-1" /> Hubungi CS</Button>
           </a>
         </div>

@@ -171,7 +171,7 @@ export const storeSettings = {
   storeCity: 'Jakarta Pusat',
   storeProvince: 'DKI Jakarta',
   storePostalCode: '10310',
-  waNumber: '6281234567890',
+  waNumber: '6281318986320',
   email: 'hello@sepedamania.com',
   rajaongkirKey: '',
   rajaongkirOriginCity: '39',

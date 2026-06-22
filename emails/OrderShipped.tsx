@@ -114,7 +114,7 @@ export default function OrderShipped({
             <Text style={footerText}>
               Butuh bantuan? Hubungi kami via{' '}
               <a
-                href="https://wa.me/6281234567890"
+                href="https://wa.me/6281318986320"
                 style={footerLink}
               >
                 WhatsApp

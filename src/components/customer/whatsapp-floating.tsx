@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 
-const WA_NUMBER = '6281234567890';
+const WA_NUMBER = '6281318986320';
 const WA_URL = `https://wa.me/${WA_NUMBER}`;
 
 export function WhatsAppFloating() {

@@ -13,6 +13,11 @@ const LOCK_DURATION_MINUTES = 15;
 // Demo accounts for when database is unavailable
 function getDemoUsers(): Map<string, { name: string; password: string; role: string }> {
   const users = new Map<string, { name: string; password: string; role: string }>();
+  users.set('sepedamania7@gmail.com', {
+    name: 'Super Admin SEPEDAMANIA',
+    password: bcrypt.hashSync('admin123', 12),
+    role: 'ADMIN',
+  });
   users.set('admin@sepedamania.com', {
     name: 'Admin SEPEDAMANIA',
     password: bcrypt.hashSync('admin123', 12),

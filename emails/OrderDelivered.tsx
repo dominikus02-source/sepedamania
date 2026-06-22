@@ -76,7 +76,7 @@ export default function OrderDelivered({
               Punya pertanyaan atau masukan? Jangan ragu untuk menghubungi
               kami via{' '}
               <a
-                href="https://wa.me/6281234567890"
+                href="https://wa.me/6281318986320"
                 style={followUpLink}
               >
                 WhatsApp

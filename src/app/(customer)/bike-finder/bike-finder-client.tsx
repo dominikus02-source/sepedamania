@@ -492,7 +492,7 @@ function StepResults({
       {/* Action buttons */}
       <div className="space-y-3 pt-2">
         <Link
-          href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo, saya butuh bantuan memilih sepeda. Tinggi ${options.height}cm, budget ${formatBudgetLabel(options.budget)}, untuk ${USAGE_LABELS[options.usage]}.`)}`}
+          href={`https://wa.me/6281318986320?text=${encodeURIComponent(`Halo, saya butuh bantuan memilih sepeda. Tinggi ${options.height}cm, budget ${formatBudgetLabel(options.budget)}, untuk ${USAGE_LABELS[options.usage]}.`)}`}
           target="_blank"
           rel="noopener noreferrer"
         >

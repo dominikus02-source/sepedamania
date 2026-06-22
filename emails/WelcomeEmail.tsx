@@ -94,7 +94,7 @@ export default function WelcomeEmail({
               Jika kamu memiliki pertanyaan, jangan ragu untuk
               menghubungi kami via{' '}
               <a
-                href="https://wa.me/6281234567890"
+                href="https://wa.me/6281318986320"
                 style={smallLink}
               >
                 WhatsApp
