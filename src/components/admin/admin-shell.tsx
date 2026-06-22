@@ -109,7 +109,7 @@ function AdminHeader({
   const displayTitle = title.charAt(0).toUpperCase() + title.slice(1);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white border-b border-[#E2E8F0] flex items-center justify-between px-4 lg:px-6">
+    <header className="sticky top-0 z-30 h-14 bg-white border-b border-[#E2E8F0] flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
@@ -160,7 +160,7 @@ export function AdminShell({
       />
       <SidebarDesktop pathname={pathname} />
       <SidebarMobile pathname={pathname} open={mobileOpen} onClose={closeMobile} />
-      <main className="flex-1 lg:ml-64 pt-14 p-4 lg:p-6">
+      <main className="flex-1 lg:ml-64 p-4 lg:p-6">
         {children}
       </main>
     </div>

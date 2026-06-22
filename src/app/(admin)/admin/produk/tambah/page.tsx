@@ -65,14 +65,17 @@ export default function AddProductPage() {
   };
 
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/admin/produk">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold text-[#1C1C1E]">Tambah Produk</h1>
+    <div className="space-y-6 pb-24">
+      <div>
+        <div className="flex items-center gap-3 mb-1">
+          <Link href="/admin/produk">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold text-[#1C1C1E]">Tambah Produk</h1>
+        </div>
+        <p className="ml-1 text-sm text-[#64748B]">Lengkapi informasi produk yang akan tampil di toko.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">

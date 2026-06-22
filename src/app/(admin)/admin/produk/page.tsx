@@ -56,9 +56,12 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#1C1C1E]">Produk</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1C1C1E]">Produk</h1>
+          <p className="mt-1 text-sm text-[#64748B]">Kelola katalog produk, harga, stok, dan status toko.</p>
+        </div>
         <Link href="/admin/produk/tambah">
           <Button variant="accent">
             <Plus className="w-4 h-4 mr-1" /> Tambah Produk
