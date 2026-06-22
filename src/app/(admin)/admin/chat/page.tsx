@@ -15,13 +15,7 @@ interface ChatUser {
   unread: number;
 }
 
-const chatUsers: ChatUser[] = [
-  { id: 'u1', name: 'Budi Santoso', phone: '6281234567890', lastMessage: 'Sudah saya transfer nih kak', lastMessageAt: new Date().toISOString(), unread: 2 },
-  { id: 'u2', name: 'Ani Wijaya', phone: '6281234567891', lastMessage: 'Ukuran M tersedia?', lastMessageAt: new Date(Date.now() - 3600000).toISOString(), unread: 0 },
-  { id: 'u3', name: 'Citra Dewi', phone: '6281234567892', lastMessage: 'Kapan dikirim pak?', lastMessageAt: new Date(Date.now() - 7200000).toISOString(), unread: 1 },
-  { id: 'u4', name: 'Deni Pratama', phone: '6281234567893', lastMessage: 'Terima kasih', lastMessageAt: new Date(Date.now() - 86400000).toISOString(), unread: 0 },
-  { id: 'u5', name: 'Eka Putri', phone: '6281234567894', lastMessage: 'Mau order lagi dong', lastMessageAt: new Date(Date.now() - 172800000).toISOString(), unread: 0 },
-];
+const chatUsers: ChatUser[] = [];
 
 export default function AdminChatPage() {
   const [search, setSearch] = useState('');
