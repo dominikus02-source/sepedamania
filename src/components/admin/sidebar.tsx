@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, ShoppingCart, Users, PackageSearch, Tags, Percent, Truck, CreditCard, BarChart3, Settings, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, PackageSearch, Tags, Percent, Truck, CreditCard, BarChart3, Settings, MessageCircle, RotateCcw } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,6 +17,7 @@ const navItems = [
   { href: '/admin/pengiriman', label: 'Pengiriman', icon: Truck },
   { href: '/admin/pembayaran', label: 'Pembayaran', icon: CreditCard },
   { href: '/admin/laporan', label: 'Laporan', icon: BarChart3 },
+  { href: '/admin/pengembalian', label: 'Pengembalian', icon: RotateCcw },
   { href: '/admin/chat', label: 'Chat Pelanggan', icon: MessageCircle },
   { href: '/admin/pengaturan', label: 'Pengaturan', icon: Settings },
 ];

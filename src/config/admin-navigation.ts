@@ -12,6 +12,7 @@ import {
   Truck,
   BarChart3,
   MessageCircle,
+  RotateCcw,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -32,6 +33,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: '/admin/pembayaran', label: 'Pembayaran', icon: CreditCard },
   { href: '/admin/banner', label: 'Banner', icon: ImageIcon },
   { href: '/admin/laporan', label: 'Laporan', icon: BarChart3 },
+  { href: '/admin/pengembalian', label: 'Pengembalian', icon: RotateCcw },
   { href: '/admin/chat', label: 'Chat Pelanggan', icon: MessageCircle },
   { href: '/admin/pengaturan', label: 'Pengaturan', icon: Settings },
 ];

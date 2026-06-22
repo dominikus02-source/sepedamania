@@ -33,6 +33,35 @@ enum VoucherType {
   NOMINAL
 }
 
+enum ReturnStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  WAITING_FOR_ITEM
+  ITEM_RECEIVED
+  REFUND_PROCESSING
+  REPLACEMENT_SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+enum ReturnReason {
+  DAMAGED
+  WRONG_ITEM
+  NOT_AS_DESCRIBED
+  SIZE_OR_VARIANT_ISSUE
+  MISSING_PART
+  OTHER
+}
+
+enum PreferredResolution {
+  REFUND
+  REPLACEMENT
+  STORE_CREDIT
+  ADMIN_HELP
+}
+
 model User {
   id        String    @id @default(cuid())
   email     String    @unique
@@ -50,6 +79,7 @@ model User {
   sessions  Session[]
   addresses Address[]
   orders    Order[]
+  returnRequests ReturnRequest[]
   reviews   Review[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -190,12 +220,44 @@ model Order {
   xenditPaymentUrl String?
   voucherCode      String?
   notes            String?
+  returnRequests   ReturnRequest[]
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   @@index([userId])
   @@index([status])
   @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model ReturnRequest {
+  id                   String             @id @default(cuid())
+  returnNumber         String             @unique
+  orderId              String
+  order                Order              @relation(fields: [orderId], references: [id])
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id])
+  items                Json               @default("[]")
+  status               ReturnStatus       @default(REQUESTED)
+  reason               ReturnReason
+  detail               String
+  preferredResolution  PreferredResolution
+  evidenceImages       Json               @default("[]")
+  adminNote            String?
+  rejectionReason      String?
+  refundAmount         Decimal?
+  trackingNumber       String?
+  returnShippingProvider String?
+  reviewedAt           DateTime?
+  approvedAt           DateTime?
+  receivedAt           DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
   @@index([createdAt])
 }
 

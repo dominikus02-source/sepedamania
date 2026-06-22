@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatPrice, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -327,14 +328,14 @@ export function ProductDetail({ product, relatedProducts }: { product: ProductDa
       <div className="px-4 mt-6">
         <div className="grid grid-cols-3 gap-3">
           {[
-            { icon: Truck, text: 'Gratis Ongkir*' },
-            { icon: Shield, text: 'Garansi Resmi' },
-            { icon: RotateCcw, text: '30 Hari Retur' },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-[#F3F4F6]">
+            { icon: Truck, text: 'Gratis Ongkir*', href: '/pengiriman' },
+            { icon: Shield, text: 'Garansi Resmi', href: '#' },
+            { icon: RotateCcw, text: '30 Hari Retur', href: '/pengembalian' },
+          ].map(({ icon: Icon, text, href }) => (
+            <Link key={text} href={href} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-[#F3F4F6] hover:bg-[#FDE68A] transition-colors">
               <Icon className="w-5 h-5 text-[#0EA5E9]" />
               <span className="text-[10px] text-[#6B7280] text-center">{text}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

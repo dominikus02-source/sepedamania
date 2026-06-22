@@ -423,6 +423,11 @@ export default function CheckoutPage() {
           <div className="mt-4">
             <TrustBadges variant="full" />
           </div>
+          <div className="mt-2 text-center">
+            <Link href="/pengembalian" className="text-xs text-[#64748B] hover:text-[#F5A623] transition-colors">
+              Kebijakan Pengembalian Barang
+            </Link>
+          </div>
 
           <div className="flex gap-3 mt-4">
             <Button variant="outline" className="flex-1 h-12" onClick={() => setStep(2)}>

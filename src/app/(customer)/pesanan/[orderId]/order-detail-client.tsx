@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { OrderStatusBadge } from '@/components/customer/order-status-badge';
-import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock, RotateCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
 import { useCartStore } from '@/store/cart';
 import { mockProducts } from '@/lib/mock-data';
@@ -208,6 +208,16 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             <Button variant="accent" className="w-full"><MessageCircle className="w-4 h-4 mr-1" /> Hubungi CS</Button>
           </a>
         </div>
+
+        {order.status === 'DELIVERED' && (
+          <div className="mt-4">
+            <Link href={`/pesanan/${orderId}/return`}>
+              <Button variant="outline" className="w-full">
+                <RotateCcw className="w-4 h-4 mr-1" /> Ajukan Pengembalian
+              </Button>
+            </Link>
+          </div>
+        )}
 
         <div className="mt-4">
           <Button
