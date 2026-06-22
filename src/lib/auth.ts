@@ -12,9 +12,6 @@ const LOCK_DURATION_MINUTES = 15;
 
 // Demo accounts for development/fallback only
 function getDemoUsers(): Map<string, { name: string; password: string; role: string }> {
-  if (process.env.NODE_ENV === 'production') {
-    return new Map();
-  }
   const users = new Map<string, { name: string; password: string; role: string }>();
   users.set('sepedamania7@gmail.com', {
     name: 'Super Admin SEPEDAMANIA',

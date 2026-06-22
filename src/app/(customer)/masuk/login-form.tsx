@@ -64,8 +64,8 @@ export function LoginForm() {
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#0F172A] flex items-center justify-center mx-auto mb-3">
-              <span className="text-white font-bold text-2xl">S</span>
+            <div className="w-20 h-20 rounded-2xl bg-[#0F172A] flex items-center justify-center mx-auto mb-3 p-3">
+              <img src="/images/logo-sepedamania.png" alt="SEPEDAMANIA" className="w-full h-full brightness-0 invert" />
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-[#0F172A]">Masuk ke Sepedamania</h1>
@@ -182,14 +182,7 @@ export function LoginForm() {
           </Link>
         </p>
 
-        {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl">
-          <p className="text-xs font-medium text-[#1E40AF] mb-2">Demo Akun:</p>
-          <div className="space-y-1 text-xs text-[#1E40AF]">
-            <p><span className="font-medium">Customer:</span> user@sepedamania.com / user123</p>
-            <p><span className="font-medium">Admin:</span> admin@sepedamania.com / admin123</p>
-          </div>
-        </div>
+
       </div>
     </div>
   );
