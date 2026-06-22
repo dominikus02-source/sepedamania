@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AdminStore } from '@/lib/admin-store';
+import { mockCategories, mockBrands } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,61 +29,36 @@ export default function AddProductPage() {
     weight: '',
     stock: '',
     isActive: true,
-    metaTitle: '',
-    metaDescription: '',
   });
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
-
-  useEffect(() => {
-    fetch('/api/categories')
-      .then((r) => r.json())
-      .then(setCategories)
-      .catch(() => {
-        // Fallback: if API not ready, use mock data
-        console.warn('API /api/categories not available');
-      });
-    fetch('/api/brands')
-      .then((r) => r.json())
-      .then(setBrands)
-      .catch(() => {
-        console.warn('API /api/brands not available');
-      });
-  }, []);
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const value = e.target.value;
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-      // Auto-generate slug from name
-      ...(field === 'name' ? { metaTitle: value } : {}),
-    }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.categoryId || !form.brandId) {
+      toast('Harap pilih kategori dan merek', 'error');
+      return;
+    }
     setLoading(true);
     try {
-      const payload = {
-        ...form,
+      AdminStore.addProduct({
+        name: form.name,
+        sku: form.sku,
+        description: form.description,
+        categoryId: form.categoryId,
+        brandId: form.brandId,
         price: Number(form.price),
         salePrice: form.salePrice ? Number(form.salePrice) : null,
         weight: Number(form.weight),
         stock: Number(form.stock),
-        slug: slugify(form.name),
-      };
-
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Gagal menyimpan produk');
       toast('Produk berhasil ditambahkan', 'success');
       router.push('/admin/produk');
-    } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'Gagal menyimpan produk', 'error');
+    } catch {
+      toast('Gagal menyimpan produk', 'error');
     } finally {
       setLoading(false);
     }
@@ -122,7 +99,7 @@ export default function AddProductPage() {
             <Select
               value={form.categoryId}
               onChange={update('categoryId')}
-              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              options={mockCategories.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="Pilih kategori"
             />
           </div>
@@ -131,7 +108,7 @@ export default function AddProductPage() {
             <Select
               value={form.brandId}
               onChange={update('brandId')}
-              options={brands.map((b) => ({ value: b.id, label: b.name }))}
+              options={mockBrands.map((b) => ({ value: b.id, label: b.name }))}
               placeholder="Pilih merek"
             />
           </div>
@@ -159,9 +136,7 @@ export default function AddProductPage() {
             <Save className="w-4 h-4 mr-1" /> {loading ? 'Menyimpan...' : 'Simpan'}
           </Button>
           <Link href="/admin/produk">
-            <Button variant="outline" type="button">
-              Batal
-            </Button>
+            <Button variant="outline" type="button">Batal</Button>
           </Link>
         </div>
       </form>

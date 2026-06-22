@@ -1,43 +1,59 @@
+'use client';
+
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
+import { useAdminProducts } from '@/lib/admin-store';
+import { mockCategories, mockBrands } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Plus, Search, Image as ImageIcon } from 'lucide-react';
-import { mockProducts, mockCategories } from '@/lib/mock-data';
+import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+const PAGE_SIZE = 10;
 
-export default async function AdminProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; category?: string }>;
-}) {
-  const { q, category } = await searchParams;
+export default function AdminProductsPage() {
+  const { products, loading } = useAdminProducts();
+  const [q, setQ] = useState('');
+  const [category, setCategory] = useState('');
+  const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
 
-  let products = mockProducts;
+  const filtered = useMemo(() => {
+    let result = [...products];
+    if (q) {
+      const query = q.toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query));
+    }
+    if (category) {
+      result = result.filter((p) => p.categoryId === category);
+    }
+    if (status === 'active') {
+      result = result.filter((p) => p.isActive);
+    } else if (status === 'inactive') {
+      result = result.filter((p) => !p.isActive);
+    }
+    return result;
+  }, [products, q, category, status]);
 
-  if (q) {
-    products = products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
-  }
-
-  if (category) {
-    products = products.filter((p) => p.categoryId === category);
-  }
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const getCatName = (id: string) => mockCategories.find((c) => c.id === id)?.name || '-';
-  const getBrandName = (id: string) => {
-    const brandMap: Record<string, string> = {
-      '1': 'Polygon',
-      '2': 'United',
-      '3': 'Wimcycle',
-      '4': 'Pacific',
-      '5': 'Element',
-    };
-    return brandMap[id] || '-';
-  };
+  const getBrandName = (id: string) => mockBrands.find((b) => b.id === id)?.name || '-';
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-32 bg-[#F2F2F7] rounded animate-pulse" />
+        <div className="h-10 w-full bg-[#F2F2F7] rounded animate-pulse" />
+        <div className="h-64 bg-[#F2F2F7] rounded animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -50,35 +66,44 @@ export default async function AdminProductsPage({
         </Link>
       </div>
 
-      {/* Filters: Search + Category */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <form className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="flex gap-3 mb-4 flex-wrap items-end">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8E8E93]" />
-          <Input name="q" placeholder="Cari produk..." className="pl-9" defaultValue={q} />
-        </form>
-        <form>
+          <Input
+            placeholder="Cari produk..."
+            className="pl-9"
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(1); }}
+          />
+        </div>
+        <div className="w-[180px]">
           <Select
-            name="category"
-            defaultValue={category || ''}
-            onChange={() => {
-              // Submit on change via form submit
-              const form = document.getElementById('category-form') as HTMLFormElement;
-              form?.requestSubmit();
-            }}
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
             options={[
               { value: '', label: 'Semua Kategori' },
               ...mockCategories.map((c) => ({ value: c.id, label: c.name })),
             ]}
           />
-        </form>
-        {/* Hidden form to handle category filter submission */}
-        <form id="category-form" method="GET" className="hidden">
-          {q && <input type="hidden" name="q" value={q} />}
-          <input type="hidden" name="category" id="category-input" />
-        </form>
+        </div>
+        <div className="w-[140px]">
+          <Select
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Status' },
+              { value: 'active', label: 'Aktif' },
+              { value: 'inactive', label: 'Nonaktif' },
+            ]}
+          />
+        </div>
+        {filtered.length > 0 && (
+          <p className="text-xs text-[#8E8E93] whitespace-nowrap">
+            {filtered.length} produk
+          </p>
+        )}
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-[#E5E5EA] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -95,12 +120,8 @@ export default async function AdminProductsPage({
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => (
-              <tr
-                key={p.id}
-                className="border-b border-[#E5E5EA] last:border-0 hover:bg-[#F2F2F7]/50 transition-colors"
-              >
-                {/* Thumbnail */}
+            {paginated.map((p) => (
+              <tr key={p.id} className="border-b border-[#E5E5EA] last:border-0 hover:bg-[#F2F2F7]/50 transition-colors">
                 <td className="p-3">
                   {p.images && p.images.length > 0 ? (
                     <Image
@@ -116,17 +137,12 @@ export default async function AdminProductsPage({
                     </div>
                   )}
                 </td>
-                {/* Name */}
                 <td className="p-3">
                   <span className="font-medium text-[#1C1C1E]">{p.name}</span>
                 </td>
-                {/* SKU */}
                 <td className="p-3 text-[#8E8E93] font-mono text-xs">{p.sku}</td>
-                {/* Category */}
                 <td className="p-3 text-[#8E8E93]">{getCatName(p.categoryId)}</td>
-                {/* Brand */}
                 <td className="p-3 text-[#8E8E93]">{getBrandName(p.brandId)}</td>
-                {/* Price */}
                 <td className="p-3 text-right font-medium">
                   {p.salePrice ? (
                     <span>
@@ -137,17 +153,14 @@ export default async function AdminProductsPage({
                     formatPrice(p.price)
                   )}
                 </td>
-                {/* Stock */}
                 <td className="p-3 text-right">
                   <Badge variant={p.stock > 5 ? 'success' : 'destructive'}>{p.stock}</Badge>
                 </td>
-                {/* Status */}
                 <td className="p-3 text-center">
                   <Badge variant={p.isActive ? 'success' : 'default'}>
                     {p.isActive ? 'Aktif' : 'Nonaktif'}
                   </Badge>
                 </td>
-                {/* Actions */}
                 <td className="p-3 text-right">
                   <Link
                     href={`/admin/produk/${p.slug}`}
@@ -161,12 +174,26 @@ export default async function AdminProductsPage({
           </tbody>
         </table>
 
-        {products.length === 0 && (
+        {paginated.length === 0 && (
           <div className="text-center py-12 text-[#8E8E93] text-sm">
-            Tidak ada produk yang ditemukan.
+            {q || category || status ? 'Tidak ada produk yang cocok dengan filter.' : 'Belum ada produk.'}
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
+            <ChevronLeft className="w-4 h-4 mr-1" /> Sebelumnya
+          </Button>
+          <span className="text-sm text-[#8E8E93]">
+            Halaman {safePage} dari {totalPages}
+          </span>
+          <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)}>
+            Selanjutnya <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

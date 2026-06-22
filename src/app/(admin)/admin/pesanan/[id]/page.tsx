@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { mockOrders, AdminOrder } from '@/lib/mock-admin-data';
+import { AdminStore } from '@/lib/admin-store';
+import type { AdminOrder } from '@/lib/admin-store';
 import { formatPrice, formatDate, formatDateShort } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -87,9 +88,7 @@ function StatusStepper({ status }: { status: string }) {
       <div className="flex items-center justify-center gap-4 py-4">
         <div className="flex items-center gap-2">
           <XCircle className="w-6 h-6 text-[#FF3B30]" />
-          <span className="text-sm font-semibold text-[#FF3B30]">
-            Pesanan Dibatalkan
-          </span>
+          <span className="text-sm font-semibold text-[#FF3B30]">Pesanan Dibatalkan</span>
         </div>
       </div>
     );
@@ -105,7 +104,6 @@ function StatusStepper({ status }: { status: string }) {
 
         return (
           <div key={step} className="flex items-center flex-1 last:flex-none">
-            {/* Circle + Label */}
             <div className="flex flex-col items-center gap-1.5">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
@@ -128,18 +126,13 @@ function StatusStepper({ status }: { status: string }) {
               </div>
               <span
                 className={`text-xs font-medium whitespace-nowrap ${
-                  isCurrent
-                    ? 'text-[#F5A623] font-semibold'
-                    : isCompleted
-                      ? 'text-[#34C759]'
-                      : 'text-[#8E8E93]'
+                  isCurrent ? 'text-[#F5A623] font-semibold' : isCompleted ? 'text-[#34C759]' : 'text-[#8E8E93]'
                 }`}
               >
                 {STEP_LABELS[step]}
               </span>
             </div>
 
-            {/* Connector Line */}
             {idx < STEP_ORDER.length - 1 && (
               <div className="flex-1 h-[2px] mx-2 mb-6 self-center">
                 <div
@@ -163,98 +156,91 @@ export default function AdminOrderDetailPage() {
   const { toast } = useToast();
   const id = params.id as string;
 
-  const foundOrder = mockOrders.find((o) => o.id === id) || null;
+  const [ready, setReady] = useState(false);
+  const [notFoundState, setNotFoundState] = useState(false);
 
-  const [order, setOrder] = useState<AdminOrder | null>(foundOrder);
-  const [notes, setNotes] = useState(foundOrder?.notes || '');
-  const [selectedCourier, setSelectedCourier] = useState(foundOrder?.courier || 'JNE');
-  const [trackingNo, setTrackingNo] = useState(foundOrder?.trackingNumber || '');
+  const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [notes, setNotes] = useState('');
+  const [selectedCourier, setSelectedCourier] = useState('JNE');
+  const [trackingNo, setTrackingNo] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [acting, setActing] = useState(false);
 
+  useEffect(() => {
+    const found = AdminStore.getOrder(id);
+    if (!found) {
+      setNotFoundState(true);
+      return;
+    }
+    setOrder(found);
+    setNotes(found.notes || '');
+    setSelectedCourier(found.courier || 'JNE');
+    setTrackingNo(found.trackingNumber || '');
+    setReady(true);
+  }, [id]);
+
+  if (notFoundState) {
+    notFound();
+  }
+
+  if (!ready || !order) {
+    return (
+      <div className="space-y-4 max-w-4xl">
+        <div className="h-8 w-64 bg-[#F2F2F7] rounded animate-pulse" />
+        <div className="h-32 bg-[#F2F2F7] rounded animate-pulse" />
+        <div className="h-64 bg-[#F2F2F7] rounded animate-pulse" />
+      </div>
+    );
+  }
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
+  const persistAndUpdate = (updates: Partial<AdminOrder>, successMsg: string) => {
+    AdminStore.updateOrder(id, updates);
+    setOrder((prev) => (prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev));
+    toast(successMsg, 'success');
+    setActing(false);
+  };
+
   const handleConfirmPayment = () => {
-    if (!order) return;
     setActing(true);
-    // Simulate API call
     setTimeout(() => {
-      setOrder((prev: AdminOrder | null) =>
-        prev
-          ? {
-              ...prev,
-              paymentStatus: 'PAID',
-              status: 'PROCESSING',
-              updatedAt: new Date().toISOString(),
-            }
-          : prev
+      persistAndUpdate(
+        { paymentStatus: 'PAID', status: 'PROCESSING' },
+        'Pembayaran berhasil dikonfirmasi'
       );
-      setActing(false);
-      toast('Pembayaran berhasil dikonfirmasi', 'success');
     }, 600);
   };
 
   const handleSaveResi = () => {
-    if (!order) return;
     if (!trackingNo.trim()) {
       toast('Harap masukkan nomor resi', 'error');
       return;
     }
     setActing(true);
-    // Simulate API call
     setTimeout(() => {
-      setOrder((prev: AdminOrder | null) =>
-        prev
-          ? {
-              ...prev,
-              courier: selectedCourier,
-              trackingNumber: trackingNo.trim(),
-              status: 'SHIPPED',
-              updatedAt: new Date().toISOString(),
-            }
-          : prev
+      persistAndUpdate(
+        { courier: selectedCourier, trackingNumber: trackingNo.trim(), status: 'SHIPPED' },
+        'Resi berhasil disimpan & status berubah ke Dikirim'
       );
-      setActing(false);
-      toast('Resi berhasil disimpan & status berubah ke Dikirim', 'success');
-      toast('Email notifikasi pengiriman telah dikirim', 'success');
     }, 600);
   };
 
   const handleMarkDelivered = () => {
-    if (!order) return;
     setActing(true);
     setTimeout(() => {
-      setOrder((prev: AdminOrder | null) =>
-        prev
-          ? {
-              ...prev,
-              status: 'DELIVERED',
-              updatedAt: new Date().toISOString(),
-            }
-          : prev
-      );
-      setActing(false);
-      toast('Pesanan ditandai selesai', 'success');
+      persistAndUpdate({ status: 'DELIVERED' }, 'Pesanan ditandai selesai');
     }, 600);
   };
 
   const handleSaveNotes = () => {
-    if (!order) return;
     setSavingNotes(true);
     setTimeout(() => {
-      setOrder((prev: AdminOrder | null) =>
-        prev ? { ...prev, notes } : prev
-      );
+      AdminStore.updateOrder(id, { notes });
       setSavingNotes(false);
       toast('Catatan berhasil disimpan', 'success');
     }, 400);
   };
-
-  // ── Not Found ────────────────────────────────────────────────────
-
-  if (!order) {
-    notFound();
-  }
 
   // ── Derived Values ─────────────────────────────────────────────────────────
 
@@ -276,26 +262,16 @@ export default function AdminOrderDetailPage() {
             <h1 className="text-2xl font-bold text-[#1C1C1E] flex items-center gap-3">
               <span className="font-mono">#{order.id}</span>
               <div className="flex items-center gap-2">
-                <Badge
-                  variant={
-                    (ORDER_BADGE_VARIANTS[order.status] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') || 'default'
-                  }
-                >
+                <Badge variant={(ORDER_BADGE_VARIANTS[order.status] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') || 'default'}>
                   {STATUS_LABELS[order.status] || order.status}
                 </Badge>
-                <Badge
-                  variant={
-                    (PAYMENT_BADGE_VARIANTS[order.paymentStatus] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') ||
-                    'default'
-                  }
-                >
+                <Badge variant={(PAYMENT_BADGE_VARIANTS[order.paymentStatus] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') || 'default'}>
                   {PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus}
                 </Badge>
               </div>
             </h1>
             <p className="text-sm text-[#8E8E93] mt-1">
-              {formatDate(order.createdAt)} &middot;{' '}
-              {formatDateShort(order.createdAt)}
+              {formatDate(order.createdAt)} &middot; {formatDateShort(order.createdAt)}
             </p>
           </div>
         </div>
@@ -321,9 +297,7 @@ export default function AdminOrderDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-[#8E8E93] shrink-0" />
-              <span className="text-sm font-medium text-[#1C1C1E]">
-                {order.user.name}
-              </span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{order.user.name}</span>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-[#8E8E93] shrink-0" />
@@ -338,17 +312,9 @@ export default function AdminOrderDetailPage() {
               <MapPin className="w-4 h-4 text-[#8E8E93] shrink-0 mt-0.5" />
               <div className="text-sm text-[#1C1C1E]">
                 <p className="font-medium">{order.shippingAddress.recipient}</p>
-                <p className="text-[#8E8E93]">
-                  {order.shippingAddress.detail}
-                </p>
-                <p className="text-[#8E8E93]">
-                  {order.shippingAddress.district},{' '}
-                  {order.shippingAddress.city}
-                </p>
-                <p className="text-[#8E8E93]">
-                  {order.shippingAddress.province}{' '}
-                  {order.shippingAddress.postalCode}
-                </p>
+                <p className="text-[#8E8E93]">{order.shippingAddress.detail}</p>
+                <p className="text-[#8E8E93]">{order.shippingAddress.district}, {order.shippingAddress.city}</p>
+                <p className="text-[#8E8E93]">{order.shippingAddress.province} {order.shippingAddress.postalCode}</p>
               </div>
             </div>
           </CardContent>
@@ -365,29 +331,20 @@ export default function AdminOrderDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#8E8E93]">Kurir</span>
-              <span className="text-sm font-medium text-[#1C1C1E]">
-                {order.courier}
-              </span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{order.courier}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#8E8E93]">Layanan</span>
-              <span className="text-sm font-medium text-[#1C1C1E]">
-                {order.courierService}
-              </span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{order.courierService}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#8E8E93]">Penerima</span>
-              <span className="text-sm font-medium text-[#1C1C1E]">
-                {order.shippingAddress.recipient}
-              </span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{order.shippingAddress.recipient}</span>
             </div>
             <div className="flex items-start justify-between">
               <span className="text-sm text-[#8E8E93] shrink-0">Alamat</span>
               <span className="text-sm text-[#1C1C1E] text-right max-w-[200px]">
-                {order.shippingAddress.detail}, {order.shippingAddress.district}
-                , {order.shippingAddress.city},{' '}
-                {order.shippingAddress.province}{' '}
-                {order.shippingAddress.postalCode}
+                {order.shippingAddress.detail}, {order.shippingAddress.district}, {order.shippingAddress.city}, {order.shippingAddress.province} {order.shippingAddress.postalCode}
               </span>
             </div>
             {order.trackingNumber && (
@@ -395,9 +352,7 @@ export default function AdminOrderDetailPage() {
                 <Separator />
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[#8E8E93]">No. Resi</span>
-                  <span className="text-sm font-mono font-bold text-[#1C1C1E]">
-                    {order.trackingNumber}
-                  </span>
+                  <span className="text-sm font-mono font-bold text-[#1C1C1E]">{order.trackingNumber}</span>
                 </div>
               </>
             )}
@@ -418,38 +373,19 @@ export default function AdminOrderDetailPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#E5E5EA]">
-                  <th className="text-left pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">
-                    Produk
-                  </th>
-                  <th className="text-center pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">
-                    Qty
-                  </th>
-                  <th className="text-right pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">
-                    Harga
-                  </th>
-                  <th className="text-right pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">
-                    Subtotal
-                  </th>
+                  <th className="text-left pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">Produk</th>
+                  <th className="text-center pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">Qty</th>
+                  <th className="text-right pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">Harga</th>
+                  <th className="text-right pb-2 font-medium text-[#8E8E93] text-xs uppercase tracking-wider">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 {order.items.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-b border-[#E5E5EA] last:border-0"
-                  >
-                    <td className="py-3 pr-4 text-[#1C1C1E] font-medium">
-                      {item.name}
-                    </td>
-                    <td className="py-3 text-center text-[#8E8E93]">
-                      {item.qty}
-                    </td>
-                    <td className="py-3 text-right text-[#8E8E93]">
-                      {formatPrice(item.price)}
-                    </td>
-                    <td className="py-3 text-right font-semibold text-[#1C1C1E] whitespace-nowrap">
-                      {formatPrice(item.price * item.qty)}
-                    </td>
+                  <tr key={item.id} className="border-b border-[#E5E5EA] last:border-0">
+                    <td className="py-3 pr-4 text-[#1C1C1E] font-medium">{item.name}</td>
+                    <td className="py-3 text-center text-[#8E8E93]">{item.qty}</td>
+                    <td className="py-3 text-right text-[#8E8E93]">{formatPrice(item.price)}</td>
+                    <td className="py-3 text-right font-semibold text-[#1C1C1E] whitespace-nowrap">{formatPrice(item.price * item.qty)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -473,30 +409,22 @@ export default function AdminOrderDetailPage() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-[#8E8E93]">Ongkos Kirim</span>
-            <span className="text-[#1C1C1E]">
-              {formatPrice(order.shippingCost)}
-            </span>
+            <span className="text-[#1C1C1E]">{formatPrice(order.shippingCost)}</span>
           </div>
           {order.discount > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-[#34C759]">Diskon</span>
-              <span className="text-[#34C759]">
-                -{formatPrice(order.discount)}
-              </span>
+              <span className="text-[#34C759]">-{formatPrice(order.discount)}</span>
             </div>
           )}
           <Separator />
           <div className="flex justify-between font-bold text-base">
             <span className="text-[#1C1C1E]">Total</span>
-            <span className="text-[#1C1C1E]">
-              {formatPrice(order.total)}
-            </span>
+            <span className="text-[#1C1C1E]">{formatPrice(order.total)}</span>
           </div>
           <div className="flex justify-between text-sm pt-1">
             <span className="text-[#8E8E93]">Metode Pembayaran</span>
-            <span className="text-[#1C1C1E] font-medium">
-              {order.paymentMethod}
-            </span>
+            <span className="text-[#1C1C1E] font-medium">{order.paymentMethod}</span>
           </div>
         </CardContent>
       </Card>
@@ -510,141 +438,87 @@ export default function AdminOrderDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* CANCELLED */}
           {isCancelled && (
             <div className="flex items-start gap-3 p-4 bg-[#FF3B30]/5 rounded-xl border border-[#FF3B30]/10">
               <XCircle className="w-5 h-5 text-[#FF3B30] shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-[#FF3B30]">
-                  Pesanan Dibatalkan
-                </p>
-                {order.notes && (
-                  <p className="text-sm text-[#8E8E93] mt-1">
-                    Catatan: {order.notes}
-                  </p>
-                )}
+                <p className="text-sm font-semibold text-[#FF3B30]">Pesanan Dibatalkan</p>
+                {order.notes && <p className="text-sm text-[#8E8E93] mt-1">Catatan: {order.notes}</p>}
               </div>
             </div>
           )}
 
-          {/* PENDING_PAYMENT + PAID → Konfirmasi Pembayaran */}
-          {order.status === 'PENDING_PAYMENT' &&
-            order.paymentStatus === 'PAID' && (
-              <div className="space-y-3">
-                <p className="text-sm text-[#8E8E93]">
-                  Pembayaran sudah diterima. Konfirmasi untuk memproses pesanan.
-                </p>
-                <Button
-                  variant="accent"
-                  onClick={handleConfirmPayment}
-                  disabled={acting}
-                >
-                  {acting ? (
-                    <span className="animate-pulse">Memproses...</span>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-1.5" />
-                      Konfirmasi Pembayaran
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-          {/* PENDING_PAYMENT + UNPAID → No actions */}
-          {order.status === 'PENDING_PAYMENT' &&
-            order.paymentStatus === 'UNPAID' && (
-              <div className="flex items-center gap-2 text-sm text-[#8E8E93]">
-                <Circle className="w-4 h-4" />
-                Menunggu pembayaran dari pelanggan...
-              </div>
-            )}
-
-          {order.status === 'PENDING_PAYMENT' &&
-            order.paymentStatus === 'FAILED' && (
-              <div className="flex items-center gap-2 text-sm text-[#FF3B30]">
-                <XCircle className="w-4 h-4" />
-                Pembayaran gagal. Menunggu tindakan pelanggan.
-              </div>
-            )}
-
-          {/* PROCESSING → Input Resi */}
-          {order.status === 'PROCESSING' && (
-            <div className="space-y-4">
-              <p className="text-sm text-[#8E8E93]">
-                Masukkan nomor resi pengiriman untuk mengirim pesanan.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="courier">Kurir</Label>
-                  <Select
-                    id="courier"
-                    options={COURIER_OPTIONS}
-                    value={selectedCourier}
-                    onChange={(e) => setSelectedCourier(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="tracking">Nomor Resi</Label>
-                  <Input
-                    id="tracking"
-                    placeholder="Masukkan nomor resi..."
-                    value={trackingNo}
-                    onChange={(e) => setTrackingNo(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                variant="accent"
-                onClick={handleSaveResi}
-                disabled={acting || !trackingNo.trim()}
-              >
+          {order.status === 'PENDING_PAYMENT' && order.paymentStatus === 'PAID' && (
+            <div className="space-y-3">
+              <p className="text-sm text-[#8E8E93]">Pembayaran sudah diterima. Konfirmasi untuk memproses pesanan.</p>
+              <Button variant="accent" onClick={handleConfirmPayment} disabled={acting}>
                 {acting ? (
-                  <span className="animate-pulse">Menyimpan...</span>
+                  <span className="animate-pulse">Memproses...</span>
                 ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-1.5" />
-                    Simpan Resi & Kirim
-                  </>
+                  <><CheckCircle className="w-4 h-4 mr-1.5" /> Konfirmasi Pembayaran</>
                 )}
               </Button>
             </div>
           )}
 
-          {/* SHIPPED → Tandai Selesai */}
+          {order.status === 'PENDING_PAYMENT' && order.paymentStatus === 'UNPAID' && (
+            <div className="flex items-center gap-2 text-sm text-[#8E8E93]">
+              <Circle className="w-4 h-4" />
+              Menunggu pembayaran dari pelanggan...
+            </div>
+          )}
+
+          {order.status === 'PENDING_PAYMENT' && order.paymentStatus === 'FAILED' && (
+            <div className="flex items-center gap-2 text-sm text-[#FF3B30]">
+              <XCircle className="w-4 h-4" />
+              Pembayaran gagal. Menunggu tindakan pelanggan.
+            </div>
+          )}
+
+          {order.status === 'PROCESSING' && (
+            <div className="space-y-4">
+              <p className="text-sm text-[#8E8E93]">Masukkan nomor resi pengiriman untuk mengirim pesanan.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="courier">Kurir</Label>
+                  <Select id="courier" options={COURIER_OPTIONS} value={selectedCourier} onChange={(e) => setSelectedCourier(e.target.value)} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="tracking">Nomor Resi</Label>
+                  <Input id="tracking" placeholder="Masukkan nomor resi..." value={trackingNo} onChange={(e) => setTrackingNo(e.target.value)} />
+                </div>
+              </div>
+              <Button variant="accent" onClick={handleSaveResi} disabled={acting || !trackingNo.trim()}>
+                {acting ? (
+                  <span className="animate-pulse">Menyimpan...</span>
+                ) : (
+                  <><Save className="w-4 h-4 mr-1.5" /> Simpan Resi & Kirim</>
+                )}
+              </Button>
+            </div>
+          )}
+
           {order.status === 'SHIPPED' && (
             <div className="space-y-3">
               <p className="text-sm text-[#8E8E93]">
-                Pesanan sudah dikirim. Tandai sebagai selesai jika sudah
-                diterima pelanggan.
+                Pesanan sudah dikirim. Tandai sebagai selesai jika sudah diterima pelanggan.
               </p>
               {order.trackingNumber && (
                 <p className="text-xs text-[#8E8E93] flex items-center gap-1.5">
                   <Truck className="w-3.5 h-3.5" />
-                  Resi:{' '}
-                  <span className="font-mono font-medium text-[#1C1C1E]">
-                    {order.trackingNumber}
-                  </span>
+                  Resi: <span className="font-mono font-medium text-[#1C1C1E]">{order.trackingNumber}</span>
                 </p>
               )}
-              <Button
-                variant="accent"
-                onClick={handleMarkDelivered}
-                disabled={acting}
-              >
+              <Button variant="accent" onClick={handleMarkDelivered} disabled={acting}>
                 {acting ? (
                   <span className="animate-pulse">Memproses...</span>
                 ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-1.5" />
-                    Tandai Selesai
-                  </>
+                  <><Send className="w-4 h-4 mr-1.5" /> Tandai Selesai</>
                 )}
               </Button>
             </div>
           )}
 
-          {/* DELIVERED → No actions */}
           {order.status === 'DELIVERED' && (
             <div className="flex items-center gap-2 text-sm text-[#34C759]">
               <CheckCircle className="w-4 h-4" />
@@ -663,25 +537,12 @@ export default function AdminOrderDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Textarea
-            placeholder="Tulis catatan internal untuk pesanan ini..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={4}
-          />
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSaveNotes}
-            disabled={savingNotes}
-          >
+          <Textarea placeholder="Tulis catatan internal untuk pesanan ini..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
+          <Button variant="default" size="sm" onClick={handleSaveNotes} disabled={savingNotes}>
             {savingNotes ? (
               <span className="animate-pulse">Menyimpan...</span>
             ) : (
-              <>
-                <Save className="w-4 h-4 mr-1.5" />
-                Simpan Catatan
-              </>
+              <><Save className="w-4 h-4 mr-1.5" /> Simpan Catatan</>
             )}
           </Button>
         </CardContent>
