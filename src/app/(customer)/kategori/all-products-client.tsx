@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProductCard } from '@/components/customer/product-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { getAllProducts } from '@/lib/catalog-data';
 import { SlidersHorizontal, Search, PackageOpen } from 'lucide-react';
 
 type SortOption = 'popular' | 'newest' | 'price-asc' | 'price-desc' | 'discount';
@@ -28,12 +29,17 @@ interface AllProductsClientProps {
 export function AllProductsClient({ products }: AllProductsClientProps) {
   const searchParams = useSearchParams();
   const sortParam = searchParams.get('sort') as SortOption | null;
+  const [localProducts, setLocalProducts] = useState(products);
   const [sort, setSort] = useState<SortOption>(sortParam || 'popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  useEffect(() => {
+    setLocalProducts(getAllProducts());
+  }, []);
+
   const filtered = useMemo(() => {
-    let result = [...products];
+    let result = [...localProducts];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((p) => p.name.toLowerCase().includes(q));
@@ -50,7 +56,7 @@ export function AllProductsClient({ products }: AllProductsClientProps) {
       }); break;
     }
     return result;
-  }, [products, sort, searchQuery]);
+  }, [localProducts, sort, searchQuery]);
 
   return (
     <div className="mt-4">

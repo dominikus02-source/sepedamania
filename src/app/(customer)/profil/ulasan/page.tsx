@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { StarRating } from '@/components/customer/star-rating';
 import { Pencil, ChevronLeft, Star } from 'lucide-react';
-import { mockProducts } from '@/lib/mock-data';
+import { getAllProducts } from '@/lib/catalog-data';
 
 interface Review {
   id: string;
@@ -19,20 +19,22 @@ interface Review {
   createdAt: string;
 }
 
-function getMockReviews(): Review[] {
-  return mockProducts.slice(0, 5).map((p, i) => ({
-    id: `r${i}`,
-    productId: p.id,
-    productName: p.name,
-    productImage: p.images[0] || '',
-    rating: 4 + (i % 2),
-    comment: 'Produk sesuai deskripsi, kualitas bagus. Pengiriman cepat dan packing aman. Recommended!',
-    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-  }));
-}
-
 export default function ReviewsPage() {
-  const [reviews] = useState<Review[]>(getMockReviews());
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+  useEffect(() => {
+    const products = getAllProducts();
+    const mockReviews = products.slice(0, 5).map((p, i) => ({
+      id: `r${i}`,
+      productId: p.id,
+      productName: p.name,
+      productImage: p.images[0] || '',
+      rating: 4 + (i % 2),
+      comment: 'Produk sesuai deskripsi, kualitas bagus. Pengiriman cepat dan packing aman. Recommended!',
+      createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+    }));
+    setReviews(mockReviews);
+  }, []);
 
   return (
     <div className="p-4 max-w-2xl mx-auto">

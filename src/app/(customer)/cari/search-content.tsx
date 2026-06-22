@@ -7,7 +7,7 @@ import { ProductCard } from '@/components/customer/product-card';
 import { ProductCardSkeleton } from '@/components/customer/product-skeleton';
 import { Search, X, TrendingUp } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { mockCategories } from '@/lib/mock-data';
+import { getAllCategories } from '@/lib/catalog-data';
 
 interface SearchResult {
   id: string;
@@ -84,7 +84,7 @@ export function SearchContent() {
         <div className="mb-4">
           <h3 className="text-sm font-medium text-[#1C1C1E] mb-2">Kategori</h3>
           <div className="flex flex-wrap gap-2">
-            {mockCategories.map((cat) => (
+            {getAllCategories().map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.slug)}

@@ -12,7 +12,7 @@ import { OrderStatusBadge } from '@/components/customer/order-status-badge';
 import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock, RotateCcw } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
 import { useCartStore } from '@/store/cart';
-import { mockProducts } from '@/lib/mock-data';
+import { getProductById } from '@/lib/catalog-data';
 
 const STATUS_STEPS = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'] as const;
 
@@ -226,7 +226,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             onClick={() => {
               const addItem = useCartStore.getState().addItem;
               order.items.forEach((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }) => {
-                const product = mockProducts.find((p) => p.id === item.productId);
+                const product = getProductById(item.productId);
                 addItem({
                   productId: item.productId,
                   variantId: item.variantId,

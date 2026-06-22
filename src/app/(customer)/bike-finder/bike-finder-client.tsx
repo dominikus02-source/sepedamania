@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/customer/product-card';
+import { getAllProducts } from '@/lib/catalog-data';
 import { findBikes, type BikeFinderOptions, type BikeMatch } from '@/lib/bike-finder';
 import {
   USAGE_LABELS,
@@ -568,10 +569,10 @@ export function BikeFinderClient() {
 
   const handleSearch = useCallback(() => {
     setIsLoading(true);
-    // Brief delay for UX smoothness
     const opts = buildOptions();
     const timer = setTimeout(() => {
-      const matches = findBikes(opts);
+      const products = getAllProducts().filter((p) => p.isActive);
+      const matches = findBikes(opts, products);
       setResults(matches);
       setIsLoading(false);
       setStep(TOTAL_STEPS);

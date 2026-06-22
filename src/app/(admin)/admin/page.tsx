@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminDashboard } from './dashboard-client';
 import { mockDashboardStats, mockRevenueData, mockOrderStatusCounts, mockOrders } from '@/lib/mock-admin-data';
-import { mockProducts } from '@/lib/mock-data';
 
 export const metadata: Metadata = {
   title: 'Dashboard Admin',
@@ -10,9 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function AdminDashboardPage() {
-  const lowStockProducts = mockProducts
-    .filter((p) => p.stock <= 5)
-    .map((p) => ({ ...p, price: Number(p.price), salePrice: p.salePrice ? Number(p.salePrice) : null }));
+  const lowStockProducts: { id: string; name: string; slug: string; stock: number; price: number; salePrice: number | null; images: string[] }[] = [];
 
   const recentOrders = mockOrders.slice(0, 5).map((order) => ({
     ...order,

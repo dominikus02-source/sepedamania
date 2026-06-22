@@ -1,30 +1,34 @@
 'use client';
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
 import { mockDashboardStats, mockRevenueData } from '@/lib/mock-admin-data';
-import { mockProducts } from '@/lib/mock-data';
+import { getAllProducts } from '@/lib/catalog-data';
+import type { CatalogProduct } from '@/lib/catalog-data';
 import { Download } from 'lucide-react';
 import Papa from 'papaparse';
 
 const AdminRevenueChart = lazy(() => import('./revenue-chart').then((m) => ({ default: m.AdminRevenueChart })));
 const AdminOrdersChart = lazy(() => import('./orders-chart').then((m) => ({ default: m.AdminOrdersChart })));
 
-const topProducts = [...mockProducts]
-  .sort((a, b) => b.sold - a.sold)
-  .slice(0, 5);
-
-const summaryCards = [
-  { label: 'Total Pendapatan', value: formatPrice(mockDashboardStats.monthlyRevenue) },
-  { label: 'Total Produk Terjual', value: topProducts.reduce((s, p) => s + p.sold, 0) },
-  { label: 'Total Pesanan', value: mockDashboardStats.totalOrders },
-  { label: 'Rata-rata Transaksi', value: formatPrice(mockDashboardStats.totalOrders > 0 ? Math.round(mockDashboardStats.monthlyRevenue / mockDashboardStats.totalOrders) : 0) },
-];
-
 export default function AdminReportsPage() {
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  useEffect(() => { setProducts(getAllProducts()); }, []);
+
+  const topProducts = [...products]
+    .sort((a, b) => b.sold - a.sold)
+    .slice(0, 5);
+
+  const summaryCards = [
+    { label: 'Total Pendapatan', value: formatPrice(mockDashboardStats.monthlyRevenue) },
+    { label: 'Total Produk Terjual', value: topProducts.reduce((s, p) => s + p.sold, 0) },
+    { label: 'Total Pesanan', value: mockDashboardStats.totalOrders },
+    { label: 'Rata-rata Transaksi', value: formatPrice(mockDashboardStats.totalOrders > 0 ? Math.round(mockDashboardStats.monthlyRevenue / mockDashboardStats.totalOrders) : 0) },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -97,7 +101,7 @@ export default function AdminReportsPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Data Stok</span>
-            <Button variant="outline" size="sm" onClick={() => exportCSV()}>
+            <Button variant="outline" size="sm" onClick={() => exportCSV(products)}>
               <Download className="w-4 h-4 mr-1" /> Export CSV
             </Button>
           </CardTitle>
@@ -115,7 +119,7 @@ export default function AdminReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockProducts.map((p) => (
+                {products.map((p) => (
                   <tr key={p.id} className="border-b border-[#E5E5EA] hover:bg-[#F2F2F7]">
                     <td className="py-2 px-3 text-[#1C1C1E]">{p.name}</td>
                     <td className="py-2 px-3 text-right text-[#8E8E93]">{p.sku}</td>
@@ -135,8 +139,8 @@ export default function AdminReportsPage() {
   );
 }
 
-function exportCSV() {
-  const rows = mockProducts.map((p) => ({
+function exportCSV(products: CatalogProduct[]) {
+  const rows = products.map((p) => ({
     name: p.name,
     sku: p.sku,
     stock: p.stock,

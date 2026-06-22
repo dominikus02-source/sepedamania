@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getProductBySlug, getRelatedProducts } from '@/lib/catalog-data';
 import { useRouter } from 'next/navigation';
 import { formatPrice, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -37,9 +38,53 @@ interface ProductData {
   [key: string]: unknown;
 }
 
-export function ProductDetail({ product, relatedProducts }: { product: ProductData; relatedProducts: ProductData[] }) {
+export function ProductDetail({ slug }: { slug: string }) {
   const router = useRouter();
+  const [product, setProduct] = useState<ProductData | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<ProductData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selImg, setSelImg] = useState(0);
+
+  useEffect(() => {
+    const p = getProductBySlug(slug);
+    if (p) {
+      setProduct({
+        ...p,
+        price: Number(p.price),
+        salePrice: p.salePrice ? Number(p.salePrice) : null,
+        variants: p.variants.map(v => ({ ...v, price: v.price ? Number(v.price) : null })),
+        reviews: p.reviews.map(r => ({ ...r })),
+      } as ProductData);
+      setRelatedProducts(
+        getRelatedProducts(p.id).map(r => ({
+          ...r,
+          price: Number(r.price),
+          salePrice: r.salePrice ? Number(r.salePrice) : null,
+        })) as ProductData[]
+      );
+    }
+    setLoading(false);
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="p-4 flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-[#8E8E93]">Memuat produk...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="p-4 text-center py-20">
+        <p className="text-[#8E8E93]">Produk tidak ditemukan</p>
+        <Link href="/" className="text-sm text-[#F5A623] font-medium mt-2 inline-block">Kembali ke Beranda</Link>
+      </div>
+    );
+  }
   const [selVar, setSelVar] = useState<{ name: string; value: string } | null>(null);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState('deskripsi');

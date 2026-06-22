@@ -1,59 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mockProducts, mockCategories, mockBrands } from './mock-data';
 import { mockOrders, AdminOrder } from './mock-admin-data';
-import { slugify } from './utils';
+import {
+  addProduct as catalogAddProduct,
+  updateProduct as catalogUpdateProduct,
+  deleteProduct as catalogDeleteProduct,
+  getProductBySlug,
+  getAllProducts,
+} from './catalog-data';
+import type { CatalogProduct as Product } from './catalog-data';
 
-export interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  sku: string;
-  description: string;
-  categoryId: string;
-  brandId: string;
-  price: number;
-  salePrice: number | null;
-  weight: number;
-  stock: number;
-  sold: number;
-  images: string[];
-  isActive: boolean;
-  specs: Record<string, string>;
-  category: { id: string; name: string; slug: string };
-  brand: { id: string; name: string; slug: string };
-  variants: { id: string; name: string; value: string; stock: number; price: number | null; sku: string; productId?: string }[];
-  reviews: { id: string; userId: string; productId: string; rating: number; comment: string; images: string[]; createdAt: string; user: { name: string; image: string | null } }[];
-  rating: number;
-  reviewCount: number;
-}
+const ORDER_STORAGE_KEY = 'spm-admin-store';
 
-const STORAGE_KEY = 'spm-admin-store';
-
-function readStore(): { products: Product[]; orders: AdminOrder[] } {
-  if (typeof window === 'undefined') {
-    return { products: mockProducts as unknown as Product[], orders: mockOrders };
-  }
+function readOrders(): AdminOrder[] {
+  if (typeof window === 'undefined') return mockOrders;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as { products: Product[]; orders: AdminOrder[] };
+    const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { orders: AdminOrder[] };
+      if (parsed.orders?.length) return parsed.orders;
+    }
   } catch {}
-  return { products: mockProducts as unknown as Product[], orders: mockOrders };
+  return mockOrders;
 }
 
-function writeStore(data: { products: Product[]; orders: AdminOrder[] }) {
+function writeOrders(orders: AdminOrder[]) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function randId() {
-  return Math.random().toString(36).slice(2, 10);
+  const existing = (() => {
+    try {
+      const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  })();
+  localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify({ ...existing, orders }));
 }
 
 export const AdminStore = {
-  getProducts: (): Product[] => readStore().products,
+  getProducts: (): Product[] => getAllProducts(),
 
-  getProductBySlug: (slug: string): Product | null =>
-    readStore().products.find((p) => p.slug === slug) || null,
+  getProductBySlug: (slug: string): Product | null => getProductBySlug(slug),
 
   addProduct(input: {
     name: string;
@@ -66,67 +50,31 @@ export const AdminStore = {
     weight: number;
     stock: number;
   }): Product {
-    const store = readStore();
-    const slug = slugify(input.name);
-    const cat = mockCategories.find((c) => c.id === input.categoryId) || mockCategories[0];
-    const brd = mockBrands.find((b) => b.id === input.brandId) || mockBrands[0];
-    const product: Product = {
-      id: 'p' + randId(),
-      name: input.name,
-      slug,
-      sku: input.sku,
-      description: input.description,
-      categoryId: input.categoryId,
-      brandId: input.brandId,
-      price: input.price,
-      salePrice: input.salePrice,
-      weight: input.weight,
-      stock: input.stock,
-      sold: 0,
+    return catalogAddProduct({
+      ...input,
       images: [],
-      isActive: true,
-      specs: {},
-      category: { id: cat.id, name: cat.name, slug: cat.slug },
-      brand: { id: brd.id, name: brd.name, slug: brd.slug },
-      variants: [],
-      reviews: [],
-      rating: 0,
-      reviewCount: 0,
-    };
-    store.products.push(product);
-    writeStore(store);
-    return product;
+    });
   },
 
   updateProduct(slug: string, updates: Partial<Product>): boolean {
-    const store = readStore();
-    const idx = store.products.findIndex((p) => p.slug === slug);
-    if (idx === -1) return false;
-    store.products[idx] = { ...store.products[idx], ...updates };
-    writeStore(store);
-    return true;
+    return catalogUpdateProduct(slug, updates);
   },
 
   deleteProduct(id: string): boolean {
-    const store = readStore();
-    const idx = store.products.findIndex((p) => p.id === id);
-    if (idx === -1) return false;
-    store.products.splice(idx, 1);
-    writeStore(store);
-    return true;
+    return catalogDeleteProduct(id);
   },
 
-  getOrders: (): AdminOrder[] => readStore().orders,
+  getOrders: (): AdminOrder[] => readOrders(),
 
   getOrder: (id: string): AdminOrder | null =>
-    readStore().orders.find((o) => o.id === id) || null,
+    readOrders().find((o) => o.id === id) || null,
 
   updateOrder(id: string, updates: Partial<AdminOrder>): boolean {
-    const store = readStore();
-    const idx = store.orders.findIndex((o) => o.id === id);
+    const orders = readOrders();
+    const idx = orders.findIndex((o) => o.id === id);
     if (idx === -1) return false;
-    store.orders[idx] = { ...store.orders[idx], ...updates, updatedAt: new Date().toISOString() };
-    writeStore(store);
+    orders[idx] = { ...orders[idx], ...updates, updatedAt: new Date().toISOString() };
+    writeOrders(orders);
     return true;
   },
 };
@@ -157,4 +105,5 @@ export function useAdminOrders() {
   return { orders, loading, refresh };
 }
 
+export type { Product };
 export type { AdminOrder };

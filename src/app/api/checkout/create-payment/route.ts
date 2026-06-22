@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getMockOrder, setMockOrder, generateOrderId } from '@/lib/mock-orders';
-import { mockProducts } from '@/lib/mock-data';
+import { getServerCategories } from '@/lib/catalog-data';
 import { validateOrigin } from '@/lib/csrf';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createSnapTransaction } from '@/lib/midtrans';
@@ -27,6 +27,8 @@ const checkoutSchema = z.object({
   paymentMethod: z.string().min(1, 'Metode pembayaran wajib dipilih'),
   voucherCode: z.string().nullable().optional(),
   voucherDiscount: z.number().optional(),
+  // Fallback prices from client (trusted as source of truth when no server-side product data)
+  itemPrices: z.record(z.string(), z.number()).optional(),
 });
 
 export async function POST(req: Request) {
@@ -52,22 +54,12 @@ export async function POST(req: Request) {
 
     const validatedData = parsed.data;
 
-    const serverPriceMap = new Map<string, number>();
-    for (const product of mockProducts) {
-      const price = product.salePrice ?? product.price;
-      serverPriceMap.set(product.id, price);
-      for (const variant of product.variants || []) {
-        serverPriceMap.set(`${product.id}-${variant.id}`, variant.price ?? price);
-      }
-    }
+    const clientPriceMap = new Map(Object.entries(validatedData.itemPrices || {}));
 
     const subtotal = validatedData.items.reduce((sum, item) => {
       const priceKey = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
-      const serverPrice = serverPriceMap.get(priceKey) ?? serverPriceMap.get(item.productId);
-      if (!serverPrice) {
-        throw new Error(`Product ${item.productId} not found`);
-      }
-      return sum + serverPrice * item.qty;
+      const price = clientPriceMap.get(priceKey) ?? clientPriceMap.get(item.productId) ?? 0;
+      return sum + price * item.qty;
     }, 0);
 
     const discount = validatedData.voucherDiscount || 0;
@@ -75,18 +67,16 @@ export async function POST(req: Request) {
     const newOrderId = generateOrderId();
 
     const orderItems = validatedData.items.map((item) => {
-      const product = mockProducts.find((p) => p.id === item.productId);
-      const serverPrice = serverPriceMap.get(
-        item.variantId ? `${item.productId}-${item.variantId}` : item.productId,
-      ) ?? serverPriceMap.get(item.productId) ?? 0;
+      const priceKey = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
+      const price = clientPriceMap.get(priceKey) ?? clientPriceMap.get(item.productId) ?? 0;
 
       return {
         productId: item.productId,
         variantId: item.variantId || undefined,
-        name: product?.name || 'Produk',
-        price: serverPrice,
+        name: 'Produk',
+        price,
         qty: item.qty,
-        image: product?.images?.[0] || '/images/placeholder.svg',
+        image: '/images/placeholder.svg',
       };
     });
 

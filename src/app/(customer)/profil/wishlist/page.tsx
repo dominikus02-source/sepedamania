@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
@@ -8,19 +8,23 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';
 import { Heart, ChevronLeft, ShoppingBag, Trash2 } from 'lucide-react';
-import { mockProducts } from '@/lib/mock-data';
+import { getAllProducts } from '@/lib/catalog-data';
 
 export default function WishlistPage() {
   const addItem = useCartStore((s) => s.addItem);
   const { toast } = useToast();
-  const [items, setItems] = useState(mockProducts.filter((p) => p.stock > 0).slice(0, 6));
+  const [items, setItems] = useState<import('@/lib/catalog-data').CatalogProduct[]>([]);
+
+  useEffect(() => {
+    setItems(getAllProducts().filter((p) => p.stock > 0).slice(0, 6));
+  }, []);
 
   const removeItem = (id: string) => {
     setItems((prev) => prev.filter((p) => p.id !== id));
     toast('Dihapus dari wishlist', 'info');
   };
 
-  const addToCart = (product: (typeof mockProducts)[0]) => {
+  const addToCart = (product: import('@/lib/catalog-data').CatalogProduct) => {
     addItem({
       productId: product.id,
       name: product.name,

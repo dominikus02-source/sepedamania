@@ -1,17 +1,22 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { ProductCard } from '@/components/customer/product-card';
 import { Container, Section } from '@/components/ui/container';
-import { mockProducts } from '@/lib/mock-data';
+import { getAllProducts } from '@/lib/catalog-data';
 import { Flame } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Produk Terlaris | SEPEDAMANIA',
-  description: 'Koleksi produk terlaris di SEPEDAMANIA — sepeda dan aksesoris pilihan pelanggan.',
-};
-
-const bestSellers = [...mockProducts].sort((a, b) => b.sold - a.sold);
-
 export default function ProdukTerlarisPage() {
+  const [products, setProducts] = useState<import('@/lib/catalog-data').CatalogProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setProducts(getAllProducts());
+    setLoading(false);
+  }, []);
+
+  const bestSellers = [...products].sort((a, b) => b.sold - a.sold);
+
   return (
     <div className="pb-8">
       <Section>
@@ -25,7 +30,11 @@ export default function ProdukTerlarisPage() {
               <p className="text-xs text-[#64748B] mt-0.5">Produk favorit pelanggan SEPEDAMANIA</p>
             </div>
           </div>
-          {bestSellers.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            </div>
+          ) : bestSellers.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-[#64748B]">Belum ada data produk terlaris.</p>
             </div>

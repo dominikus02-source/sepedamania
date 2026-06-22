@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { AdminStore } from '@/lib/admin-store';
 import type { Product } from '@/lib/admin-store';
-import { mockCategories, mockBrands } from '@/lib/mock-data';
+import { getAllCategories, getAllBrands } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,9 @@ export default function EditProductPage() {
   const [seoOpen, setSeoOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
 
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
+
   const [form, setForm] = useState({
     name: '', sku: '', description: '', categoryId: '', brandId: '',
     price: '', salePrice: '', weight: '', stock: '', isActive: true,
@@ -52,6 +55,8 @@ export default function EditProductPage() {
   const [newVariant, setNewVariant] = useState({ name: '', value: '', stock: '', sku: '' });
 
   useEffect(() => {
+    setCategories(getAllCategories());
+    setBrands(getAllBrands());
     if (!slug) return;
     const product = AdminStore.getProductBySlug(slug);
     if (!product) {
@@ -143,8 +148,8 @@ export default function EditProductPage() {
         isActive: form.isActive,
         images,
         variants,
-        category: mockCategories.find((c) => c.id === form.categoryId) || { id: '', name: '', slug: '' },
-        brand: mockBrands.find((b) => b.id === form.brandId) || { id: '', name: '', slug: '' },
+        category: categories.find((c) => c.id === form.categoryId) || { id: '', name: '', slug: '' },
+        brand: brands.find((b) => b.id === form.brandId) || { id: '', name: '', slug: '' },
       };
       // If slug changed, update it
       const newSlug = form.name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -197,7 +202,7 @@ export default function EditProductPage() {
               <Select
                 value={form.categoryId}
                 onChange={update('categoryId')}
-                options={mockCategories.map((c) => ({ value: c.id, label: c.name }))}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
                 placeholder="Pilih kategori"
               />
             </div>
@@ -206,7 +211,7 @@ export default function EditProductPage() {
               <Select
                 value={form.brandId}
                 onChange={update('brandId')}
-                options={mockBrands.map((b) => ({ value: b.id, label: b.name }))}
+                options={brands.map((b) => ({ value: b.id, label: b.name }))}
                 placeholder="Pilih merek"
               />
             </div>

@@ -79,25 +79,13 @@ export interface OrderStatusCount {
 
 const now = new Date();
 
-function daysAgo(d: number): string {
-  const date = new Date(now);
-  date.setDate(date.getDate() - d);
-  return date.toISOString();
-}
-
 export const mockCustomers: {
   id: string; name: string; email: string; phone: string; createdAt: string; orders: number; totalSpent: number;
 }[] = [];
 
 export const mockOrders: AdminOrder[] = [];
 
-export const mockVouchers: AdminVoucher[] = [
-  { id: 'v1', code: 'SEPEDA10', type: 'PERCENTAGE', value: 10, minPurchase: 500000, maxDiscount: 100000, quota: 100, used: 45, expiresAt: new Date(now.getFullYear(), 11, 31).toISOString(), isActive: true, createdAt: daysAgo(30) },
-  { id: 'v2', code: 'GRATIS20', type: 'NOMINAL', value: 20000, minPurchase: 0, maxDiscount: null, quota: 200, used: 120, expiresAt: null, isActive: true, createdAt: daysAgo(20) },
-  { id: 'v3', code: 'MERDEKA', type: 'PERCENTAGE', value: 15, minPurchase: 1000000, maxDiscount: 200000, quota: 50, used: 50, expiresAt: daysAgo(5), isActive: true, createdAt: daysAgo(60) },
-  { id: 'v4', code: 'HITANKUAT', type: 'NOMINAL', value: 50000, minPurchase: 3000000, maxDiscount: null, quota: 30, used: 8, expiresAt: new Date(now.getFullYear(), now.getMonth() + 2, 28).toISOString(), isActive: true, createdAt: daysAgo(10) },
-  { id: 'v5', code: 'WELCOME10', type: 'PERCENTAGE', value: 10, minPurchase: 0, maxDiscount: 50000, quota: 500, used: 312, expiresAt: null, isActive: false, createdAt: daysAgo(90) },
-];
+export const mockVouchers: AdminVoucher[] = [];
 
 export const mockStockLogs: StockLog[] = [];
 

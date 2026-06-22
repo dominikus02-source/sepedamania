@@ -1,19 +1,36 @@
-import { mockProducts } from '@/lib/mock-data';
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface BikeFinderOptions {
-  height: number; // cm
-  budget: number; // max price in IDR
+  height: number;
+  budget: number;
   usage: 'trail' | 'road' | 'city' | 'freestyle' | 'daily';
   roadType: 'offroad' | 'asphalt' | 'mixed' | 'paved';
   preference: 'speed' | 'comfort' | 'durability' | 'style' | 'allround';
 }
 
+export interface BikeFinderProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  salePrice: number | null;
+  categoryId: string;
+  images: string[];
+  variants: { id: string; name: string; value: string; stock: number; price: number | null; sku: string; productId?: string }[];
+  category?: { id: string; name: string; slug: string };
+  brand?: { id: string; name: string; slug: string };
+  stock: number;
+  weight: number;
+  sold: number;
+  rating: number;
+  reviewCount: number;
+  description: string;
+}
+
 export interface BikeMatch {
-  product: (typeof mockProducts)[0];
+  product: BikeFinderProduct;
   score: number;
   reasons: string[];
 }
@@ -22,30 +39,27 @@ export interface BikeMatch {
 // Mapping tables
 // ---------------------------------------------------------------------------
 
-/** Usage → matching category IDs */
 const usageMap: Record<string, string[]> = {
-  trail: ['1'], // MTB
-  road: ['2'], // Road Bike
-  freestyle: ['3'], // BMX
-  city: ['4', '5'], // Fixie, City Bike
-  daily: ['4', '5'], // Fixie, City Bike
+  trail: ['cat-1'],
+  road: ['cat-2'],
+  freestyle: ['cat-3'],
+  city: ['cat-4', 'cat-5'],
+  daily: ['cat-4', 'cat-5'],
 };
 
-/** Road type → matching category IDs */
 const roadMap: Record<string, string[]> = {
-  offroad: ['1'], // MTB
-  asphalt: ['2', '4'], // Road Bike, Fixie
-  mixed: ['5'], // City Bike
-  paved: ['1', '2', '3', '4', '5'], // all bikes
+  offroad: ['cat-1'],
+  asphalt: ['cat-2', 'cat-4'],
+  mixed: ['cat-5'],
+  paved: ['cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5'],
 };
 
-/** Preference → matching category IDs */
 const prefMap: Record<string, string[]> = {
-  speed: ['2', '4'], // Road Bike, Fixie
-  comfort: ['5'], // City Bike
-  durability: ['1'], // MTB
-  style: ['4', '3'], // Fixie, BMX
-  allround: ['1', '2', '3', '4', '5'], // any bike
+  speed: ['cat-2', 'cat-4'],
+  comfort: ['cat-5'],
+  durability: ['cat-1'],
+  style: ['cat-4', 'cat-3'],
+  allround: ['cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5'],
 };
 
 // ---------------------------------------------------------------------------
@@ -102,20 +116,13 @@ export const PREF_DESCRIPTIONS: Record<string, string> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Maps rider height (cm) to a generalised frame-size letter.
- */
 function heightToFrame(height: number): 'S' | 'M' | 'L' {
   if (height <= 160) return 'S';
   if (height <= 175) return 'M';
   return 'L';
 }
 
-/**
- * Checks whether the product lists a variant whose value starts with a size
- * letter that matches the rider's height.
- */
-function frameFits(product: (typeof mockProducts)[0], height: number): boolean {
+function frameFits(product: BikeFinderProduct, height: number): boolean {
   const target = heightToFrame(height);
   if (!product.variants || product.variants.length === 0) return false;
 
@@ -128,12 +135,10 @@ function frameFits(product: (typeof mockProducts)[0], height: number): boolean {
   return false;
 }
 
-/** Effective price the customer would pay. */
-function realPrice(p: (typeof mockProducts)[0]): number {
+function realPrice(p: BikeFinderProduct): number {
   return p.salePrice ?? p.price;
 }
 
-/** Short currency string e.g. Rp4,5jt or Rp599rb */
 function shortPrice(n: number): string {
   if (n >= 1_000_000) {
     const juta = n / 1_000_000;
@@ -150,36 +155,32 @@ function shortPrice(n: number): string {
 // Rule Engine
 // ---------------------------------------------------------------------------
 
-export function findBikes(options: BikeFinderOptions): BikeMatch[] {
+export function findBikes(options: BikeFinderOptions, products: BikeFinderProduct[]): BikeMatch[] {
   const { height, budget, usage, roadType, preference } = options;
 
-  const scored: BikeMatch[] = mockProducts.map((product) => {
+  const scored: BikeMatch[] = products.map((product) => {
     const reasons: string[] = [];
     let score = 0;
     const catId = product.categoryId;
 
-    // 1. Usage match  ──  max 35 pts
     const useCats = usageMap[usage];
     if (useCats.includes(catId)) {
       score += 35;
       reasons.push(`Cocok untuk penggunaan ${USAGE_LABELS[usage]}`);
     }
 
-    // 2. Road-type match  ──  max 25 pts
     const rc = roadMap[roadType];
     if (rc.includes(catId)) {
       score += 25;
       reasons.push(`Sesuai untuk medan ${ROAD_LABELS[roadType]}`);
     }
 
-    // 3. Preference match  ──  max 25 pts
     const pc = prefMap[preference];
     if (pc.includes(catId)) {
       score += 25;
       reasons.push(`Prioritas ${PREF_LABELS[preference]}`);
     }
 
-    // 4. Budget fit  ──  max 10 pts
     const price = realPrice(product);
     if (price <= budget) {
       score += 10;
@@ -189,7 +190,6 @@ export function findBikes(options: BikeFinderOptions): BikeMatch[] {
       reasons.push(`Harga ${shortPrice(price)} — sedikit di atas budget`);
     }
 
-    // 5. Frame-size fit  ──  max 5 pts
     if (frameFits(product, height)) {
       score += 5;
       const sizeLetter = heightToFrame(height);
@@ -199,6 +199,5 @@ export function findBikes(options: BikeFinderOptions): BikeMatch[] {
     return { product, score, reasons };
   });
 
-  // Sort descending by score, return top 3
   return scored.sort((a, b) => b.score - a.score).slice(0, 3);
 }

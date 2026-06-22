@@ -141,6 +141,11 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const addr = getValues();
+      const itemPrices: Record<string, number> = {};
+      items.forEach((i) => {
+        const key = i.variantId ? `${i.productId}-${i.variantId}` : i.productId;
+        itemPrices[key] = i.price;
+      });
       const orderPayload = {
         items: items.map((i) => ({
           productId: i.productId,
@@ -157,6 +162,7 @@ export default function CheckoutPage() {
         paymentMethod,
         voucherCode,
         voucherDiscount,
+        itemPrices,
       };
 
       const res = await fetch('/api/checkout/create-payment', {

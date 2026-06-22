@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { useAdminProducts } from '@/lib/admin-store';
-import { mockCategories, mockBrands } from '@/lib/mock-data';
+import { getAllCategories, getAllBrands } from '@/lib/catalog-data';
+import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,12 @@ const PAGE_SIZE = 10;
 
 export default function AdminProductsPage() {
   const { products, loading, refresh } = useAdminProducts();
+  const [allCats, setAllCats] = useState<CatalogCategory[]>([]);
+  const [allBrands, setAllBrands] = useState<CatalogBrand[]>([]);
+  useEffect(() => {
+    setAllCats(getAllCategories());
+    setAllBrands(getAllBrands());
+  }, []);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
@@ -44,8 +51,8 @@ export default function AdminProductsPage() {
   const safePage = Math.min(page, totalPages);
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const getCatName = (id: string) => mockCategories.find((c) => c.id === id)?.name || '-';
-  const getBrandName = (id: string) => mockBrands.find((b) => b.id === id)?.name || '-';
+  const getCatName = (id: string) => allCats.find((c) => c.id === id)?.name || '-';
+  const getBrandName = (id: string) => allBrands.find((b) => b.id === id)?.name || '-';
   const { toast } = useToast();
 
   const handleToggleActive = (slug: string, current: boolean) => {
@@ -101,7 +108,7 @@ export default function AdminProductsPage() {
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
             options={[
               { value: '', label: 'Semua Kategori' },
-              ...mockCategories.map((c) => ({ value: c.id, label: c.name })),
+              ...allCats.map((c) => ({ value: c.id, label: c.name })),
             ]}
           />
         </div>

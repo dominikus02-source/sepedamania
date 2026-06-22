@@ -1,17 +1,22 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { ProductCard } from '@/components/customer/product-card';
 import { Container, Section } from '@/components/ui/container';
-import { mockProducts } from '@/lib/mock-data';
+import { getAllProducts } from '@/lib/catalog-data';
 import { Zap } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Flash Sale | SEPEDAMANIA',
-  description: 'Penawaran flash sale terbatas — diskon spesial untuk sepeda dan aksesoris pilihan.',
-};
-
-const flashSaleProducts = [...mockProducts].filter((p) => p.salePrice && p.salePrice < p.price);
-
 export default function FlashSalePage() {
+  const [products, setProducts] = useState<import('@/lib/catalog-data').CatalogProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setProducts(getAllProducts());
+    setLoading(false);
+  }, []);
+
+  const flashSaleProducts = products.filter((p) => p.salePrice && p.salePrice < p.price);
+
   return (
     <div className="pb-8">
       <Section className="bg-gradient-to-r from-[#FEE2E2] via-[#FFFBEB] to-[#FEF3C7] -mt-6 pt-8">
@@ -29,7 +34,11 @@ export default function FlashSalePage() {
       </Section>
       <Section>
         <Container>
-          {flashSaleProducts.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="w-8 h-8 border-2 border-[#F5A623] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            </div>
+          ) : flashSaleProducts.length === 0 ? (
             <div className="text-center py-16">
               <Zap className="w-12 h-12 text-[#E2E8F0] mx-auto mb-3" />
               <p className="text-[#64748B]">Belum ada produk flash sale saat ini.</p>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { mockProducts } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { getAllProducts, updateProduct } from '@/lib/catalog-data';
+import type { CatalogProduct } from '@/lib/catalog-data';
 import { mockStockLogs, StockLog } from '@/lib/mock-admin-data';
 import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -44,19 +45,23 @@ const typeLabel = (type: StockLog['type']) => {
 export default function AdminStockPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [products, setProducts] = useState(() => [...mockProducts].sort((a, b) => a.stock - b.stock));
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [stockLogs, setStockLogs] = useState<StockLog[]>([...mockStockLogs]);
   const [logOpen, setLogOpen] = useState(false);
-  const [restockProduct, setRestockProduct] = useState<(typeof mockProducts)[number] | null>(null);
+  const [restockProduct, setRestockProduct] = useState<CatalogProduct | null>(null);
   const [restockQty, setRestockQty] = useState(1);
   const [restockNote, setRestockNote] = useState('');
   const [restockOpen, setRestockOpen] = useState(false);
+
+  useEffect(() => {
+    setProducts(getAllProducts().sort((a, b) => a.stock - b.stock));
+  }, []);
 
   const filteredProducts = search
     ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
     : products;
 
-  const openRestock = (product: (typeof mockProducts)[number]) => {
+  const openRestock = (product: CatalogProduct) => {
     setRestockProduct(product);
     setRestockQty(1);
     setRestockNote('');
@@ -68,6 +73,8 @@ export default function AdminStockPage() {
 
     const stockBefore = restockProduct.stock;
     const stockAfter = stockBefore + restockQty;
+
+    updateProduct(restockProduct.slug, { stock: stockAfter });
 
     setProducts((prev) =>
       prev.map((p) =>
