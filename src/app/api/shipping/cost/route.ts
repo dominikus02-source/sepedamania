@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { validateOrigin } from '@/lib/csrf';
+import { getShippingRates, AVAILABLE_COURIERS } from '@/lib/shipping';
 
-// C5: Zod validation schema
-const shippingCostSchema = z.object({
-  courier: z.string().min(1, 'Kurir wajib dipilih'),
-  destination: z.string().optional(),
-  weight: z.number().positive('Berat harus lebih dari 0').optional(),
+const costSchema = z.object({
+  origin: z.string().min(1, 'Kota asal wajib diisi'),
+  destination: z.string().min(1, 'Kota tujuan wajib diisi'),
+  weight: z.number().min(1, 'Berat minimal 1 gram'),
+  couriers: z.array(z.string()).optional(),
 });
 
-const mockRates: Record<string, { service: string; description: string; cost: number; etd: string }[]> = {
+// Fallback: hardcoded rates when Binderbyte API key is not configured
+const FALLBACK_RATES: Record<string, { service: string; description: string; cost: number; etd: string }[]> = {
   jne: [
     { service: 'REG', description: 'Layanan Reguler', cost: 18000, etd: '2-3 hari' },
     { service: 'YES', description: 'Yakin Esok Sampai', cost: 35000, etd: '1 hari' },
@@ -33,13 +35,11 @@ const mockRates: Record<string, { service: string; description: string; cost: nu
 
 export async function POST(req: Request) {
   try {
-    // C3: CSRF origin check
     if (!validateOrigin(req)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // C5: Validate request body with Zod
-    const parsed = shippingCostSchema.safeParse(await req.json());
+    const parsed = costSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Data tidak valid', details: parsed.error.issues },
@@ -47,24 +47,32 @@ export async function POST(req: Request) {
       );
     }
 
-    const { courier, weight } = parsed.data;
-    const normalizedCourier = courier.toLowerCase();
+    const { origin, destination, weight, couriers } = parsed.data;
+    const courierList = couriers?.length
+      ? couriers
+      : AVAILABLE_COURIERS.slice(0, 5).map((c) => c.code);
 
-    const rates = mockRates[normalizedCourier] || null;
-    if (!rates) {
-      return NextResponse.json({ error: 'Kurir tidak tersedia' }, { status: 404 });
+    // Try real Binderbyte API first
+    const rates = await getShippingRates(origin, destination, weight, courierList);
+
+    if (rates.length > 0) {
+      return NextResponse.json({ success: true, data: { rates } });
     }
 
-    const weightInKg = Math.max(1, Math.ceil((weight || 1000) / 1000));
+    // Fallback to mock rates when API key is not configured
+    const weightInKg = Math.max(1, Math.ceil(weight / 1000));
+    const fallbackRates = Object.entries(FALLBACK_RATES).flatMap(([courier, services]) =>
+      services.map((s) => ({
+        courier,
+        courierName: AVAILABLE_COURIERS.find((c) => c.code === courier)?.name || courier,
+        service: s.service,
+        description: s.description,
+        cost: s.cost * weightInKg,
+        etd: s.etd,
+      })),
+    );
 
-    const results = rates.map((r) => ({
-      service: r.service,
-      description: r.description,
-      cost: r.cost * weightInKg,
-      etd: r.etd,
-    }));
-
-    return NextResponse.json({ costs: results });
+    return NextResponse.json({ success: true, data: { rates: fallbackRates } });
   } catch {
     return NextResponse.json({ error: 'Gagal menghitung ongkir' }, { status: 500 });
   }

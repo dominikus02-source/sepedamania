@@ -50,7 +50,11 @@ const COURIERS = [
   { id: 'sicepat', label: 'SiCepat' },
   { id: 'anteraja', label: 'Anteraja' },
   { id: 'pos', label: 'Pos Indonesia' },
+  { id: 'ninja', label: 'Ninja Xpress' },
+  { id: 'lion', label: 'Lion Parcel' },
 ];
+
+const ORIGIN_CITY = 'tangerang';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -66,6 +70,8 @@ export default function CheckoutPage() {
   const [selectedService, setSelectedService] = useState('');
   const [shippingCost, setShippingCost] = useState(0);
   interface ShippingRate {
+    courier?: string;
+    courierName?: string;
     service: string;
     description: string;
     cost: number;
@@ -117,23 +123,34 @@ export default function CheckoutPage() {
   }, [selectedProvince, setValue]);
 
   useEffect(() => {
-    if (!selectedCourier) return;
+    if (!selectedCourier || !form.getValues('city')) return;
     setSelectedService('');
     setShippingCost(0);
     setShippingRates([]);
     setShippingLoading(true);
+    const cityVal = form.getValues('city');
+    const destination = cities.find((c) => c.city_id === cityVal)?.city_name || cityVal;
     fetch(`/api/shipping/cost`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courier: selectedCourier, weight: totalWeight }),
+      body: JSON.stringify({
+        origin: ORIGIN_CITY,
+        destination: destination.toLowerCase().replace(/\s+/g, ''),
+        weight: totalWeight,
+        couriers: [selectedCourier],
+      }),
     })
       .then((r) => r.json())
       .then((data) => {
-        setShippingRates(data.costs || []);
+        const rates = (data.data?.rates || data.costs || []).map((r: ShippingRate) => ({
+          ...r,
+          courier: r.courier || selectedCourier,
+        }));
+        setShippingRates(rates);
       })
       .catch(() => setShippingRates([]))
       .finally(() => setShippingLoading(false));
-  }, [selectedCourier, totalWeight]);
+  }, [selectedCourier, totalWeight, cities, form]);
 
   const onAddressSubmit = () => setStep(2);
 
