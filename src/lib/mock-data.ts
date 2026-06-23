@@ -1,12 +1,41 @@
+interface SeedOption { id: string; name: string; values: string[] }
+
+export const seedCategoryOptions: Record<string, SeedOption[]> = {
+  'cat-1': [ // MTB
+    { id: 'opt-ukuran-mtb', name: 'Ukuran', values: ['S', 'M', 'L', 'XL'] },
+    { id: 'opt-warna-mtb', name: 'Warna', values: ['Merah', 'Hitam', 'Putih', 'Biru'] },
+  ],
+  'cat-2': [ // Road Bike
+    { id: 'opt-ukuran-road', name: 'Ukuran', values: ['48', '50', '52', '54', '56'] },
+    { id: 'opt-warna-road', name: 'Warna', values: ['Putih', 'Hitam', 'Merah'] },
+  ],
+  'cat-3': [ // BMX
+    { id: 'opt-ukuran-bmx', name: 'Ukuran', values: ['20"', '20.5"', '21"'] },
+    { id: 'opt-warna-bmx', name: 'Warna', values: ['Hitam', 'Putih', 'Kuning'] },
+  ],
+  'cat-4': [ // Fixie
+    { id: 'opt-ukuran-fixie', name: 'Ukuran', values: ['49', '52', '55', '58'] },
+    { id: 'opt-warna-fixie', name: 'Warna', values: ['Hitam', 'Putih', 'Merah', 'Biru'] },
+  ],
+  'cat-5': [ // City Bike
+    { id: 'opt-ukuran-city', name: 'Ukuran', values: ['S', 'M', 'L'] },
+    { id: 'opt-warna-city', name: 'Warna', values: ['Hitam', 'Putih', 'Cokelat'] },
+  ],
+  'cat-6': [ // Sepeda Anak
+    { id: 'opt-ukuran-anak', name: 'Ukuran', values: ['12"', '16"', '18"', '20"'] },
+    { id: 'opt-warna-anak', name: 'Warna', values: ['Merah', 'Biru', 'Pink', 'Hijau'] },
+  ],
+};
+
 export const seedCategories = [
-  { id: 'cat-1', name: 'MTB', slug: 'mtb', image: null },
-  { id: 'cat-2', name: 'Road Bike', slug: 'road-bike', image: null },
-  { id: 'cat-3', name: 'BMX', slug: 'bmx', image: null },
-  { id: 'cat-4', name: 'Fixie', slug: 'fixie', image: null },
-  { id: 'cat-5', name: 'City Bike', slug: 'city-bike', image: null },
-  { id: 'cat-6', name: 'Sepeda Anak', slug: 'sepeda-anak', image: null },
-  { id: 'cat-7', name: 'Aksesoris', slug: 'aksesoris', image: null },
-  { id: 'cat-8', name: 'Suku Cadang', slug: 'suku-cadang', image: null },
+  { id: 'cat-1', name: 'MTB', slug: 'mtb', image: null, brandId: 'brd-1', options: seedCategoryOptions['cat-1'] },
+  { id: 'cat-2', name: 'Road Bike', slug: 'road-bike', image: null, brandId: 'brd-1', options: seedCategoryOptions['cat-2'] },
+  { id: 'cat-3', name: 'BMX', slug: 'bmx', image: null, brandId: 'brd-2', options: seedCategoryOptions['cat-3'] },
+  { id: 'cat-4', name: 'Fixie', slug: 'fixie', image: null, brandId: 'brd-2', options: seedCategoryOptions['cat-4'] },
+  { id: 'cat-5', name: 'City Bike', slug: 'city-bike', image: null, brandId: 'brd-3', options: seedCategoryOptions['cat-5'] },
+  { id: 'cat-6', name: 'Sepeda Anak', slug: 'sepeda-anak', image: null, brandId: 'brd-4', options: seedCategoryOptions['cat-6'] },
+  { id: 'cat-7', name: 'Aksesoris', slug: 'aksesoris', image: null, brandId: null as string | null, options: [] },
+  { id: 'cat-8', name: 'Suku Cadang', slug: 'suku-cadang', image: null, brandId: null as string | null, options: [] },
 ];
 
 export const seedBrands = [

@@ -1,11 +1,19 @@
 import { seedCategories, seedBrands } from './mock-data';
 import { slugify } from './utils';
 
+export interface CatalogOption {
+  id: string;
+  name: string;
+  values: string[];
+}
+
 export interface CatalogCategory {
   id: string;
   name: string;
   slug: string;
   image: string | null;
+  brandId: string | null;
+  options: CatalogOption[];
 }
 
 export interface CatalogBrand {
@@ -59,16 +67,28 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined';
 }
 
+function migrateCategory(c: Record<string, unknown>): CatalogCategory {
+  return {
+    id: c.id as string,
+    name: c.name as string,
+    slug: c.slug as string,
+    image: (c.image as string) ?? null,
+    brandId: (c.brandId as string) ?? null,
+    options: Array.isArray(c.options) ? c.options as CatalogOption[] : [],
+  };
+}
+
 function readStore(): CatalogStore {
   if (!isBrowser()) return defaultStore();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as CatalogStore;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const rawCats = parsed.categories as Record<string, unknown>[];
       return {
-        categories: parsed.categories?.length ? parsed.categories : seedCategories as CatalogCategory[],
-        brands: parsed.brands?.length ? parsed.brands : seedBrands as CatalogBrand[],
-        products: parsed.products || [],
+        categories: rawCats?.length ? rawCats.map(migrateCategory) : seedCategories as CatalogCategory[],
+        brands: (parsed.brands as CatalogBrand[])?.length ? parsed.brands as CatalogBrand[] : seedBrands as CatalogBrand[],
+        products: (parsed.products || []) as CatalogProduct[],
       };
     }
   } catch {}
@@ -98,14 +118,58 @@ export function getCategoryBySlug(slug: string): CatalogCategory | undefined {
   return readStore().categories.find((c) => c.slug === slug);
 }
 
-export function addCategory(input: { name: string; image?: string }): CatalogCategory {
+export function getCategoriesByBrand(brandId: string): CatalogCategory[] {
+  return readStore().categories.filter((c) => c.brandId === brandId);
+}
+
+// ── Category Options ──
+
+let _optIdCounter = 0;
+function nextOptId() {
+  _optIdCounter++;
+  return 'opt-' + _optIdCounter + '-' + randId();
+}
+
+export function addCategoryOption(categoryId: string, name: string, values: string[]): CatalogCategory | null {
+  const store = readStore();
+  const idx = store.categories.findIndex((c) => c.id === categoryId);
+  if (idx === -1) return null;
+  const opt: CatalogOption = { id: nextOptId(), name, values };
+  store.categories[idx].options.push(opt);
+  writeStore(store);
+  return store.categories[idx];
+}
+
+export function updateCategoryOption(categoryId: string, optionId: string, updates: Partial<CatalogOption>): CatalogCategory | null {
+  const store = readStore();
+  const catIdx = store.categories.findIndex((c) => c.id === categoryId);
+  if (catIdx === -1) return null;
+  const optIdx = store.categories[catIdx].options.findIndex((o) => o.id === optionId);
+  if (optIdx === -1) return null;
+  store.categories[catIdx].options[optIdx] = { ...store.categories[catIdx].options[optIdx], ...updates };
+  writeStore(store);
+  return store.categories[catIdx];
+}
+
+export function deleteCategoryOption(categoryId: string, optionId: string): CatalogCategory | null {
+  const store = readStore();
+  const catIdx = store.categories.findIndex((c) => c.id === categoryId);
+  if (catIdx === -1) return null;
+  store.categories[catIdx].options = store.categories[catIdx].options.filter((o) => o.id !== optionId);
+  writeStore(store);
+  return store.categories[catIdx];
+}
+
+export function addCategory(input: { name: string; image?: string | null; brandId?: string | null }): CatalogCategory {
   const store = readStore();
   const slug = slugify(input.name);
   const cat: CatalogCategory = {
     id: 'cat-' + randId(),
     name: input.name,
     slug,
-    image: input.image || null,
+    image: input.image ?? null,
+    brandId: input.brandId ?? null,
+    options: [],
   };
   store.categories.push(cat);
   writeStore(store);

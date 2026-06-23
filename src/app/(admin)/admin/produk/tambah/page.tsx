@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminStore } from '@/lib/admin-store';
-import { getAllCategories, getAllBrands, addCategory, addBrand } from '@/lib/catalog-data';
+import { getAllCategories, getAllBrands, getCategoryById, addCategory, addBrand } from '@/lib/catalog-data';
 import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,21 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, ArrowLeft, Plus, X, Upload, Tag, Building2 } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Upload, Tag, Building2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { slugify } from '@/lib/utils';
+
+interface Variant {
+  id: string;
+  name: string;
+  value: string;
+  stock: number;
+  price: number | null;
+  sku: string;
+}
+
+let vid = 0;
+const nextVid = () => `v${++vid}-${Math.random().toString(36).slice(2, 6)}`;
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -26,6 +38,7 @@ export default function AddProductPage() {
   const [brands, setBrands] = useState<CatalogBrand[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
+  const [variants, setVariants] = useState<Variant[]>([]);
 
   const refreshCats = () => setCategories(getAllCategories());
   const refreshBrands = () => setBrands(getAllBrands());
@@ -36,9 +49,51 @@ export default function AddProductPage() {
     price: '', salePrice: '', weight: '', stock: '', isActive: true,
   });
 
+  // Cascade: filter categories by selected brand
+  const filteredCats = form.brandId
+    ? categories.filter((c) => c.brandId === form.brandId || c.brandId === null)
+    : categories;
+
+  const selectedCategory = form.categoryId ? getCategoryById(form.categoryId) : null;
+
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const val = e.target.value;
+    setForm((prev) => {
+      const next = { ...prev, [field]: val };
+      // Clear category when brand changes (if category doesn't belong to new brand)
+      if (field === 'brandId' && prev.categoryId) {
+        const cat = getCategoryById(prev.categoryId);
+        if (cat && cat.brandId && cat.brandId !== val) {
+          next.categoryId = '';
+        }
+      }
+      return next;
+    });
   };
+
+  // ─️ Auto-suggest variants from category options ──
+  useEffect(() => {
+    if (!selectedCategory || selectedCategory.options.length === 0) return;
+    // Only suggest if variants are empty
+    if (variants.length > 0) return;
+    const suggested: Variant[] = [];
+    for (const opt of selectedCategory.options) {
+      for (const val of opt.values) {
+        suggested.push({
+          id: nextVid(),
+          name: opt.name,
+          value: val,
+          stock: 0,
+          price: null,
+          sku: '',
+        });
+      }
+    }
+    if (suggested.length > 0) {
+      setVariants(suggested);
+      toast(`Opsi "${selectedCategory.name}" siap diisi`, 'success');
+    }
+  }, [form.categoryId]);
 
   // ── Image upload ──
   const readFileAsDataUrl = (file: File) => {
@@ -71,13 +126,26 @@ export default function AddProductPage() {
 
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
+  // ── Variant management ──
+  const addVariant = () => {
+    setVariants((prev) => [...prev, { id: nextVid(), name: '', value: '', stock: 0, price: null, sku: '' }]);
+  };
+
+  const updateVariant = (id: string, field: string, val: string | number) => {
+    setVariants((prev) => prev.map((v) => v.id === id ? { ...v, [field]: val } : v));
+  };
+
+  const removeVariant = (id: string) => {
+    setVariants((prev) => prev.filter((v) => v.id !== id));
+  };
+
   // ── Inline category creation ──
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
   const handleAddCategory = () => {
     if (!newCatName.trim()) { toast('Nama kategori wajib diisi', 'error'); return; }
-    const cat = addCategory({ name: newCatName.trim() });
+    const cat = addCategory({ name: newCatName.trim(), brandId: form.brandId || null });
     refreshCats();
     setForm((prev) => ({ ...prev, categoryId: cat.id }));
     setCatDialogOpen(false);
@@ -115,6 +183,10 @@ export default function AddProductPage() {
         weight: Number(form.weight), stock: Number(form.stock),
       });
       if (images.length > 0) AdminStore.updateProduct(product.slug, { images });
+      // Save variants
+      if (variants.length > 0) {
+        AdminStore.updateProduct(product.slug, { variants: variants as any });
+      }
       toast('Produk berhasil ditambahkan', 'success');
       router.push('/admin/produk');
     } catch {
@@ -156,29 +228,8 @@ export default function AddProductPage() {
           <Textarea value={form.description} onChange={update('description')} rows={4} />
         </div>
 
-        {/* Kategori & Merek — with inline add */}
+        {/* Merek & Kategori — cascade */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Kategori</Label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Select
-                  value={form.categoryId}
-                  onChange={update('categoryId')}
-                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                  placeholder="Pilih kategori"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setCatDialogOpen(true)}
-                className="flex-shrink-0 w-10 h-10 rounded-lg border border-dashed border-[#E5E5EA] flex items-center justify-center hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all"
-                title="Tambah kategori baru"
-              >
-                <Plus className="w-4 h-4 text-[#8E8E93]" />
-              </button>
-            </div>
-          </div>
           <div className="space-y-2">
             <Label>Merek</Label>
             <div className="flex gap-2">
@@ -199,6 +250,41 @@ export default function AddProductPage() {
                 <Plus className="w-4 h-4 text-[#8E8E93]" />
               </button>
             </div>
+            {form.brandId && (
+              <p className="text-[10px] text-[#8E8E93]">
+                {categories.filter((c) => c.brandId === form.brandId).length} kategori tersedia untuk merek ini
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Kategori</Label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Select
+                  value={form.categoryId}
+                  onChange={update('categoryId')}
+                  options={filteredCats.map((c) => ({
+                    value: c.id,
+                    label: `${c.name}${c.options.length > 0 ? ` (${c.options.length} opsi)` : ''}`,
+                  }))}
+                  placeholder={form.brandId ? 'Pilih kategori' : 'Pilih merek dulu'}
+                  disabled={!form.brandId}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setCatDialogOpen(true)}
+                className="flex-shrink-0 w-10 h-10 rounded-lg border border-dashed border-[#E5E5EA] flex items-center justify-center hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all"
+                title="Tambah kategori baru"
+              >
+                <Plus className="w-4 h-4 text-[#8E8E93]" />
+              </button>
+            </div>
+            {selectedCategory && selectedCategory.options.length > 0 && (
+              <p className="text-[10px] text-[#0EA5E9] flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')}) — terisi otomatis
+              </p>
+            )}
           </div>
         </div>
 
@@ -219,7 +305,6 @@ export default function AddProductPage() {
               </div>
             ))}
             <div className="flex gap-1.5 items-center">
-              {/* Kamera */}
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
@@ -228,7 +313,6 @@ export default function AddProductPage() {
                 <Upload className="w-5 h-5 text-[#8E8E93]" />
                 <span className="text-[10px] text-[#8E8E93] font-medium">Kamera</span>
               </button>
-              {/* Galeri */}
               <button
                 type="button"
                 onClick={() => galleryInputRef.current?.click()}
@@ -267,6 +351,62 @@ export default function AddProductPage() {
           </div>
         </div>
 
+        {/* Variants / Opsi */}
+        <section className="bg-white rounded-xl border border-[#E5E5EA] overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-[#E5E5EA] bg-[#FAFAFA]">
+            <h2 className="text-sm font-semibold text-[#1C1C1E] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#F5A623]" /> Opsi / Varian
+            </h2>
+            <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+              <Plus className="w-3 h-3 mr-1" /> Tambah Baris
+            </Button>
+          </div>
+          {variants.length === 0 ? (
+            <p className="text-sm text-[#8E8E93] py-6 text-center">
+              {selectedCategory && selectedCategory.options.length > 0
+                ? `Klik "Gunakan Opsi" di atas atau tambah baris manual`
+                : 'Belum ada opsi. Pilih kategori untuk opsi otomatis.'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#E5E5EA] bg-[#F2F2F7]">
+                    <th className="text-left p-2 font-medium text-[#8E8E93]">Nama Opsi</th>
+                    <th className="text-left p-2 font-medium text-[#8E8E93]">Nilai</th>
+                    <th className="text-right p-2 font-medium text-[#8E8E93]">Stok</th>
+                    <th className="text-left p-2 font-medium text-[#8E8E93]">SKU</th>
+                    <th className="text-right p-2 font-medium text-[#8E8E93]">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.map((v) => (
+                    <tr key={v.id} className="border-b border-[#E5E5EA] last:border-0">
+                      <td className="p-1.5">
+                        <Input value={v.name} onChange={(e) => updateVariant(v.id, 'name', e.target.value)} placeholder="Ukuran" className="text-xs" />
+                      </td>
+                      <td className="p-1.5">
+                        <Input value={v.value} onChange={(e) => updateVariant(v.id, 'value', e.target.value)} placeholder="M" className="text-xs" />
+                      </td>
+                      <td className="p-1.5 w-20">
+                        <Input type="number" value={v.stock} onChange={(e) => updateVariant(v.id, 'stock', Number(e.target.value))} className="text-xs text-right" />
+                      </td>
+                      <td className="p-1.5">
+                        <Input value={v.sku} onChange={(e) => updateVariant(v.id, 'sku', e.target.value)} placeholder="SKU-001" className="text-xs font-mono" />
+                      </td>
+                      <td className="p-1.5 text-right">
+                        <button type="button" onClick={() => removeVariant(v.id)} className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10">
+                          <X className="w-3.5 h-3.5 text-[#FF3B30]" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
         {/* Actions */}
         <div className="flex gap-4 pt-2">
           <Button type="submit" variant="accent" disabled={loading}>
@@ -285,7 +425,11 @@ export default function AddProductPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-[#64748B]">Ketik nama kategori yang ingin ditambahkan. Kategori akan langsung tersedia untuk dipilih.</p>
+            <p className="text-xs text-[#64748B]">
+              {form.brandId
+                ? `Kategori akan terhubung ke "${brands.find((b) => b.id === form.brandId)?.name}".`
+                : 'Ketik nama kategori baru.'}
+            </p>
             <div className="space-y-2">
               <Label>Nama Kategori</Label>
               <Input
@@ -313,7 +457,7 @@ export default function AddProductPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-[#64748B]">Ketik nama merek yang ingin ditambahkan. Merek akan langsung tersedia untuk dipilih.</p>
+            <p className="text-xs text-[#64748B]">Ketik nama merek yang ingin ditambahkan.</p>
             <div className="space-y-2">
               <Label>Nama Merek</Label>
               <Input

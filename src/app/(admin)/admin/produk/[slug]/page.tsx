@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { AdminStore } from '@/lib/admin-store';
 import type { Product } from '@/lib/admin-store';
-import { getAllCategories, getAllBrands, addCategory, addBrand } from '@/lib/catalog-data';
+import { getAllCategories, getAllBrands, getCategoryById, addCategory, addBrand } from '@/lib/catalog-data';
 import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, ArrowLeft, Plus, X, Upload, ChevronDown, ChevronUp, Tag, Building2 } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Upload, ChevronDown, ChevronUp, Tag, Building2, Sparkles } from 'lucide-react';
 
 interface Variant {
   id: string;
@@ -56,6 +56,13 @@ export default function EditProductPage() {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [originalSlug, setOriginalSlug] = useState('');
 
+  // Cascade: filter categories by selected brand
+  const filteredCats = form.brandId
+    ? categories.filter((c) => c.brandId === form.brandId || c.brandId === null)
+    : categories;
+
+  const selectedCategory = form.categoryId ? getCategoryById(form.categoryId) : null;
+
   // ── Inline category ──
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -63,10 +70,6 @@ export default function EditProductPage() {
   // ── Inline brand ──
   const [brdDialogOpen, setBrdDialogOpen] = useState(false);
   const [newBrdName, setNewBrdName] = useState('');
-
-  // New variant form
-  const [showVariantForm, setShowVariantForm] = useState(false);
-  const [newVariant, setNewVariant] = useState({ name: '', value: '', stock: '', sku: '' });
 
   useEffect(() => {
     refreshCats();
@@ -111,7 +114,17 @@ export default function EditProductPage() {
   }
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const val = e.target.value;
+    setForm((prev) => {
+      const next = { ...prev, [field]: val };
+      if (field === 'brandId' && prev.categoryId) {
+        const cat = getCategoryById(prev.categoryId);
+        if (cat && cat.brandId && cat.brandId !== val) {
+          next.categoryId = '';
+        }
+      }
+      return next;
+    });
   };
 
   const readFileAsDataUrl = (file: File) => {
@@ -142,25 +155,8 @@ export default function EditProductPage() {
     setImageUrl('');
   };
 
-  const addVariant = () => {
-    if (!newVariant.name || !newVariant.value || !newVariant.sku) {
-      toast('Nama, value, dan SKU varian wajib diisi', 'error');
-      return;
-    }
-    setVariants((prev) => [
-      ...prev,
-      {
-        id: 'v' + Math.random().toString(36).slice(2, 8),
-        name: newVariant.name,
-        value: newVariant.value,
-        stock: Number(newVariant.stock) || 0,
-        price: null,
-        sku: newVariant.sku,
-        productId: '',
-      },
-    ]);
-    setNewVariant({ name: '', value: '', stock: '', sku: '' });
-    setShowVariantForm(false);
+  const updateVariant = (id: string, field: string, val: string | number) => {
+    setVariants((prev) => prev.map((v) => v.id === id ? { ...v, [field]: val } : v));
   };
 
   const removeVariant = (id: string) => {
@@ -170,7 +166,7 @@ export default function EditProductPage() {
   // ── Inline category ──
   const handleAddCategory = () => {
     if (!newCatName.trim()) { toast('Nama kategori wajib diisi', 'error'); return; }
-    const cat = addCategory({ name: newCatName.trim() });
+    const cat = addCategory({ name: newCatName.trim(), brandId: form.brandId || null });
     refreshCats();
     setForm((prev) => ({ ...prev, categoryId: cat.id }));
     setCatDialogOpen(false);
@@ -256,27 +252,6 @@ export default function EditProductPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Kategori</Label>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Select
-                    value={form.categoryId}
-                    onChange={update('categoryId')}
-                    options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                    placeholder="Pilih kategori"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCatDialogOpen(true)}
-                  className="flex-shrink-0 w-10 h-10 rounded-lg border border-dashed border-[#E5E5EA] flex items-center justify-center hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all"
-                  title="Tambah kategori baru"
-                >
-                  <Plus className="w-4 h-4 text-[#8E8E93]" />
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label>Merek</Label>
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -296,6 +271,36 @@ export default function EditProductPage() {
                   <Plus className="w-4 h-4 text-[#8E8E93]" />
                 </button>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Kategori</Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={form.categoryId}
+                    onChange={update('categoryId')}
+                    options={filteredCats.map((c) => ({
+                      value: c.id,
+                      label: `${c.name}${c.options.length > 0 ? ` (${c.options.length} opsi)` : ''}`,
+                    }))}
+                    placeholder={form.brandId ? 'Pilih kategori' : 'Pilih merek dulu'}
+                    disabled={!form.brandId}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCatDialogOpen(true)}
+                  className="flex-shrink-0 w-10 h-10 rounded-lg border border-dashed border-[#E5E5EA] flex items-center justify-center hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all"
+                  title="Tambah kategori baru"
+                >
+                  <Plus className="w-4 h-4 text-[#8E8E93]" />
+                </button>
+              </div>
+              {selectedCategory && selectedCategory.options.length > 0 && (
+                <p className="text-[10px] text-[#0EA5E9] flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')})
+                </p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-4 gap-4">
@@ -376,72 +381,33 @@ export default function EditProductPage() {
           </div>
         </section>
 
-        {/* Varian */}
-        <section className="bg-white rounded-xl border border-[#E5E5EA] p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#1C1C1E]">Varian Produk</h2>
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowVariantForm(!showVariantForm)}>
-              <Plus className="w-4 h-4 mr-1" /> Tambah Varian
+        {/* Varian / Opsi */}
+        <section className="bg-white rounded-xl border border-[#E5E5EA] overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-[#E5E5EA] bg-[#FAFAFA]">
+            <h2 className="text-sm font-semibold text-[#1C1C1E] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#F5A623]" /> Opsi / Varian
+            </h2>
+            <Button type="button" variant="outline" size="sm" onClick={() => {
+              const id = 'v' + Math.random().toString(36).slice(2, 8);
+              setVariants((prev) => [...prev, { id, name: '', value: '', stock: 0, price: null, sku: '' }]);
+            }}>
+              <Plus className="w-3 h-3 mr-1" /> Tambah Baris
             </Button>
           </div>
 
-          {showVariantForm && (
-            <div className="bg-[#F2F2F7] rounded-lg p-4 space-y-3">
-              <div className="grid grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Nama</Label>
-                  <Input
-                    placeholder="Ukuran"
-                    value={newVariant.name}
-                    onChange={(e) => setNewVariant((prev) => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Value</Label>
-                  <Input
-                    placeholder="M"
-                    value={newVariant.value}
-                    onChange={(e) => setNewVariant((prev) => ({ ...prev, value: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Stok</Label>
-                  <Input
-                    type="number"
-                    placeholder="10"
-                    value={newVariant.stock}
-                    onChange={(e) => setNewVariant((prev) => ({ ...prev, stock: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">SKU</Label>
-                  <Input
-                    placeholder="PRD-XL"
-                    value={newVariant.sku}
-                    onChange={(e) => setNewVariant((prev) => ({ ...prev, sku: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowVariantForm(false)}>
-                  Batal
-                </Button>
-                <Button type="button" variant="accent" size="sm" onClick={addVariant}>
-                  <Plus className="w-3 h-3 mr-1" /> Tambah
-                </Button>
-              </div>
-            </div>
-          )}
-
           {variants.length === 0 ? (
-            <p className="text-sm text-[#8E8E93] py-4 text-center">Belum ada varian. Klik &quot;Tambah Varian&quot; untuk menambahkan.</p>
+            <p className="text-sm text-[#8E8E93] py-6 text-center">
+              {selectedCategory && selectedCategory.options.length > 0
+                ? 'Pilih ulang kategori untuk mengisi opsi otomatis'
+                : 'Belum ada opsi. Tambah baris manual.'}
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#E5E5EA] bg-[#F2F2F7]">
-                    <th className="text-left p-2 font-medium text-[#8E8E93]">Nama</th>
-                    <th className="text-left p-2 font-medium text-[#8E8E93]">Value</th>
+                    <th className="text-left p-2 font-medium text-[#8E8E93]">Nama Opsi</th>
+                    <th className="text-left p-2 font-medium text-[#8E8E93]">Nilai</th>
                     <th className="text-right p-2 font-medium text-[#8E8E93]">Stok</th>
                     <th className="text-left p-2 font-medium text-[#8E8E93]">SKU</th>
                     <th className="text-right p-2 font-medium text-[#8E8E93]">Aksi</th>
@@ -450,13 +416,21 @@ export default function EditProductPage() {
                 <tbody>
                   {variants.map((v) => (
                     <tr key={v.id} className="border-b border-[#E5E5EA] last:border-0">
-                      <td className="p-2 text-[#1C1C1E]">{v.name}</td>
-                      <td className="p-2 text-[#8E8E93]">{v.value}</td>
-                      <td className="p-2 text-right">{v.stock}</td>
-                      <td className="p-2 text-[#8E8E93] font-mono text-xs">{v.sku}</td>
-                      <td className="p-2 text-right">
-                        <button type="button" className="text-[#FF3B30] text-xs hover:underline" onClick={() => removeVariant(v.id)}>
-                          Hapus
+                      <td className="p-1.5">
+                        <Input value={v.name} onChange={(e) => updateVariant(v.id, 'name', e.target.value)} placeholder="Ukuran" className="text-xs" />
+                      </td>
+                      <td className="p-1.5">
+                        <Input value={v.value} onChange={(e) => updateVariant(v.id, 'value', e.target.value)} placeholder="M" className="text-xs" />
+                      </td>
+                      <td className="p-1.5 w-20">
+                        <Input type="number" value={v.stock} onChange={(e) => updateVariant(v.id, 'stock', Number(e.target.value))} className="text-xs text-right" />
+                      </td>
+                      <td className="p-1.5">
+                        <Input value={v.sku} onChange={(e) => updateVariant(v.id, 'sku', e.target.value)} placeholder="SKU-001" className="text-xs font-mono" />
+                      </td>
+                      <td className="p-1.5 text-right">
+                        <button type="button" onClick={() => removeVariant(v.id)} className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10">
+                          <X className="w-3.5 h-3.5 text-[#FF3B30]" />
                         </button>
                       </td>
                     </tr>
@@ -511,7 +485,11 @@ export default function EditProductPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-[#64748B]">Ketik nama kategori. Langsung tersedia untuk dipilih.</p>
+            <p className="text-xs text-[#64748B]">
+              {form.brandId
+                ? `Kategori akan terhubung ke "${brands.find((b) => b.id === form.brandId)?.name}".`
+                : 'Ketik nama kategori baru.'}
+            </p>
             <div className="space-y-2">
               <Label>Nama Kategori</Label>
               <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Contoh: Sepeda Gunung" autoFocus
