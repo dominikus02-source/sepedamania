@@ -49,11 +49,10 @@ export const AdminStore = {
     salePrice: number | null;
     weight: number;
     stock: number;
+    images?: string[];
+    videoUrl?: string;
   }): Product {
-    return catalogAddProduct({
-      ...input,
-      images: [],
-    });
+    return catalogAddProduct(input);
   },
 
   updateProduct(slug: string, updates: Partial<Product>): boolean {

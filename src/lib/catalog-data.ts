@@ -37,6 +37,7 @@ export interface CatalogProduct {
   stock: number;
   sold: number;
   images: string[];
+  videoUrl?: string;
   isActive: boolean;
   specs: Record<string, string>;
   category: { id: string; name: string; slug: string };
@@ -285,6 +286,7 @@ export function addProduct(input: {
   weight: number;
   stock: number;
   images?: string[];
+  videoUrl?: string;
 }): CatalogProduct {
   const store = readStore();
   const slug = slugify(input.name);
@@ -304,6 +306,7 @@ export function addProduct(input: {
     stock: input.stock,
     sold: 0,
     images: input.images || [],
+    videoUrl: input.videoUrl,
     isActive: true,
     specs: {},
     category: { id: cat.id, name: cat.name, slug: cat.slug },

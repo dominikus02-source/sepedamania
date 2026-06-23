@@ -33,6 +33,7 @@ interface ProductData {
   description: string;
   brand: { name: string };
   category: { name: string };
+  videoUrl?: string;
   variants?: { id: string; name: string; value: string; stock: number; price?: number | null; sku: string }[];
   reviews?: { id: string; rating: number; comment?: string; user: { name: string } }[];
   [key: string]: unknown;
@@ -213,6 +214,19 @@ export function ProductDetail({ slug }: { slug: string }) {
           </div>
         )}
       </div>
+
+      {/* Video */}
+      {product.videoUrl && (
+        <div className="px-4 mt-2">
+          {product.videoUrl.startsWith('data:') ? (
+            <video src={product.videoUrl} className="w-full aspect-video rounded-xl object-cover" controls />
+          ) : (
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
+              <video src={product.videoUrl} className="w-full h-full object-contain" controls />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Product Info */}
       <div className="px-4 mt-4">

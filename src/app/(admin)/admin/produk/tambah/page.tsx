@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, ArrowLeft, Plus, X, Upload, Tag, Building2, Sparkles } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Upload, Tag, Building2, Sparkles, Video, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { slugify } from '@/lib/utils';
 
@@ -39,6 +39,10 @@ export default function AddProductPage() {
   const [images, setImages] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoFileName, setVideoFileName] = useState('');
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const MAX_IMAGES = 5;
 
   const refreshCats = () => setCategories(getAllCategories());
   const refreshBrands = () => setBrands(getAllBrands());
@@ -98,6 +102,7 @@ export default function AddProductPage() {
   // ── Image upload ──
   const readFileAsDataUrl = (file: File) => {
     if (!file.type.startsWith('image/')) { toast('Hanya file gambar yang diizinkan', 'error'); return; }
+    if (images.length >= MAX_IMAGES) { toast(`Maksimal ${MAX_IMAGES} gambar`, 'error'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
@@ -120,11 +125,30 @@ export default function AddProductPage() {
 
   const addImageUrl = () => {
     if (!imageUrl.trim()) return;
+    if (images.length >= MAX_IMAGES) { toast(`Maksimal ${MAX_IMAGES} gambar`, 'error'); return; }
     setImages((prev) => [...prev, imageUrl.trim()]);
     setImageUrl('');
   };
 
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
+
+  // ── Video upload ──
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) { toast('Hanya file video yang diizinkan', 'error'); return; }
+    if (file.size > 50 * 1024 * 1024) { toast('Video maksimal 50MB', 'error'); return; }
+    setVideoFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) setVideoUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const removeVideo = () => { setVideoUrl(''); setVideoFileName(''); };
 
   // ── Variant management ──
   const addVariant = () => {
@@ -181,8 +205,9 @@ export default function AddProductPage() {
         categoryId: form.categoryId, brandId: form.brandId,
         price: Number(form.price), salePrice: form.salePrice ? Number(form.salePrice) : null,
         weight: Number(form.weight), stock: Number(form.stock),
+        images,
+        videoUrl: videoUrl || undefined,
       });
-      if (images.length > 0) AdminStore.updateProduct(product.slug, { images });
       // Save variants
       if (variants.length > 0) {
         AdminStore.updateProduct(product.slug, { variants: variants as any });
@@ -290,7 +315,10 @@ export default function AddProductPage() {
 
         {/* Gambar */}
         <div className="space-y-2">
-          <Label>Gambar Produk</Label>
+          <div className="flex items-center justify-between">
+            <Label>Gambar Produk</Label>
+            <span className="text-[10px] text-[#8E8E93]">{images.length}/{MAX_IMAGES}</span>
+          </div>
           <div className="flex flex-wrap gap-2 mb-2">
             {images.map((img, i) => (
               <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#E5E5EA] group bg-[#F8FAFC]">
@@ -304,31 +332,66 @@ export default function AddProductPage() {
                 </button>
               </div>
             ))}
-            <div className="flex gap-1.5 items-center">
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                className="w-20 h-20 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all cursor-pointer"
-              >
-                <Upload className="w-5 h-5 text-[#8E8E93]" />
-                <span className="text-[10px] text-[#8E8E93] font-medium">Kamera</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => galleryInputRef.current?.click()}
-                className="w-20 h-20 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all cursor-pointer"
-              >
-                <Upload className="w-5 h-5 text-[#8E8E93]" />
-                <span className="text-[10px] text-[#8E8E93] font-medium">Galeri</span>
-              </button>
-            </div>
+            {images.length < MAX_IMAGES && (
+              <div className="flex gap-1.5 items-center">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-20 h-20 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all cursor-pointer"
+                >
+                  <Camera className="w-5 h-5 text-[#8E8E93]" />
+                  <span className="text-[10px] text-[#8E8E93] font-medium">Kamera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="w-20 h-20 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all cursor-pointer"
+                >
+                  <Upload className="w-5 h-5 text-[#8E8E93]" />
+                  <span className="text-[10px] text-[#8E8E93] font-medium">Galeri</span>
+                </button>
+              </div>
+            )}
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} className="hidden" />
             <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleGalleryPick} className="hidden" />
           </div>
+          {images.length < MAX_IMAGES && (
+            <div className="flex gap-2">
+              <Input placeholder="Atau masukkan URL gambar..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+              <Button type="button" variant="outline" size="sm" onClick={addImageUrl} disabled={!imageUrl.trim()}>Tambah URL</Button>
+            </div>
+          )}
+        </div>
+
+        {/* Video */}
+        <div className="space-y-2">
+          <Label>Video Produk (opsional)</Label>
           <div className="flex gap-2">
-            <Input placeholder="Atau masukkan URL gambar..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-            <Button type="button" variant="outline" size="sm" onClick={addImageUrl} disabled={!imageUrl.trim()}>Tambah URL</Button>
+            <div className="flex-1">
+              <Input placeholder="URL video (YouTube/Vimeo atau link langsung)" value={videoUrl.startsWith('data:') ? '' : videoUrl}
+                onChange={(e) => { if (!videoFileName) setVideoUrl(e.target.value); }} />
+            </div>
+            <button
+              type="button"
+              onClick={() => videoInputRef.current?.click()}
+              className="flex-shrink-0 h-10 px-3 rounded-lg border border-dashed border-[#E5E5EA] flex items-center gap-1.5 hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all cursor-pointer text-xs text-[#8E8E93]"
+            >
+              <Video className="w-4 h-4" /> Upload
+            </button>
+            <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
           </div>
+          {videoFileName && (
+            <div className="flex items-center gap-2 bg-[#FFF7ED] rounded-lg px-3 py-2">
+              <Video className="w-4 h-4 text-[#F97316]" />
+              <span className="text-xs text-[#1C1C1E] flex-1 truncate">{videoFileName}</span>
+              <button type="button" onClick={removeVideo} className="p-1 rounded-lg hover:bg-[#FF3B30]/10">
+                <X className="w-3.5 h-3.5 text-[#FF3B30]" />
+              </button>
+            </div>
+          )}
+          {videoUrl && videoUrl.startsWith('data:') && (
+            <video src={videoUrl} className="w-full max-h-48 rounded-lg object-cover" controls />
+          )}
         </div>
 
         {/* Harga & Stok */}
