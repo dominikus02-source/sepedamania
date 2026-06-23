@@ -32,7 +32,8 @@ export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const slug = params?.slug as string | undefined;
   const [ready, setReady] = useState(false);
   const [notFoundState, setNotFoundState] = useState(false);
@@ -113,9 +114,7 @@ export default function EditProductPage() {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const readFileAsDataUrl = (file: File) => {
     if (!file.type.startsWith('image/')) { toast('Hanya file gambar yang diizinkan', 'error'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -123,6 +122,17 @@ export default function EditProductPage() {
       if (dataUrl) setImages((prev) => [...prev, dataUrl]);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) readFileAsDataUrl(file);
+    e.target.value = '';
+  };
+
+  const handleGalleryPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) readFileAsDataUrl(file);
     e.target.value = '';
   };
 
@@ -341,11 +351,18 @@ export default function EditProductPage() {
                 </button>
               </div>
             ))}
-            <label className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200">
-              <Upload className="w-5 h-5 text-[#8E8E93]" />
-              <span className="text-[10px] text-[#8E8E93] font-medium">Upload</span>
-              <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
-            </label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200 cursor-pointer">
+                <Upload className="w-5 h-5 text-[#8E8E93]" />
+                <span className="text-[10px] text-[#8E8E93] font-medium">Kamera</span>
+              </button>
+              <button type="button" onClick={() => galleryInputRef.current?.click()} className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200 cursor-pointer">
+                <Upload className="w-5 h-5 text-[#8E8E93]" />
+                <span className="text-[10px] text-[#8E8E93] font-medium">Galeri</span>
+              </button>
+            </div>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} className="hidden" />
+            <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleGalleryPick} className="hidden" />
           </div>
           <div className="flex gap-2">
             <Input
