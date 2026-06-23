@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '@/lib/email';
 import { validateOrigin } from '@/lib/csrf';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { authStoreUsers } from '@/lib/auth-store';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
@@ -12,9 +13,6 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Password minimal 8 karakter'),
   phone: z.string().optional(),
 });
-
-// In-memory mock store for demo when no database
-const mockUsers: { email: string; name: string; password: string; phone?: string }[] = [];
 
 export async function POST(req: Request) {
   try {
@@ -47,13 +45,13 @@ export async function POST(req: Request) {
       const hashedPassword = await bcrypt.hash(password, 12);
       await prisma.user.create({ data: { name, email, password: hashedPassword, phone } });
     } catch {
-      // Database not available — use mock store for demo
-      const existing = mockUsers.find((u) => u.email === email);
+      // Database not available — use shared store for demo
+      const existing = authStoreUsers.find((u) => u.email === email);
       if (existing) {
         return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 400 });
       }
       const hashedPassword = await bcrypt.hash(password, 12);
-      mockUsers.push({ name, email, password: hashedPassword, phone });
+      authStoreUsers.push({ name, email, password: hashedPassword, phone });
     }
 
     try {

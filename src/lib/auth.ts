@@ -6,6 +6,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
+import { authStoreUsers } from './auth-store';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -125,7 +126,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             emailVerified: user.emailVerified,
           };
         } catch {
-          // Database unavailable
+          // Database unavailable — check shared in-memory store
+          const fallbackUser = authStoreUsers.find((u) => u.email === email);
+          if (fallbackUser) {
+            const isValid = bcrypt.compareSync(plainPassword, fallbackUser.password);
+            if (!isValid) return null;
+            return {
+              id: email,
+              email,
+              name: fallbackUser.name,
+              role: 'CUSTOMER',
+              image: null,
+              emailVerified: null,
+            };
+          }
           return null;
         }
       },
