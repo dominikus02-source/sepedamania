@@ -1,20 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { AdminStore } from '@/lib/admin-store';
 import type { Product } from '@/lib/admin-store';
-import { getAllCategories, getAllBrands } from '@/lib/catalog-data';
+import { getAllCategories, getAllBrands, addCategory, addBrand } from '@/lib/catalog-data';
+import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
-import { Save, ArrowLeft, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Save, ArrowLeft, Plus, X, Upload, ChevronDown, ChevronUp, Tag, Building2 } from 'lucide-react';
 
 interface Variant {
   id: string;
@@ -30,6 +32,7 @@ export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const slug = params?.slug as string | undefined;
   const [ready, setReady] = useState(false);
   const [notFoundState, setNotFoundState] = useState(false);
@@ -37,8 +40,10 @@ export default function EditProductPage() {
   const [seoOpen, setSeoOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
 
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<CatalogCategory[]>([]);
+  const [brands, setBrands] = useState<CatalogBrand[]>([]);
+  const refreshCats = () => setCategories(getAllCategories());
+  const refreshBrands = () => setBrands(getAllBrands());
 
   const [form, setForm] = useState({
     name: '', sku: '', description: '', categoryId: '', brandId: '',
@@ -50,13 +55,21 @@ export default function EditProductPage() {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [originalSlug, setOriginalSlug] = useState('');
 
+  // ── Inline category ──
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
+  // ── Inline brand ──
+  const [brdDialogOpen, setBrdDialogOpen] = useState(false);
+  const [newBrdName, setNewBrdName] = useState('');
+
   // New variant form
   const [showVariantForm, setShowVariantForm] = useState(false);
   const [newVariant, setNewVariant] = useState({ name: '', value: '', stock: '', sku: '' });
 
   useEffect(() => {
-    setCategories(getAllCategories());
-    setBrands(getAllBrands());
+    refreshCats();
+    refreshBrands();
     if (!slug) return;
     const product = AdminStore.getProductBySlug(slug);
     if (!product) {
@@ -100,6 +113,19 @@ export default function EditProductPage() {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast('Hanya file gambar yang diizinkan', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) setImages((prev) => [...prev, dataUrl]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const addImage = () => {
     if (!imageUrl.trim()) return;
     setImages((prev) => [...prev, imageUrl.trim()]);
@@ -129,6 +155,28 @@ export default function EditProductPage() {
 
   const removeVariant = (id: string) => {
     setVariants((prev) => prev.filter((v) => v.id !== id));
+  };
+
+  // ── Inline category ──
+  const handleAddCategory = () => {
+    if (!newCatName.trim()) { toast('Nama kategori wajib diisi', 'error'); return; }
+    const cat = addCategory({ name: newCatName.trim() });
+    refreshCats();
+    setForm((prev) => ({ ...prev, categoryId: cat.id }));
+    setCatDialogOpen(false);
+    setNewCatName('');
+    toast(`Kategori "${cat.name}" ditambahkan`, 'success');
+  };
+
+  // ── Inline brand ──
+  const handleAddBrand = () => {
+    if (!newBrdName.trim()) { toast('Nama merek wajib diisi', 'error'); return; }
+    const brd = addBrand({ name: newBrdName.trim() });
+    refreshBrands();
+    setForm((prev) => ({ ...prev, brandId: brd.id }));
+    setBrdDialogOpen(false);
+    setNewBrdName('');
+    toast(`Merek "${brd.name}" ditambahkan`, 'success');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,21 +247,45 @@ export default function EditProductPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Kategori</Label>
-              <Select
-                value={form.categoryId}
-                onChange={update('categoryId')}
-                options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                placeholder="Pilih kategori"
-              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={form.categoryId}
+                    onChange={update('categoryId')}
+                    options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                    placeholder="Pilih kategori"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCatDialogOpen(true)}
+                  className="flex-shrink-0 w-10 h-10 rounded-lg border border-dashed border-[#E5E5EA] flex items-center justify-center hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all"
+                  title="Tambah kategori baru"
+                >
+                  <Plus className="w-4 h-4 text-[#8E8E93]" />
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Merek</Label>
-              <Select
-                value={form.brandId}
-                onChange={update('brandId')}
-                options={brands.map((b) => ({ value: b.id, label: b.name }))}
-                placeholder="Pilih merek"
-              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={form.brandId}
+                    onChange={update('brandId')}
+                    options={brands.map((b) => ({ value: b.id, label: b.name }))}
+                    placeholder="Pilih merek"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBrdDialogOpen(true)}
+                  className="flex-shrink-0 w-10 h-10 rounded-lg border border-dashed border-[#E5E5EA] flex items-center justify-center hover:border-[#F5A623] hover:bg-[#FFFBEB] transition-all"
+                  title="Tambah merek baru"
+                >
+                  <Plus className="w-4 h-4 text-[#8E8E93]" />
+                </button>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-4">
@@ -269,22 +341,22 @@ export default function EditProductPage() {
                 </button>
               </div>
             ))}
-            <div className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200">
-              <Plus className="w-5 h-5 text-[#8E8E93]" />
-              <span className="text-[10px] text-[#8E8E93] font-medium">Tambah Gambar</span>
-            </div>
+            <label className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200">
+              <Upload className="w-5 h-5 text-[#8E8E93]" />
+              <span className="text-[10px] text-[#8E8E93] font-medium">Upload</span>
+              <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
+            </label>
           </div>
           <div className="flex gap-2">
             <Input
-              placeholder="URL gambar..."
+              placeholder="Atau masukkan URL gambar..."
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
             <Button type="button" variant="outline" size="sm" onClick={addImage} disabled={!imageUrl.trim()}>
-              Tambah
+              Tambah URL
             </Button>
           </div>
-          <p className="text-xs text-[#8E8E93]">Masukkan URL gambar untuk ditambahkan. Upload file akan diintegrasikan dengan Cloudinary.</p>
         </section>
 
         {/* Varian */}
@@ -412,6 +484,52 @@ export default function EditProductPage() {
           </Link>
         </div>
       </form>
+
+      {/* ── Inline Add Category Dialog ── */}
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-[#F5A623]" /> Tambah Kategori Baru
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-[#64748B]">Ketik nama kategori. Langsung tersedia untuk dipilih.</p>
+            <div className="space-y-2">
+              <Label>Nama Kategori</Label>
+              <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Contoh: Sepeda Gunung" autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }} />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => { setCatDialogOpen(false); setNewCatName(''); }}>Batal</Button>
+              <Button variant="accent" className="flex-1" onClick={handleAddCategory}>Tambah</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Inline Add Brand Dialog ── */}
+      <Dialog open={brdDialogOpen} onOpenChange={setBrdDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[#F5A623]" /> Tambah Merek Baru
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-[#64748B]">Ketik nama merek. Langsung tersedia untuk dipilih.</p>
+            <div className="space-y-2">
+              <Label>Nama Merek</Label>
+              <Input value={newBrdName} onChange={(e) => setNewBrdName(e.target.value)} placeholder="Contoh: Polygon" autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddBrand(); } }} />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => { setBrdDialogOpen(false); setNewBrdName(''); }}>Batal</Button>
+              <Button variant="accent" className="flex-1" onClick={handleAddBrand}>Tambah</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
