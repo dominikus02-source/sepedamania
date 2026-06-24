@@ -69,4 +69,5 @@ const nextConfig = {
 export default withSentryConfig(nextConfig, {
   silent: !process.env.SENTRY_DSN,
   telemetry: false,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
 });

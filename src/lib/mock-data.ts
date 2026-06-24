@@ -27,28 +27,35 @@ export const seedCategoryOptions: Record<string, SeedOption[]> = {
   ],
 };
 
-export const seedCategories = [
-  { id: 'cat-1', name: 'MTB', slug: 'mtb', image: null, brandId: 'brd-1', options: seedCategoryOptions['cat-1'] },
-  { id: 'cat-2', name: 'Road Bike', slug: 'road-bike', image: null, brandId: 'brd-1', options: seedCategoryOptions['cat-2'] },
-  { id: 'cat-3', name: 'BMX', slug: 'bmx', image: null, brandId: 'brd-2', options: seedCategoryOptions['cat-3'] },
-  { id: 'cat-4', name: 'Fixie', slug: 'fixie', image: null, brandId: 'brd-2', options: seedCategoryOptions['cat-4'] },
-  { id: 'cat-5', name: 'City Bike', slug: 'city-bike', image: null, brandId: 'brd-3', options: seedCategoryOptions['cat-5'] },
-  { id: 'cat-6', name: 'Sepeda Anak', slug: 'sepeda-anak', image: null, brandId: 'brd-4', options: seedCategoryOptions['cat-6'] },
-  { id: 'cat-7', name: 'Aksesoris', slug: 'aksesoris', image: null, brandId: null as string | null, options: [] },
-  { id: 'cat-8', name: 'Suku Cadang', slug: 'suku-cadang', image: null, brandId: null as string | null, options: [] },
+export const seedCategories: {
+  id: string; name: string; slug: string; image: string | null; brandId: string | null;
+  options: { id: string; name: string; values: string[] }[];
+  isActive: boolean; sortOrder: number; description: string; color: string;
+}[] = [
+  { id: 'cat-1', name: 'MTB', slug: 'mtb', image: null, brandId: 'brd-1', options: seedCategoryOptions['cat-1'], isActive: true, sortOrder: 1, description: 'Sepeda gunung untuk trail dan medan berat', color: '#F97316' },
+  { id: 'cat-2', name: 'Road Bike', slug: 'road-bike', image: null, brandId: 'brd-1', options: seedCategoryOptions['cat-2'], isActive: true, sortOrder: 2, description: 'Sepeda balap untuk kecepatan di aspal', color: '#0284C7' },
+  { id: 'cat-3', name: 'BMX', slug: 'bmx', image: null, brandId: 'brd-2', options: seedCategoryOptions['cat-3'], isActive: true, sortOrder: 3, description: 'Sepeda aksi untuk street dan park', color: '#EF4444' },
+  { id: 'cat-4', name: 'Fixie', slug: 'fixie', image: null, brandId: 'brd-2', options: seedCategoryOptions['cat-4'], isActive: true, sortOrder: 4, description: 'Sepeda gigi tetap, simpel dan stylish', color: '#7C3AED' },
+  { id: 'cat-5', name: 'City Bike', slug: 'city-bike', image: null, brandId: 'brd-3', options: seedCategoryOptions['cat-5'], isActive: true, sortOrder: 5, description: 'Sepeda kota untuk riding santai', color: '#16A34A' },
+  { id: 'cat-6', name: 'Sepeda Anak', slug: 'sepeda-anak', image: null, brandId: 'brd-4', options: seedCategoryOptions['cat-6'], isActive: true, sortOrder: 6, description: 'Sepeda khusus untuk anak-anak', color: '#EC4899' },
+  { id: 'cat-7', name: 'Aksesoris', slug: 'aksesoris', image: null, brandId: null as string | null, options: [], isActive: true, sortOrder: 7, description: 'Perlengkapan dan aksesoris sepeda', color: '#D97706' },
+  { id: 'cat-8', name: 'Suku Cadang', slug: 'suku-cadang', image: null, brandId: null as string | null, options: [], isActive: true, sortOrder: 8, description: 'Spare part dan komponen sepeda', color: '#64748B' },
 ];
 
-export const seedBrands = [
-  { id: 'brd-1', name: 'Polygon', slug: 'polygon', logo: null },
-  { id: 'brd-2', name: 'United', slug: 'united', logo: null },
-  { id: 'brd-3', name: 'Wimcycle', slug: 'wimcycle', logo: null },
-  { id: 'brd-4', name: 'Pacific', slug: 'pacific', logo: null },
-  { id: 'brd-5', name: 'Element', slug: 'element', logo: null },
-  { id: 'brd-6', name: 'ASC', slug: 'asc', logo: null },
-  { id: 'brd-7', name: 'ProMax', slug: 'promax', logo: null },
-  { id: 'brd-8', name: 'XDS', slug: 'xds', logo: null },
-  { id: 'brd-9', name: 'Shimano', slug: 'shimano', logo: null },
-  { id: 'brd-10', name: 'SRAM', slug: 'sram', logo: null },
+export const seedBrands: {
+  id: string; name: string; slug: string; logo: string | null;
+  isActive: boolean; sortOrder: number; description: string;
+}[] = [
+  { id: 'brd-1', name: 'Polygon', slug: 'polygon', logo: null, isActive: true, sortOrder: 1, description: 'Merek sepeda asli Indonesia, kualitas dunia' },
+  { id: 'brd-2', name: 'United', slug: 'united', logo: null, isActive: true, sortOrder: 2, description: 'Sepeda gaya hidup perkotaan' },
+  { id: 'brd-3', name: 'Wimcycle', slug: 'wimcycle', logo: null, isActive: true, sortOrder: 3, description: 'Sepeda klasik dan lipat' },
+  { id: 'brd-4', name: 'Pacific', slug: 'pacific', logo: null, isActive: true, sortOrder: 4, description: 'Sepeda anak dan keluarga' },
+  { id: 'brd-5', name: 'Element', slug: 'element', logo: null, isActive: true, sortOrder: 5, description: 'Sepeda performa tinggi' },
+  { id: 'brd-6', name: 'ASC', slug: 'asc', logo: null, isActive: true, sortOrder: 6, description: 'Sepeda premium enduro dan gravel' },
+  { id: 'brd-7', name: 'ProMax', slug: 'promax', logo: null, isActive: true, sortOrder: 7, description: 'Komponen dan aksesoris sepeda' },
+  { id: 'brd-8', name: 'XDS', slug: 'xds', logo: null, isActive: true, sortOrder: 8, description: 'Sepeda trail dan MTB' },
+  { id: 'brd-9', name: 'Shimano', slug: 'shimano', logo: null, isActive: true, sortOrder: 9, description: 'Komponen drivetrain dan brake terdepan' },
+  { id: 'brd-10', name: 'SRAM', slug: 'sram', logo: null, isActive: true, sortOrder: 10, description: 'Komponen sepeda performa tinggi' },
 ];
 
 export const mockCategories = [...seedCategories];

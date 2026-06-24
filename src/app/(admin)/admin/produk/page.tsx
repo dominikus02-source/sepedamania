@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, Building2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
 import { AdminStore } from '@/lib/admin-store';
 
@@ -27,6 +27,7 @@ export default function AdminProductsPage() {
   }, []);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
+  const [brand, setBrand] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
 
@@ -39,13 +40,16 @@ export default function AdminProductsPage() {
     if (category) {
       result = result.filter((p) => p.categoryId === category);
     }
+    if (brand) {
+      result = result.filter((p) => p.brandId === brand);
+    }
     if (status === 'active') {
       result = result.filter((p) => p.isActive);
     } else if (status === 'inactive') {
       result = result.filter((p) => !p.isActive);
     }
     return result;
-  }, [products, q, category, status]);
+  }, [products, q, category, brand, status]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -109,6 +113,16 @@ export default function AdminProductsPage() {
             options={[
               { value: '', label: 'Semua Kategori' },
               ...allCats.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+          />
+        </div>
+        <div className="w-[150px]">
+          <Select
+            value={brand}
+            onChange={(e) => { setBrand(e.target.value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Merek' },
+              ...allBrands.map((b) => ({ value: b.id, label: b.name })),
             ]}
           />
         </div>

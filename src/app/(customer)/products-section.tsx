@@ -9,8 +9,8 @@ import { BrandStrip } from '@/components/customer/brand-strip';
 import { Container, Section, SectionHeader } from '@/components/ui/container';
 import {
   getAllProducts,
-  getAllCategories,
-  getAllBrands,
+  getActiveCategories,
+  getActiveBrands,
   CatalogProduct,
   CatalogCategory,
   CatalogBrand,
@@ -24,9 +24,9 @@ export function ProductsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setProducts(getAllProducts());
-    setCategories(getAllCategories());
-    setBrands(getAllBrands());
+    setProducts(getAllProducts().filter((p) => p.isActive));
+    setCategories(getActiveCategories());
+    setBrands(getActiveBrands());
     setLoading(false);
   }, []);
 

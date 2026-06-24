@@ -34,6 +34,7 @@ interface ProductData {
   brand: { name: string };
   category: { name: string };
   videoUrl?: string;
+  videoUrls?: string[];
   variants?: { id: string; name: string; value: string; stock: number; price?: number | null; sku: string }[];
   reviews?: { id: string; rating: number; comment?: string; user: { name: string } }[];
   [key: string]: unknown;
@@ -216,15 +217,19 @@ export function ProductDetail({ slug }: { slug: string }) {
       </div>
 
       {/* Video */}
-      {product.videoUrl && (
-        <div className="px-4 mt-2">
-          {product.videoUrl.startsWith('data:') ? (
-            <video src={product.videoUrl} className="w-full aspect-video rounded-xl object-cover" controls />
-          ) : (
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
-              <video src={product.videoUrl} className="w-full h-full object-contain" controls />
+      {(product.videoUrls?.filter(Boolean).length || product.videoUrl) && (
+        <div className="px-4 mt-2 space-y-2">
+          {(product.videoUrls?.filter(Boolean).length ? product.videoUrls : [product.videoUrl]).filter(Boolean).map((v, i) => (
+            <div key={i}>
+              {v!.startsWith('data:') ? (
+                <video src={v} className="w-full aspect-video rounded-xl object-cover" controls />
+              ) : (
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
+                  <video src={v} className="w-full h-full object-contain" controls />
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
       )}
 

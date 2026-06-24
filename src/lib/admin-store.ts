@@ -50,7 +50,7 @@ export const AdminStore = {
     weight: number;
     stock: number;
     images?: string[];
-    videoUrl?: string;
+    videoUrls?: string[];
   }): Product {
     return catalogAddProduct(input);
   },

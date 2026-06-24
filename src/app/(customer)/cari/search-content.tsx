@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/customer/product-card';
 import { ProductCardSkeleton } from '@/components/customer/product-skeleton';
 import { Search, X, TrendingUp } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { getAllCategories } from '@/lib/catalog-data';
+import { getAllCategories, getAllProducts } from '@/lib/catalog-data';
 
 interface SearchResult {
   id: string;
@@ -29,7 +29,6 @@ export function SearchContent() {
   const q = searchParams.get('q') || '';
   const [query, setQuery] = useState(q);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 400);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -41,13 +40,21 @@ export function SearchContent() {
   });
 
   useEffect(() => {
-    if (!debouncedQuery.trim()) return;
-    startTransition(() => { setLoading(true); });
-    fetch(`/api/products?q=${encodeURIComponent(debouncedQuery)}&limit=20`)
-      .then((r) => r.json())
-      .then((data) => { setResults(data.products || data || []); })
-      .catch(() => setResults([]))
-      .finally(() => startTransition(() => setLoading(false)));
+    if (!debouncedQuery.trim()) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    const all = getAllProducts().filter((p) => p.isActive);
+    const ql = debouncedQuery.toLowerCase();
+    const filtered = all.filter(
+      (p) =>
+        p.name.toLowerCase().includes(ql) ||
+        p.description.toLowerCase().includes(ql) ||
+        p.sku.toLowerCase().includes(ql)
+    );
+    setResults(filtered.slice(0, 20));
+    setLoading(false);
   }, [debouncedQuery]);
 
   const handleSearch = (term: string) => {

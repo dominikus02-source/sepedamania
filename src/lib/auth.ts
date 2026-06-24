@@ -11,7 +11,7 @@ import { authStoreUsers } from './auth-store';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 
-// Demo accounts for development/fallback only
+// Demo accounts + fallback registered users
 function getDemoUsers(): Map<string, { name: string; password: string; role: string }> {
   const users = new Map<string, { name: string; password: string; role: string }>();
   users.set('sepedamania7@gmail.com', {
@@ -29,6 +29,16 @@ function getDemoUsers(): Map<string, { name: string; password: string; role: str
     password: bcrypt.hashSync('user123', 12),
     role: 'CUSTOMER',
   });
+  // Also include fallback registered users (same instance only in serverless)
+  for (const u of authStoreUsers) {
+    if (!users.has(u.email)) {
+      users.set(u.email, {
+        name: u.name,
+        password: u.password,
+        role: 'CUSTOMER',
+      });
+    }
+  }
   return users;
 }
 
@@ -90,58 +100,60 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           const user = await prisma.user.findUnique({ where: { email } });
 
-          if (!user || !user.password) return null;
-
-          if (user.lockedUntil && new Date() < user.lockedUntil) {
-            const remainingMs = user.lockedUntil.getTime() - Date.now();
-            const remainingMin = Math.ceil(remainingMs / 60000);
-            throw new Error(`Akun terkunci. Coba lagi dalam ${remainingMin} menit.`);
-          }
-
-          const isValid = await bcrypt.compare(plainPassword, user.password);
-
-          if (!isValid) {
-            const attempts = (user.failedLoginAttempts ?? 0) + 1;
-            const updateData: Record<string, unknown> = { failedLoginAttempts: attempts };
-            if (attempts >= MAX_FAILED_ATTEMPTS) {
-              updateData.lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
+          if (user && user.password) {
+            if (user.lockedUntil && new Date() < user.lockedUntil) {
+              const remainingMs = user.lockedUntil.getTime() - Date.now();
+              const remainingMin = Math.ceil(remainingMs / 60000);
+              throw new Error(`Akun terkunci. Coba lagi dalam ${remainingMin} menit.`);
             }
-            await prisma.user.update({ where: { id: user.id }, data: updateData as Prisma.UserUpdateInput });
-            return null;
-          }
 
-          if (user.failedLoginAttempts || user.lockedUntil) {
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { failedLoginAttempts: 0, lockedUntil: null },
-            });
-          }
+            const isValid = await bcrypt.compare(plainPassword, user.password);
 
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            image: user.image,
-            emailVerified: user.emailVerified,
-          };
-        } catch {
-          // Database unavailable — check shared in-memory store
-          const fallbackUser = authStoreUsers.find((u) => u.email === email);
-          if (fallbackUser) {
-            const isValid = bcrypt.compareSync(plainPassword, fallbackUser.password);
-            if (!isValid) return null;
+            if (!isValid) {
+              const attempts = (user.failedLoginAttempts ?? 0) + 1;
+              const updateData: Record<string, unknown> = { failedLoginAttempts: attempts };
+              if (attempts >= MAX_FAILED_ATTEMPTS) {
+                updateData.lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
+              }
+              await prisma.user.update({ where: { id: user.id }, data: updateData as Prisma.UserUpdateInput });
+              return null;
+            }
+
+            if (user.failedLoginAttempts || user.lockedUntil) {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { failedLoginAttempts: 0, lockedUntil: null },
+              });
+            }
+
             return {
-              id: email,
-              email,
-              name: fallbackUser.name,
-              role: 'CUSTOMER',
-              image: null,
-              emailVerified: null,
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              image: user.image,
+              emailVerified: user.emailVerified,
             };
           }
-          return null;
+        } catch {
+          // Database error — fall through to fallback store
         }
+
+        // Fallback: check shared in-memory store (works when DB unavailable or user not in DB yet)
+        const fallbackUser = authStoreUsers.find((u) => u.email === email);
+        if (fallbackUser) {
+          const isValid = bcrypt.compareSync(plainPassword, fallbackUser.password);
+          if (!isValid) return null;
+          return {
+            id: email,
+            email,
+            name: fallbackUser.name,
+            role: 'CUSTOMER',
+            image: null,
+            emailVerified: null,
+          };
+        }
+        return null;
       },
     }),
   ],

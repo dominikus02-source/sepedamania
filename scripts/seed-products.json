@@ -1,0 +1,429 @@
+[
+  {
+    "name": "Polygon Xtrada 5",
+    "sku": "PLG-XTR5-2025",
+    "description": "Sepeda gunung hardtail dengan frame Alx (Aluminium 6061), fork suspension XCR 100mm, drivetrain Shimano Deore 1x12, hydraulic disc brakes. Cocok untuk trail ringan hingga menengah. Frame geometry modern dengan 29er wheelset.",
+    "categoryId": "cat-1",
+    "brandId": "brd-1",
+    "price": 11999000,
+    "salePrice": 9999000,
+    "weight": 13500,
+    "stock": 15,
+    "sold": 47,
+    "images": [],
+    "specs": {
+      "Frame": "Alx 6061 Alloy",
+      "Fork": "XCR 100mm",
+      "Drivetrain": "Shimano Deore 1x12",
+      "Brakes": "Hydraulic Disc",
+      "Wheelset": "29er"
+    }
+  },
+  {
+    "name": "Polygon Heist X1",
+    "sku": "PLG-HEX1-2025",
+    "description": "Sepeda fixie/road bike hybrid dengan frame Chromoly, cocok untuk daily commuting. Dilengkapi wheelset double wall, freewheel flip-flop hub, dan handlebar drop bar. Tampilan klasik dengan performa modern.",
+    "categoryId": "cat-4",
+    "brandId": "brd-1",
+    "price": 4299000,
+    "salePrice": 3999000,
+    "weight": 10500,
+    "stock": 23,
+    "sold": 128,
+    "images": [],
+    "specs": {
+      "Frame": "Chromoly",
+      "Hub": "Flip Flop",
+      "Wheelset": "Double Wall",
+      "Handlebar": "Drop Bar",
+      "Berat": "10.5 kg"
+    }
+  },
+  {
+    "name": "United Bike U-MTB 29",
+    "sku": "UNT-UMTB29-2025",
+    "description": "MTB 29er entry level dengan frame aluminium butted, fork suspension 100mm, Shimano Altus 3x8 drivetrain. Pilihan tepat untuk memulai petualangan trail dengan budget bersahabat.",
+    "categoryId": "cat-1",
+    "brandId": "brd-2",
+    "price": 5499000,
+    "salePrice": null,
+    "weight": 14500,
+    "stock": 30,
+    "sold": 85,
+    "images": [],
+    "specs": {
+      "Frame": "Alloy Butted 6061",
+      "Fork": "Suspension 100mm",
+      "Drivetrain": "Shimano Altus 3x8",
+      "Brakes": "Mechanical Disc",
+      "Wheelset": "29er"
+    }
+  },
+  {
+    "name": "United Bike U-Urban",
+    "sku": "UNT-UURB-2025",
+    "description": "City bike stylish dengan desain retro-modern. Frame step-through rendah memudahkan naik turun. Dilengkapi rak belakang, fender, dan lampu LED. Cocok untuk keliling kota.",
+    "categoryId": "cat-5",
+    "brandId": "brd-2",
+    "price": 3299000,
+    "salePrice": 2999000,
+    "weight": 14500,
+    "stock": 18,
+    "sold": 62,
+    "images": [],
+    "specs": {
+      "Frame": "Hi-Ten Steel Step-Through",
+      "Drivetrain": "Shimano Nexus 3",
+      "Brakes": "V-Brake",
+      "Fitur": "Rak, Fender, Lampu LED"
+    }
+  },
+  {
+    "name": "Wimcycle Classic 26",
+    "sku": "WIM-CLAS26-2025",
+    "description": "Sepeda city classic dengan desain vintage. Frame steel dengan cat glossy, saddle kulit sintetis, handlebar sweep back. Nyaman untuk jalan santai dan aktivitas sehari-hari.",
+    "categoryId": "cat-5",
+    "brandId": "brd-3",
+    "price": 2599000,
+    "salePrice": 2399000,
+    "weight": 15500,
+    "stock": 25,
+    "sold": 93,
+    "images": [],
+    "specs": {
+      "Frame": "Hi-Ten Steel",
+      "Drivetrain": "Shimano Tourney 7-speed",
+      "Brakes": "Caliper",
+      "Ban": "26\" x 1.75"
+    }
+  },
+  {
+    "name": "Wimcycle Mini 16",
+    "sku": "WIM-MINI16-2025",
+    "description": "Sepeda lipat kompak 16 inch, cocok untuk commuter yang naik KRL/MRT. Frame aluminium ringan, mudah dilipat dalam 15 detik. Dilengkapi carrier bag.",
+    "categoryId": "cat-5",
+    "brandId": "brd-3",
+    "price": 3899000,
+    "salePrice": 3599000,
+    "weight": 10500,
+    "stock": 12,
+    "sold": 156,
+    "images": [],
+    "specs": {
+      "Frame": "Alloy Folding",
+      "Roda": "16\"",
+      "Drivetrain": "Single Speed",
+      "Lipat": "15 detik",
+      "Berat": "10.5 kg"
+    }
+  },
+  {
+    "name": "Pacific BMX Pro 20",
+    "sku": "PAC-BMXP20-2025",
+    "description": "BMX profesional dengan frame Chromoly 4130, fork tapered, handlebar 4-piece. Hub sealed bearing, wheelset double wall. Siap untuk street, park, dan flatland.",
+    "categoryId": "cat-3",
+    "brandId": "brd-4",
+    "price": 4599000,
+    "salePrice": 4299000,
+    "weight": 11500,
+    "stock": 8,
+    "sold": 34,
+    "images": [],
+    "specs": {
+      "Frame": "Chromoly 4130",
+      "Fork": "Tapered Chromoly",
+      "Handlebar": "4-Piece",
+      "Hub": "Sealed Bearing",
+      "Roda": "20\""
+    }
+  },
+  {
+    "name": "Pacific Kids 18",
+    "sku": "PAC-KIDS18-2025",
+    "description": "Sepeda anak 18 inch dengan training wheel (roda bantu). Frame Hi-Ten steel kokoh, handlebar lebar, saddle empuk. Tersedia dalam warna-warna cerah favorit anak.",
+    "categoryId": "cat-6",
+    "brandId": "brd-4",
+    "price": 999000,
+    "salePrice": 849000,
+    "weight": 9500,
+    "stock": 40,
+    "sold": 218,
+    "images": [],
+    "specs": {
+      "Frame": "Hi-Ten Steel",
+      "Roda": "18\"",
+      "Rem": "V-Brake",
+      "Fitur": "Training Wheel"
+    }
+  },
+  {
+    "name": "Pacific Trail 20 Anak",
+    "sku": "PAC-TRAIL20-2025",
+    "description": "MTB anak 20 inch dengan suspension fork. Frame aluminium ringan, Shimano 6-speed, grip shift. Siap menemani petualangan kecil di trail.",
+    "categoryId": "cat-6",
+    "brandId": "brd-4",
+    "price": 2199000,
+    "salePrice": 1999000,
+    "weight": 11000,
+    "stock": 14,
+    "sold": 76,
+    "images": [],
+    "specs": {
+      "Frame": "Alloy Kids",
+      "Fork": "Suspension 50mm",
+      "Drivetrain": "Shimano 6-speed",
+      "Roda": "20\""
+    }
+  },
+  {
+    "name": "Element Road Elite 105",
+    "sku": "ELM-RD105-2025",
+    "description": "Road bike seri elite dengan full carbon frame, groupset Shimano 105 Di2, wheelset carbon 50mm. Aerodinamika maksimal untuk kecepatan tinggi di aspal.",
+    "categoryId": "cat-2",
+    "brandId": "brd-5",
+    "price": 27999000,
+    "salePrice": 24999000,
+    "weight": 8500,
+    "stock": 3,
+    "sold": 12,
+    "images": [],
+    "specs": {
+      "Frame": "Full Carbon Toray T700",
+      "Groupset": "Shimano 105 Di2",
+      "Wheelset": "Carbon 50mm",
+      "Berat": "8.5 kg"
+    }
+  },
+  {
+    "name": "Element Aero S1",
+    "sku": "ELM-AERS1-2025",
+    "description": "Sepeda fixie aerodinamis dengan fork carbon, frame aluminium aero. Wheelset deep section 60mm cocok untuk balap track atau gaya harian yang cepat.",
+    "categoryId": "cat-4",
+    "brandId": "brd-5",
+    "price": 5299000,
+    "salePrice": 4999000,
+    "weight": 9500,
+    "stock": 11,
+    "sold": 45,
+    "images": [],
+    "specs": {
+      "Frame": "Aero Alloy",
+      "Fork": "Carbon",
+      "Wheelset": "Deep 60mm",
+      "Hub": "Flip Flop",
+      "Berat": "9.5 kg"
+    }
+  },
+  {
+    "name": "ASC Enduro X1",
+    "sku": "ASC-EDX1-2025",
+    "description": "Full suspension MTB untuk enduro dan trail berat. Frame aluminium hydroformed, Fox 36 Float fork, Fox Float X2 rear shock, drivetrain Shimano XT 1x12. Siap untuk downhill dan enduro racing.",
+    "categoryId": "cat-1",
+    "brandId": "brd-6",
+    "price": 34999000,
+    "salePrice": 31999000,
+    "weight": 15500,
+    "stock": 4,
+    "sold": 8,
+    "images": [],
+    "specs": {
+      "Frame": "Hydroformed Alloy 170mm",
+      "Fork": "Fox 36 Float 170mm",
+      "Rear Shock": "Fox Float X2",
+      "Drivetrain": "Shimano XT 1x12",
+      "Brakes": "Shimano XT 4-piston"
+    }
+  },
+  {
+    "name": "ASC Urban Gravel",
+    "sku": "ASC-UGRV-2025",
+    "description": "Gravel bike serbaguna untuk aspal dan tanah. Frame aluminium, fork carbon, drivetrain Shimano GRX 2x11. Bisa dipasang rak untuk touring. Nyaman untuk jarak jauh.",
+    "categoryId": "cat-2",
+    "brandId": "brd-6",
+    "price": 14999000,
+    "salePrice": 13999000,
+    "weight": 10500,
+    "stock": 6,
+    "sold": 23,
+    "images": [],
+    "specs": {
+      "Frame": "Gravel Alloy",
+      "Fork": "Carbon",
+      "Drivetrain": "Shimano GRX 2x11",
+      "Ban": "700x40c",
+      "Fitur": "Rack Mounts"
+    }
+  },
+  {
+    "name": "ProMax Street BMX",
+    "sku": "PMX-STMX-2025",
+    "description": "BMX street dengan frame full Chromoly, fork tapered, cassette hub 9T. Gyro brake system untuk barspin. Pegangan kuat untuk street riding dan park.",
+    "categoryId": "cat-3",
+    "brandId": "brd-7",
+    "price": 3899000,
+    "salePrice": 3699000,
+    "weight": 12200,
+    "stock": 9,
+    "sold": 31,
+    "images": [],
+    "specs": {
+      "Frame": "Full Chromoly",
+      "Hub": "Cassette 9T",
+      "Brake": "Gyro System",
+      "Roda": "20\""
+    }
+  },
+  {
+    "name": "XDS Trail 27.5",
+    "sku": "XDS-T275-2025",
+    "description": "MTB trail 27.5 inch dengan frame aluminium double butted, fork air suspension 120mm, drivetrain Shimano SLX 1x11. Handling lincah di medan teknis.",
+    "categoryId": "cat-1",
+    "brandId": "brd-8",
+    "price": 16999000,
+    "salePrice": 15999000,
+    "weight": 13500,
+    "stock": 7,
+    "sold": 19,
+    "images": [],
+    "specs": {
+      "Frame": "DB Alloy 6061",
+      "Fork": "Air Suspension 120mm",
+      "Drivetrain": "Shimano SLX 1x11",
+      "Brakes": "Shimano SLX Disc",
+      "Roda": "27.5\""
+    }
+  },
+  {
+    "name": "Shimano PD-M520 Pedal SPD",
+    "sku": "SHI-PDM520",
+    "description": "Pedal clipless SPD entry level. Dual-sided entry, adjustable tension, cage baja tahan karat. Berat ringan 380g/pair. Cocok untuk MTB dan touring.",
+    "categoryId": "cat-7",
+    "brandId": "brd-9",
+    "price": 550000,
+    "salePrice": 499000,
+    "weight": 380,
+    "stock": 100,
+    "sold": 542,
+    "images": [],
+    "specs": {
+      "Tipe": "Clipless SPD",
+      "Entry": "Dual-sided",
+      "Tension": "Adjustable",
+      "Berat": "380g/pair"
+    }
+  },
+  {
+    "name": "Shimano BR-MT200 Disc Brake",
+    "sku": "SHI-BRMT200",
+    "description": "Set hydraulic disc brake Shimano entry level. Power stopping handal, perawatan mudah, kompatibel dengan berbagai frame. Cocok upgrade MTB pemula.",
+    "categoryId": "cat-8",
+    "brandId": "brd-9",
+    "price": 850000,
+    "salePrice": 799000,
+    "weight": 520,
+    "stock": 75,
+    "sold": 389,
+    "images": [],
+    "specs": {
+      "Tipe": "Hydraulic Disc",
+      "Piston": "2-piston",
+      "Rotor": "160mm / 180mm",
+      "Berat": "520g/set"
+    }
+  },
+  {
+    "name": "SRAM GX Eagle Cassette 10-52T",
+    "sku": "SRM-GX1052",
+    "description": "Cassette 12-speed dengan range 10-52T. Konstruksi full steel, shifting presisi, kompatibel dengan semua drivetrain GX Eagle. Upgrade drivetrain MTB performa tinggi.",
+    "categoryId": "cat-8",
+    "brandId": "brd-10",
+    "price": 1850000,
+    "salePrice": 1699000,
+    "weight": 480,
+    "stock": 35,
+    "sold": 167,
+    "images": [],
+    "specs": {
+      "Speed": "12-speed",
+      "Range": "10-52T",
+      "Material": "Full Steel",
+      "Compatibility": "GX Eagle"
+    }
+  },
+  {
+    "name": "SRAM GX Eagle Crankset 170mm",
+    "sku": "SRM-GXCR170",
+    "description": "Crankset GX Eagle 170mm 12-speed dengan direct mount chainring 32T. Konstruksi aluminium forged, ringan dan kuat. Desain DUB untuk kompatibilitas luas.",
+    "categoryId": "cat-8",
+    "brandId": "brd-10",
+    "price": 2750000,
+    "salePrice": 2599000,
+    "weight": 680,
+    "stock": 20,
+    "sold": 94,
+    "images": [],
+    "specs": {
+      "Speed": "12-speed",
+      "Arm": "170mm",
+      "Chainring": "32T Direct Mount",
+      "Standard": "DUB"
+    }
+  },
+  {
+    "name": "Helm Sepeda ProMax Aero",
+    "sku": "PMX-HELM-2025",
+    "description": "Helm sepeda aero dengan ventilasi optimal, bobot ultra ringan 230 gram. Sistem fit dial adjustment, strap buckle magnetik. Tersedia dalam berbagai ukuran. Sertifikasi CPSC & EN 1078.",
+    "categoryId": "cat-7",
+    "brandId": "brd-7",
+    "price": 750000,
+    "salePrice": 649000,
+    "weight": 230,
+    "stock": 55,
+    "sold": 312,
+    "images": [],
+    "specs": {
+      "Berat": "230g",
+      "Ventilasi": "12 vents",
+      "Adjustment": "Dial Fit System",
+      "Sertifikasi": "CPSC, EN 1078"
+    }
+  },
+  {
+    "name": "Sarung Tangan Sepeda Element Pro",
+    "sku": "ELM-GLOVE-2025",
+    "description": "Sarung tangan sepeda full finger dengan gel padding. Bahan breathable mesh, jari touchscreen compatible. Palm silikon anti slip Cocok untuk MTB dan Road Bike.",
+    "categoryId": "cat-7",
+    "brandId": "brd-5",
+    "price": 199000,
+    "salePrice": 179000,
+    "weight": 80,
+    "stock": 120,
+    "sold": 478,
+    "images": [],
+    "specs": {
+      "Tipe": "Full Finger",
+      "Bahan": "Mesh Breathable",
+      "Padding": "Gel",
+      "Fitur": "Touchscreen"
+    }
+  },
+  {
+    "name": "XDS Cross 26 Anak",
+    "sku": "XDS-CROSS-2025",
+    "description": "Sepeda anak 26 inch untuk remaja. Frame aluminium ringan, Shimano 21-speed grip shift, suspension fork. Cocok untuk sekolah atau riding santai.",
+    "categoryId": "cat-6",
+    "brandId": "brd-8",
+    "price": 2799000,
+    "salePrice": 2599000,
+    "weight": 12500,
+    "stock": 16,
+    "sold": 58,
+    "images": [],
+    "specs": {
+      "Frame": "Alloy",
+      "Drivetrain": "Shimano 21-speed",
+      "Fork": "Suspension",
+      "Roda": "26\""
+    }
+  }
+]

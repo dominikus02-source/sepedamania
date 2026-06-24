@@ -16,7 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, ArrowLeft, Plus, X, Upload, ChevronDown, ChevronUp, Tag, Building2, Sparkles, Video, Camera } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Upload, ChevronDown, ChevronUp, Tag, Building2, Sparkles, Video, Camera, ImagePlus } from 'lucide-react';
 
 interface Variant {
   id: string;
@@ -33,17 +33,18 @@ export default function EditProductPage() {
   const router = useRouter();
   const { toast } = useToast();
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const galleryMultipleRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const slug = params?.slug as string | undefined;
   const [ready, setReady] = useState(false);
   const [notFoundState, setNotFoundState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [videoFileName, setVideoFileName] = useState('');
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const MAX_IMAGES = 5;
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [videoFileNames, setVideoFileNames] = useState<string[]>([]);
+  const MAX_IMAGES = 10;
+  const MAX_VIDEOS = 2;
 
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [brands, setBrands] = useState<CatalogBrand[]>([]);
@@ -101,7 +102,8 @@ export default function EditProductPage() {
     });
     setImages(product.images || []);
     setVariants(product.variants || []);
-    setVideoUrl(product.videoUrl || '');
+    setVideoUrls(product.videoUrls || []);
+    setVideoFileNames(product.videoUrls ? product.videoUrls.map(() => 'Video tersimpan') : []);
     setReady(true);
   }, [slug]);
 
@@ -133,25 +135,59 @@ export default function EditProductPage() {
   };
 
   const readFileAsDataUrl = (file: File) => {
-    if (!file.type.startsWith('image/')) { toast('Hanya file gambar yang diizinkan', 'error'); return; }
-    if (images.length >= MAX_IMAGES) { toast(`Maksimal ${MAX_IMAGES} gambar`, 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) setImages((prev) => [...prev, dataUrl]);
-    };
-    reader.readAsDataURL(file);
+    return new Promise<string>((resolve, reject) => {
+      if (!file.type.startsWith('image/')) { reject(new Error('Hanya file gambar yang diizinkan')); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (dataUrl) resolve(dataUrl);
+        else reject(new Error('Gagal membaca file'));
+      };
+      reader.onerror = () => reject(new Error('Gagal membaca file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const readVideoAsDataUrl = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      if (!file.type.startsWith('video/')) { reject(new Error('Hanya file video yang diizinkan')); return; }
+      if (file.size > 50 * 1024 * 1024) { reject(new Error('Video maksimal 50MB')); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (dataUrl) resolve(dataUrl);
+        else reject(new Error('Gagal membaca file'));
+      };
+      reader.onerror = () => reject(new Error('Gagal membaca file'));
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) readFileAsDataUrl(file);
+    if (!file) { e.target.value = ''; return; }
+    readFileAsDataUrl(file).then((url) => {
+      setImages((prev) => prev.length < MAX_IMAGES ? [...prev, url] : prev);
+    }).catch((err) => toast(err.message, 'error'));
     e.target.value = '';
   };
 
-  const handleGalleryPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) readFileAsDataUrl(file);
+  const handleGalleryMultiplePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) { e.target.value = ''; return; }
+    const slots = MAX_IMAGES - images.length;
+    const toRead = Array.from(files).slice(0, slots);
+    const results: string[] = [];
+    for (const file of toRead) {
+      try {
+        const url = await readFileAsDataUrl(file);
+        results.push(url);
+      } catch (err: unknown) {
+        toast(err instanceof Error ? err.message : 'Gagal membaca gambar', 'error');
+      }
+    }
+    if (results.length > 0) setImages((prev) => [...prev, ...results]);
+    if (files.length > slots) toast(`Hanya ${slots} slot tersisa, ${files.length - slots} file dilewati`, 'error');
     e.target.value = '';
   };
 
@@ -163,22 +199,34 @@ export default function EditProductPage() {
   };
 
   // ── Video upload ──
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('video/')) { toast('Hanya file video yang diizinkan', 'error'); return; }
-    if (file.size > 50 * 1024 * 1024) { toast('Video maksimal 50MB', 'error'); return; }
-    setVideoFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) setVideoUrl(dataUrl);
-    };
-    reader.readAsDataURL(file);
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) { e.target.value = ''; return; }
+    const slots = MAX_VIDEOS - videoUrls.length;
+    const toRead = Array.from(files).slice(0, slots);
+    const urls: string[] = [];
+    const names: string[] = [];
+    for (const file of toRead) {
+      try {
+        const url = await readVideoAsDataUrl(file);
+        urls.push(url);
+        names.push(file.name);
+      } catch (err: unknown) {
+        toast(err instanceof Error ? err.message : 'Gagal membaca video', 'error');
+      }
+    }
+    if (urls.length > 0) {
+      setVideoUrls((prev) => [...prev, ...urls]);
+      setVideoFileNames((prev) => [...prev, ...names]);
+    }
+    if (files.length > slots) toast(`Hanya ${slots} slot video tersisa`, 'error');
     e.target.value = '';
   };
 
-  const removeVideo = () => { setVideoUrl(''); setVideoFileName(''); };
+  const removeVideo = (idx: number) => {
+    setVideoUrls((prev) => prev.filter((_, i) => i !== idx));
+    setVideoFileNames((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const updateVariant = (id: string, field: string, val: string | number) => {
     setVariants((prev) => prev.map((v) => v.id === id ? { ...v, [field]: val } : v));
@@ -226,7 +274,7 @@ export default function EditProductPage() {
         stock: Number(form.stock),
         isActive: form.isActive,
         images,
-        videoUrl: videoUrl || undefined,
+        videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
         variants,
         category: categories.find((c) => c.id === form.categoryId) || { id: '', name: '', slug: '' },
         brand: brands.find((b) => b.id === form.brandId) || { id: '', name: '', slug: '' },
@@ -360,45 +408,56 @@ export default function EditProductPage() {
           </div>
         </section>
 
-        {/* Gambar */}
+        {/* Gambar — 5 slot */}
         <section className="bg-white rounded-xl border border-[#E5E5EA] p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[#1C1C1E]">Gambar Produk</h2>
             <span className="text-[10px] text-[#8E8E93]">{images.length}/{MAX_IMAGES}</span>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {images.map((img, i) => (
-              <div key={i} className="relative flex-shrink-0 group w-24 h-24">
-                <Image
-                  src={img}
-                  alt={`Gambar ${i + 1}`}
-                  fill
-                  className="rounded-lg object-cover border border-[#E5E5EA]"
-                  sizes="96px"
-                />
-                <button
-                  type="button"
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                >
-                  <X className="w-3 h-3" />
-                </button>
+          <div className="grid grid-cols-5 gap-2 max-w-[420px]">
+            {Array.from({ length: MAX_IMAGES }).map((_, i) => (
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-[#E5E5EA] bg-[#F8FAFC]">
+                {images[i] ? (
+                  <>
+                    <Image src={images[i]} alt={`Gambar ${i + 1}`} fill className="object-cover" sizes="80px" />
+                    <button
+                      type="button"
+                      onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center shadow-sm hover:bg-[#DC2626] transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </>
+                ) : i === images.length && images.length < MAX_IMAGES ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 hover:bg-[#FFFBEB] transition-colors group cursor-pointer"
+                      title="Ambil foto"
+                    >
+                      <Camera className="w-5 h-5 text-[#8E8E93] group-hover:text-[#F5A623]" />
+                      <span className="text-[8px] text-[#8E8E93] group-hover:text-[#F5A623] font-medium">Kamera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => galleryMultipleRef.current?.click()}
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 hover:bg-[#FFFBEB] transition-colors group cursor-pointer opacity-0 hover:opacity-100"
+                      title="Pilih dari galeri"
+                    >
+                      <ImagePlus className="w-5 h-5 text-[#8E8E93] group-hover:text-[#F5A623]" />
+                      <span className="text-[8px] text-[#8E8E93] group-hover:text-[#F5A623] font-medium">Galeri</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Upload className="w-5 h-5 text-[#D1D5DB]" />
+                  </div>
+                )}
               </div>
             ))}
-            {images.length < MAX_IMAGES && (
-              <div className="flex gap-2">
-                <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200 cursor-pointer">
-                  <Camera className="w-5 h-5 text-[#8E8E93]" />
-                  <span className="text-[10px] text-[#8E8E93] font-medium">Kamera</span>
-                </button>
-                <button type="button" onClick={() => galleryInputRef.current?.click()} className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-[#E5E5EA] flex flex-col items-center justify-center gap-1 hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200 cursor-pointer">
-                  <Upload className="w-5 h-5 text-[#8E8E93]" />
-                  <span className="text-[10px] text-[#8E8E93] font-medium">Galeri</span>
-                </button>
-              </div>
-            )}
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} className="hidden" />
-            <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleGalleryPick} className="hidden" />
+            <input ref={galleryMultipleRef} type="file" accept="image/*" multiple onChange={handleGalleryMultiplePick} className="hidden" />
           </div>
           {images.length < MAX_IMAGES && (
             <div className="flex gap-2">
@@ -414,35 +473,57 @@ export default function EditProductPage() {
           )}
         </section>
 
-        {/* Video */}
+        {/* Video — 2 slot */}
         <section className="bg-white rounded-xl border border-[#E5E5EA] p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-[#1C1C1E]">Video Produk</h2>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input placeholder="URL video (YouTube/Vimeo atau link langsung)" value={videoUrl.startsWith('data:') ? '' : videoUrl}
-                onChange={(e) => { if (!videoFileName) setVideoUrl(e.target.value); }} />
-            </div>
-            <button
-              type="button"
-              onClick={() => videoInputRef.current?.click()}
-              className="flex-shrink-0 h-10 px-3 rounded-lg border border-dashed border-[#E5E5EA] flex items-center gap-1.5 hover:border-[#F5A623] hover:bg-[#FFF9E6] transition-all duration-200 cursor-pointer text-xs text-[#8E8E93]"
-            >
-              <Video className="w-4 h-4" /> Upload
-            </button>
-            <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoUpload} className="hidden" />
+          <h2 className="text-lg font-semibold text-[#1C1C1E]">Video Produk (maks {MAX_VIDEOS})</h2>
+          <div className="grid grid-cols-2 gap-2 max-w-[340px]">
+            {Array.from({ length: MAX_VIDEOS }).map((_, i) => (
+              <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-[#E5E5EA] bg-[#F8FAFC]">
+                {videoUrls[i] ? (
+                  <>
+                    {videoUrls[i].startsWith('data:') ? (
+                      <video src={videoUrls[i]} className="w-full h-full object-cover" controls />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-black/5">
+                        <Video className="w-8 h-8 text-[#8E8E93]" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeVideo(i)}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center shadow-sm hover:bg-[#DC2626] transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <span className="absolute bottom-1 left-1 text-[8px] text-white bg-black/50 px-1.5 py-0.5 rounded truncate max-w-[calc(100%-8px)]">
+                      {videoFileNames[i] || `Video ${i + 1}`}
+                    </span>
+                  </>
+                ) : i === videoUrls.length && videoUrls.length < MAX_VIDEOS ? (
+                  <button
+                    type="button"
+                    onClick={() => videoInputRef.current?.click()}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-1 hover:bg-[#FFFBEB] transition-colors group cursor-pointer"
+                  >
+                    <Video className="w-6 h-6 text-[#8E8E93] group-hover:text-[#F5A623]" />
+                    <span className="text-[10px] text-[#8E8E93] group-hover:text-[#F5A623] font-medium">Upload</span>
+                  </button>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Video className="w-6 h-6 text-[#D1D5DB]" />
+                  </div>
+                )}
+              </div>
+            ))}
+            <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={handleVideoUpload} className="hidden" />
           </div>
-          {videoFileName && (
-            <div className="flex items-center gap-2 bg-[#FFF7ED] rounded-lg px-3 py-2">
-              <Video className="w-4 h-4 text-[#F97316]" />
-              <span className="text-xs text-[#1C1C1E] flex-1 truncate">{videoFileName}</span>
-              <button type="button" onClick={removeVideo} className="p-1 rounded-lg hover:bg-[#FF3B30]/10">
-                <X className="w-3.5 h-3.5 text-[#FF3B30]" />
-              </button>
-            </div>
-          )}
-          {videoUrl && videoUrl.startsWith('data:') && (
-            <video src={videoUrl} className="w-full max-h-48 rounded-lg object-cover" controls />
-          )}
+          <div className="flex gap-2">
+            <Input placeholder="URL video (YouTube/Vimeo)" value={videoUrls.find((v) => !v.startsWith('data:')) || ''}
+              onChange={(e) => {
+                const url = e.target.value;
+                if (url && videoUrls.length < MAX_VIDEOS) setVideoUrls((prev) => [...prev, url]);
+              }} />
+          </div>
         </section>
 
         {/* Varian / Opsi */}

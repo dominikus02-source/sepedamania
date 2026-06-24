@@ -14,6 +14,10 @@ export interface CatalogCategory {
   image: string | null;
   brandId: string | null;
   options: CatalogOption[];
+  isActive: boolean;
+  sortOrder: number;
+  description: string;
+  color: string;
 }
 
 export interface CatalogBrand {
@@ -21,6 +25,9 @@ export interface CatalogBrand {
   name: string;
   slug: string;
   logo: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  description: string;
 }
 
 export interface CatalogProduct {
@@ -37,7 +44,7 @@ export interface CatalogProduct {
   stock: number;
   sold: number;
   images: string[];
-  videoUrl?: string;
+  videoUrls?: string[];
   isActive: boolean;
   specs: Record<string, string>;
   category: { id: string; name: string; slug: string };
@@ -76,6 +83,10 @@ function migrateCategory(c: Record<string, unknown>): CatalogCategory {
     image: (c.image as string) ?? null,
     brandId: (c.brandId as string) ?? null,
     options: Array.isArray(c.options) ? c.options as CatalogOption[] : [],
+    isActive: c.isActive as boolean ?? true,
+    sortOrder: c.sortOrder as number ?? 0,
+    description: (c.description as string) ?? '',
+    color: (c.color as string) ?? '#FBBF24',
   };
 }
 
@@ -123,6 +134,18 @@ export function getCategoriesByBrand(brandId: string): CatalogCategory[] {
   return readStore().categories.filter((c) => c.brandId === brandId);
 }
 
+export function getActiveCategories(): CatalogCategory[] {
+  return readStore().categories
+    .filter((c) => c.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function getActiveBrands(): CatalogBrand[] {
+  return readStore().brands
+    .filter((b) => b.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
 // ── Category Options ──
 
 let _optIdCounter = 0;
@@ -161,16 +184,53 @@ export function deleteCategoryOption(categoryId: string, optionId: string): Cata
   return store.categories[catIdx];
 }
 
-export function addCategory(input: { name: string; image?: string | null; brandId?: string | null }): CatalogCategory {
+export function normalizeCategoryName(name: string): string {
+  const map: Record<string, string> = {
+    'acecoris': 'Aksesoris',
+    'aksesoris': 'Aksesoris',
+    'sepda listrik': 'Sepeda Listrik',
+    'sepeda listrik': 'Sepeda Listrik',
+    'sepeda motor': 'Sepeda Listrik',
+    'motor': 'Sepeda Listrik',
+    'mtb': 'MTB',
+    'road bike': 'Road Bike',
+    'roadbike': 'Road Bike',
+    'bmx': 'BMX',
+    'fixie': 'Fixie',
+    'city bike': 'City Bike',
+    'citybike': 'City Bike',
+    'sepeda anak': 'Sepeda Anak',
+    'suku cadang': 'Suku Cadang',
+  };
+  const lower = name.trim().toLowerCase();
+  return map[lower] || name.trim();
+}
+
+export function findSimilarCategory(store: CatalogStore, name: string): CatalogCategory | null {
+  const lower = name.trim().toLowerCase();
+  return store.categories.find((c) => c.name.toLowerCase() === lower) || null;
+}
+
+export function addCategory(input: { name: string; image?: string | null; brandId?: string | null; description?: string; color?: string; sortOrder?: number }): CatalogCategory {
   const store = readStore();
-  const slug = slugify(input.name);
+  const normalized = normalizeCategoryName(input.name);
+  // Check duplicate
+  const existing = findSimilarCategory(store, normalized);
+  if (existing) {
+    throw new Error(`Kategori "${normalized}" sudah ada`);
+  }
+  const slug = slugify(normalized);
   const cat: CatalogCategory = {
     id: 'cat-' + randId(),
-    name: input.name,
+    name: normalized,
     slug,
     image: input.image ?? null,
     brandId: input.brandId ?? null,
     options: [],
+    isActive: true,
+    sortOrder: input.sortOrder ?? 999,
+    description: input.description ?? '',
+    color: input.color ?? '#F5A623',
   };
   store.categories.push(cat);
   writeStore(store);
@@ -211,14 +271,24 @@ export function getBrandBySlug(slug: string): CatalogBrand | undefined {
   return readStore().brands.find((b) => b.slug === slug);
 }
 
-export function addBrand(input: { name: string; logo?: string }): CatalogBrand {
+export function addBrand(input: { name: string; logo?: string; description?: string; sortOrder?: number }): CatalogBrand {
   const store = readStore();
-  const slug = slugify(input.name);
+  const normalized = input.name.trim();
+  // Check duplicate
+  const lower = normalized.toLowerCase();
+  const existing = store.brands.find((b) => b.name.toLowerCase() === lower);
+  if (existing) {
+    throw new Error(`Merek "${normalized}" sudah ada`);
+  }
+  const slug = slugify(normalized);
   const brd: CatalogBrand = {
     id: 'brd-' + randId(),
-    name: input.name,
+    name: normalized,
     slug,
     logo: input.logo || null,
+    isActive: true,
+    sortOrder: input.sortOrder ?? 999,
+    description: input.description ?? '',
   };
   store.brands.push(brd);
   writeStore(store);
@@ -286,7 +356,7 @@ export function addProduct(input: {
   weight: number;
   stock: number;
   images?: string[];
-  videoUrl?: string;
+  videoUrls?: string[];
 }): CatalogProduct {
   const store = readStore();
   const slug = slugify(input.name);
@@ -306,7 +376,7 @@ export function addProduct(input: {
     stock: input.stock,
     sold: 0,
     images: input.images || [],
-    videoUrl: input.videoUrl,
+    videoUrls: input.videoUrls?.slice(0, 2) || [],
     isActive: true,
     specs: {},
     category: { id: cat.id, name: cat.name, slug: cat.slug },
