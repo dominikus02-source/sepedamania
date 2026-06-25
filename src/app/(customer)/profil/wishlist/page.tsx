@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';
 import { Heart, ChevronLeft, ShoppingBag, Trash2 } from 'lucide-react';
-import { getAllProducts } from '@/lib/catalog-data';
+import { getAllProductsFromApi } from '@/lib/catalog-data';
 
 export default function WishlistPage() {
   const addItem = useCartStore((s) => s.addItem);
@@ -16,7 +16,9 @@ export default function WishlistPage() {
   const [items, setItems] = useState<import('@/lib/catalog-data').CatalogProduct[]>([]);
 
   useEffect(() => {
-    setItems(getAllProducts().filter((p) => p.stock > 0).slice(0, 6));
+    getAllProductsFromApi().then((all) => {
+      setItems(all.filter((p) => p.stock > 0).slice(0, 6));
+    });
   }, []);
 
   const removeItem = (id: string) => {

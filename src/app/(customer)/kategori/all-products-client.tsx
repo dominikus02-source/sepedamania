@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProductCard } from '@/components/customer/product-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { getAllProducts } from '@/lib/catalog-data';
-import { SlidersHorizontal, Search, PackageOpen } from 'lucide-react';
+import { useApiProducts } from '@/lib/use-api-products';
+import { SlidersHorizontal, Search, PackageOpen, LoaderCircle } from 'lucide-react';
 
 type SortOption = 'popular' | 'newest' | 'price-asc' | 'price-desc' | 'discount';
 
@@ -18,28 +18,16 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'discount', label: 'Diskon' },
 ];
 
-interface AllProductsClientProps {
-  products: Array<{
-    id: string; name: string; slug: string; price: number;
-    salePrice?: number | null; images: string[]; sold: number;
-    rating?: number; category?: { name: string }; stock: number; weight: number;
-  }>;
-}
-
-export function AllProductsClient({ products }: AllProductsClientProps) {
+export function AllProductsClient() {
   const searchParams = useSearchParams();
   const sortParam = searchParams.get('sort') as SortOption | null;
-  const [localProducts, setLocalProducts] = useState(products);
+  const { products, loading } = useApiProducts({ limit: 100 });
   const [sort, setSort] = useState<SortOption>(sortParam || 'popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    setLocalProducts(getAllProducts());
-  }, []);
-
   const filtered = useMemo(() => {
-    let result = [...localProducts];
+    let result = [...products];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((p) => p.name.toLowerCase().includes(q));
@@ -56,7 +44,18 @@ export function AllProductsClient({ products }: AllProductsClientProps) {
       }); break;
     }
     return result;
-  }, [localProducts, sort, searchQuery]);
+  }, [products, sort, searchQuery]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <LoaderCircle className="w-8 h-8 animate-spin text-[#F5A623]" />
+          <p className="text-sm text-[#8E8E93]">Memuat produk...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4">

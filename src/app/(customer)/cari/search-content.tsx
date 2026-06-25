@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/customer/product-card';
 import { ProductCardSkeleton } from '@/components/customer/product-skeleton';
-import { Search, X, TrendingUp } from 'lucide-react';
+import { Search, X, TrendingUp, LoaderCircle } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { getAllCategories, getAllProducts } from '@/lib/catalog-data';
+import { getAllCategories, getAllProductsFromApi } from '@/lib/catalog-data';
 
 interface SearchResult {
   id: string;
@@ -45,16 +45,18 @@ export function SearchContent() {
       return;
     }
     setLoading(true);
-    const all = getAllProducts().filter((p) => p.isActive);
-    const ql = debouncedQuery.toLowerCase();
-    const filtered = all.filter(
-      (p) =>
-        p.name.toLowerCase().includes(ql) ||
-        p.description.toLowerCase().includes(ql) ||
-        p.sku.toLowerCase().includes(ql)
-    );
-    setResults(filtered.slice(0, 20));
-    setLoading(false);
+    getAllProductsFromApi().then((all) => {
+      const active = all.filter((p) => p.isActive);
+      const ql = debouncedQuery.toLowerCase();
+      const filtered = active.filter(
+        (p) =>
+          p.name.toLowerCase().includes(ql) ||
+          p.description.toLowerCase().includes(ql) ||
+          p.sku.toLowerCase().includes(ql)
+      );
+      setResults(filtered.slice(0, 20));
+      setLoading(false);
+    });
   }, [debouncedQuery]);
 
   const handleSearch = (term: string) => {

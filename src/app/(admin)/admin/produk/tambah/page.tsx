@@ -247,7 +247,7 @@ export default function AddProductPage() {
     }
     setLoading(true);
     try {
-      const product = AdminStore.addProduct({
+      const product = await AdminStore.addProduct({
         name: form.name, sku: form.sku, description: form.description,
         categoryId: form.categoryId, brandId: form.brandId,
         price: Number(form.price), salePrice: form.salePrice ? Number(form.salePrice) : null,
@@ -256,8 +256,8 @@ export default function AddProductPage() {
         videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
       });
       // Save variants
-      if (variants.length > 0) {
-        AdminStore.updateProduct(product.slug, { variants: variants as any });
+      if (variants.length > 0 && product) {
+        await AdminStore.updateProduct(product.slug, { variants: variants as any });
       }
       toast('Produk berhasil ditambahkan', 'success');
       router.push('/admin/produk');

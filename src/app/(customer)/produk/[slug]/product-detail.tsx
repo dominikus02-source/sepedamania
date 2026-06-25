@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getProductBySlug, getRelatedProducts } from '@/lib/catalog-data';
+import { getProductBySlug, getProductBySlugFromApi, getRelatedProducts } from '@/lib/catalog-data';
 import { useRouter } from 'next/navigation';
 import { formatPrice, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -48,16 +48,16 @@ export function ProductDetail({ slug }: { slug: string }) {
   const [selImg, setSelImg] = useState(0);
 
   useEffect(() => {
-    const p = getProductBySlug(slug);
-    if (p) {
-      setProduct({
-        ...p,
-        price: Number(p.price),
-        salePrice: p.salePrice ? Number(p.salePrice) : null,
-        variants: p.variants.map(v => ({ ...v, price: v.price ? Number(v.price) : null })),
-        reviews: p.reviews.map(r => ({ ...r })),
-      } as ProductData);
-      setRelatedProducts(
+    getProductBySlugFromApi(slug).then((p) => {
+      if (p) {
+        setProduct({
+          ...p,
+          price: Number(p.price),
+          salePrice: p.salePrice ? Number(p.salePrice) : null,
+          variants: p.variants.map(v => ({ ...v, price: v.price ? Number(v.price) : null })),
+          reviews: p.reviews.map(r => ({ ...r })),
+        } as ProductData);
+        setRelatedProducts(
         getRelatedProducts(p.id).map(r => ({
           ...r,
           price: Number(r.price),
@@ -66,6 +66,7 @@ export function ProductDetail({ slug }: { slug: string }) {
       );
     }
     setLoading(false);
+    });
   }, [slug]);
 
   if (loading) {

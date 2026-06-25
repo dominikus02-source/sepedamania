@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ProductCard } from '@/components/customer/product-card';
 import { FilterBar } from './filter-bar';
-import { getProductsByCategory, getCategoryBySlug, CatalogProduct } from '@/lib/catalog-data';
+import { getCategoryBySlug, getProductsByCategoryFromApi, CatalogProduct } from '@/lib/catalog-data';
+import { LoaderCircle } from 'lucide-react';
 
 export function CategoryProducts() {
   const { slug } = useParams<{ slug: string }>();
@@ -15,11 +16,20 @@ export function CategoryProducts() {
   useEffect(() => {
     const cat = getCategoryBySlug(slug);
     if (cat) setCategoryName(cat.name);
-    setProducts(getProductsByCategory(slug));
-    setLoading(false);
+    getProductsByCategoryFromApi(slug).then((result) => {
+      setProducts(result);
+      setLoading(false);
+    });
   }, [slug]);
 
-  if (loading) return <p className="text-center text-[#8E8E93] py-12">Memuat...</p>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <div className="flex flex-col items-center gap-3">
+        <LoaderCircle className="w-8 h-8 animate-spin text-[#F5A623]" />
+        <p className="text-sm text-[#8E8E93]">Memuat produk...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4">

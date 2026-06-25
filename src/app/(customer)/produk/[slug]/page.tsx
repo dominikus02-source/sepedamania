@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ProductDetail } from './product-detail';
-import { getMockProduct } from '@/lib/mock-data';
+import { prisma } from '@/lib/prisma';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -8,7 +8,10 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = getMockProduct(slug);
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    select: { name: true, price: true, salePrice: true, images: true, brand: { select: { name: true } }, category: { select: { name: true } } },
+  });
   if (!product) return { title: 'Produk tidak ditemukan' };
 
   const price = product.salePrice || product.price;

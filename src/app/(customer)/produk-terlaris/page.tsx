@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ProductCard } from '@/components/customer/product-card';
 import { Container, Section } from '@/components/ui/container';
-import { getAllProducts } from '@/lib/catalog-data';
+import { getAllProductsFromApi } from '@/lib/catalog-data';
 import { Flame } from 'lucide-react';
 
 export default function ProdukTerlarisPage() {
@@ -11,8 +11,10 @@ export default function ProdukTerlarisPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setProducts(getAllProducts());
-    setLoading(false);
+    getAllProductsFromApi().then((all) => {
+      setProducts(all);
+      setLoading(false);
+    });
   }, []);
 
   const bestSellers = [...products].sort((a, b) => b.sold - a.sold);

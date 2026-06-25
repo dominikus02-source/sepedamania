@@ -321,8 +321,32 @@ export function getAllProducts(): CatalogProduct[] {
   return readStore().products;
 }
 
+export async function getAllProductsFromApi(): Promise<CatalogProduct[]> {
+  if (!isBrowser()) return [];
+  try {
+    const res = await fetch('/api/products?limit=100');
+    if (!res.ok) return readStore().products;
+    const json = await res.json();
+    if (json.products?.length) return json.products as CatalogProduct[];
+  } catch {}
+  return readStore().products;
+}
+
 export function getProductBySlug(slug: string): CatalogProduct | null {
   return readStore().products.find((p) => p.slug === slug) || null;
+}
+
+export async function getProductBySlugFromApi(slug: string): Promise<CatalogProduct | null> {
+  const local = getProductBySlug(slug);
+  if (local) return local;
+  try {
+    const res = await fetch('/api/products?limit=100');
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json.products as CatalogProduct[])?.find((p: CatalogProduct) => p.slug === slug) || null;
+  } catch {
+    return null;
+  }
 }
 
 export function getProductById(id: string): CatalogProduct | null {
@@ -334,6 +358,20 @@ export function getProductsByCategory(categorySlug: string): CatalogProduct[] {
   const cat = store.categories.find((c) => c.slug === categorySlug);
   if (!cat) return [];
   return store.products.filter((p) => p.categoryId === cat.id && p.isActive);
+}
+
+export async function getProductsByCategoryFromApi(categorySlug: string): Promise<CatalogProduct[]> {
+  try {
+    const res = await fetch(`/api/products?limit=100`);
+    if (!res.ok) return getProductsByCategory(categorySlug);
+    const json = await res.json();
+    const products = json.products as CatalogProduct[] || [];
+    const cat = products.find((p) => p.category?.slug === categorySlug)?.category;
+    if (!cat) return getProductsByCategory(categorySlug);
+    return products.filter((p) => p.categoryId === cat.id && p.isActive);
+  } catch {
+    return getProductsByCategory(categorySlug);
+  }
 }
 
 export function getRelatedProducts(productId: string, limit = 6): CatalogProduct[] {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ProductCard } from '@/components/customer/product-card';
 import { Container, Section } from '@/components/ui/container';
-import { getAllProducts } from '@/lib/catalog-data';
+import { getAllProductsFromApi } from '@/lib/catalog-data';
 import { Zap } from 'lucide-react';
 
 export default function FlashSalePage() {
@@ -11,8 +11,10 @@ export default function FlashSalePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setProducts(getAllProducts());
-    setLoading(false);
+    getAllProductsFromApi().then((all) => {
+      setProducts(all);
+      setLoading(false);
+    });
   }, []);
 
   const flashSaleProducts = products.filter((p) => p.salePrice && p.salePrice < p.price);

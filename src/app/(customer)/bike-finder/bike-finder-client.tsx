@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/customer/product-card';
-import { getAllProducts } from '@/lib/catalog-data';
+import { getAllProductsFromApi } from '@/lib/catalog-data';
 import { findBikes, type BikeFinderOptions, type BikeMatch } from '@/lib/bike-finder';
 import {
   USAGE_LABELS,
@@ -567,17 +567,15 @@ export function BikeFinderClient() {
     }
   }, [step, results]);
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = useCallback(async () => {
     setIsLoading(true);
     const opts = buildOptions();
-    const timer = setTimeout(() => {
-      const products = getAllProducts().filter((p) => p.isActive);
-      const matches = findBikes(opts, products);
-      setResults(matches);
-      setIsLoading(false);
-      setStep(TOTAL_STEPS);
-    }, 400);
-    return () => clearTimeout(timer);
+    const all = await getAllProductsFromApi();
+    const products = all.filter((p) => p.isActive);
+    const matches = findBikes(opts, products);
+    setResults(matches);
+    setIsLoading(false);
+    setStep(TOTAL_STEPS);
   }, [buildOptions]);
 
   const handleReset = useCallback(() => {

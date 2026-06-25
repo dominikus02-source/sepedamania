@@ -8,14 +8,14 @@ import { FlashSale } from '@/components/customer/flash-sale';
 import { BrandStrip } from '@/components/customer/brand-strip';
 import { Container, Section, SectionHeader } from '@/components/ui/container';
 import {
-  getAllProducts,
+  getAllProductsFromApi,
   getActiveCategories,
   getActiveBrands,
   CatalogProduct,
   CatalogCategory,
   CatalogBrand,
 } from '@/lib/catalog-data';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LoaderCircle } from 'lucide-react';
 
 export function ProductsSection() {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
@@ -24,10 +24,12 @@ export function ProductsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setProducts(getAllProducts().filter((p) => p.isActive));
-    setCategories(getActiveCategories());
-    setBrands(getActiveBrands());
-    setLoading(false);
+    getAllProductsFromApi().then((all) => {
+      setProducts(all.filter((p) => p.isActive));
+      setCategories(getActiveCategories());
+      setBrands(getActiveBrands());
+      setLoading(false);
+    });
   }, []);
 
   if (loading) return null;

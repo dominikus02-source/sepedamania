@@ -9,6 +9,22 @@ import {
 } from './catalog-data';
 import type { CatalogProduct as Product } from './catalog-data';
 
+const API_BASE = '/api/products';
+
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<{ data?: T; error?: string }> {
+  try {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      ...options,
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json.error || `HTTP ${res.status}` };
+    return { data: json as T };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
 const ORDER_STORAGE_KEY = 'spm-admin-store';
 
 function readOrders(): AdminOrder[] {
@@ -39,7 +55,7 @@ export const AdminStore = {
 
   getProductBySlug: (slug: string): Product | null => getProductBySlug(slug),
 
-  addProduct(input: {
+  async addProduct(input: {
     name: string;
     sku: string;
     description: string;
@@ -51,16 +67,31 @@ export const AdminStore = {
     stock: number;
     images?: string[];
     videoUrls?: string[];
-  }): Product {
-    return catalogAddProduct(input);
+  }): Promise<Product> {
+    const product = catalogAddProduct(input);
+    await apiFetch(API_BASE, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return product;
   },
 
-  updateProduct(slug: string, updates: Partial<Product>): boolean {
-    return catalogUpdateProduct(slug, updates);
+  async updateProduct(slug: string, updates: Partial<Product>): Promise<boolean> {
+    const local = catalogUpdateProduct(slug, updates);
+    const product = getProductBySlug(slug);
+    if (product) {
+      await apiFetch(`${API_BASE}/${product.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+    }
+    return local;
   },
 
-  deleteProduct(id: string): boolean {
-    return catalogDeleteProduct(id);
+  async deleteProduct(id: string): Promise<boolean> {
+    const local = catalogDeleteProduct(id);
+    await apiFetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+    return local;
   },
 
   getOrders: (): AdminOrder[] => readOrders(),
