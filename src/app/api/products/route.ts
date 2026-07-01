@@ -148,7 +148,9 @@ export async function GET(req: NextRequest) {
       reviewCount: p.reviews.length,
     }));
 
-    return NextResponse.json({ products: mapped });
+    return NextResponse.json({ products: mapped }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (err) {
     console.error('GET /api/products error:', err);
     return NextResponse.json({ error: 'Gagal mengambil produk' }, { status: 500 });
