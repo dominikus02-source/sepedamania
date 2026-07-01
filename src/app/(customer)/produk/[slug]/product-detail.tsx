@@ -46,6 +46,13 @@ export function ProductDetail({ slug }: { slug: string }) {
   const [relatedProducts, setRelatedProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selImg, setSelImg] = useState(0);
+  const [selVar, setSelVar] = useState<{ name: string; value: string } | null>(null);
+  const [qty, setQty] = useState(1);
+  const [tab, setTab] = useState('deskripsi');
+  const [imgError, setImgError] = useState<Record<number, boolean>>({});
+  const addItem = useCartStore(s => s.addItem);
+  const { addItem: addCompareItem, isInCompare } = useCompareStore();
+  const { toast } = useToast();
 
   useEffect(() => {
     getProductBySlugFromApi(slug).then((p) => {
@@ -88,13 +95,6 @@ export function ProductDetail({ slug }: { slug: string }) {
       </div>
     );
   }
-  const [selVar, setSelVar] = useState<{ name: string; value: string } | null>(null);
-  const [qty, setQty] = useState(1);
-  const [tab, setTab] = useState('deskripsi');
-  const [imgError, setImgError] = useState<Record<number, boolean>>({});
-  const addItem = useCartStore(s => s.addItem);
-  const { addItem: addCompareItem, isInCompare } = useCompareStore();
-  const { toast } = useToast();
 
   const isSale = product.salePrice && product.salePrice < product.price;
   const dp = Number(isSale ? product.salePrice! : product.price);

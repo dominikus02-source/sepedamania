@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Container, SectionHeader } from '@/components/ui/container';
 import { AllProductsClient } from './all-products-client';
@@ -11,7 +12,9 @@ export default function AllCategoriesPage() {
   return (
     <Container className="py-6">
       <SectionHeader title="Semua Produk" />
-      <AllProductsClient />
+      <Suspense fallback={<div className="py-12 text-center text-[#64748B]">Memuat produk...</div>}>
+        <AllProductsClient />
+      </Suspense>
     </Container>
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateTotpSecret, getTotpUri, generateQrCode } from '@/lib/totp';

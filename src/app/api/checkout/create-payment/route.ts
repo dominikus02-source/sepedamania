@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { z } from 'zod';
 import { getMockOrder, setMockOrder, generateOrderId } from '@/lib/mock-orders';
 import { getServerCategories } from '@/lib/catalog-data';

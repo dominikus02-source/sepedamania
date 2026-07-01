@@ -44,7 +44,18 @@ export const productSchema = z.object({
   salePrice: z.number().min(0).nullable().optional(),
   weight: z.number().min(0, 'Berat tidak boleh negatif'),
   stock: z.number().int().min(0),
+  images: z.array(z.string()).optional().default([]),
+  specs: z.record(z.string(), z.string()).optional().default({}),
   isActive: z.boolean().default(true),
   metaTitle: z.string().optional().nullable(),
   metaDescription: z.string().optional().nullable(),
+  variants: z.array(z.object({
+    name: z.string().min(1),
+    value: z.string().min(1),
+    stock: z.number().int().min(0),
+    price: z.number().min(0).nullable().optional(),
+    sku: z.string().optional(),
+  })).optional().default([]),
 });
+
+export const createProductSchema = productSchema;

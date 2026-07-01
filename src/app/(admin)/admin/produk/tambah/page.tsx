@@ -76,7 +76,7 @@ export default function AddProductPage() {
     });
   };
 
-  // ─️ Auto-suggest variants from category options ──
+  // Auto-suggest variants from category options (after manual category creation)
   useEffect(() => {
     if (!selectedCategory || selectedCategory.options.length === 0) return;
     // Only suggest if variants are empty
@@ -96,7 +96,9 @@ export default function AddProductPage() {
     }
     if (suggested.length > 0) {
       setVariants(suggested);
-      toast(`Opsi "${selectedCategory.name}" siap diisi`, 'success');
+      if (!form.categoryId) {
+        toast(`Opsi "${selectedCategory.name}" siap diisi`, 'success');
+      }
     }
   }, [form.categoryId]);
 
@@ -210,7 +212,7 @@ export default function AddProductPage() {
     setVariants((prev) => prev.filter((v) => v.id !== id));
   };
 
-  // ── Inline category creation ──
+// ── Inline category creation ──
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
@@ -221,10 +223,15 @@ export default function AddProductPage() {
     setForm((prev) => ({ ...prev, categoryId: cat.id }));
     setCatDialogOpen(false);
     setNewCatName('');
-    toast(`Kategori "${cat.name}" ditambahkan`, 'success');
+    toast(`Kategori \"${cat.name}\" ditambahkan`, 'success');
+    // Trigger revalidation
+    if (typeof window !== 'undefined') {
+      fetch('/api/revalidate?tag=categories', { method: 'POST' }).catch(() => {});
+      fetch('/api/revalidate?tag=products', { method: 'POST' }).catch(() => {});
+    }
   };
 
-  // ── Inline brand creation ──
+// ── Inline brand creation ──
   const [brdDialogOpen, setBrdDialogOpen] = useState(false);
   const [newBrdName, setNewBrdName] = useState('');
 
@@ -235,7 +242,12 @@ export default function AddProductPage() {
     setForm((prev) => ({ ...prev, brandId: brd.id }));
     setBrdDialogOpen(false);
     setNewBrdName('');
-    toast(`Merek "${brd.name}" ditambahkan`, 'success');
+    toast(`Merek \"${brd.name}\" ditambahkan`, 'success');
+    // Trigger revalidation
+    if (typeof window !== 'undefined') {
+      fetch('/api/revalidate?tag=brands', { method: 'POST' }).catch(() => {});
+      fetch('/api/revalidate?tag=products', { method: 'POST' }).catch(() => {});
+    }
   };
 
   // ── Submit ──
@@ -355,6 +367,11 @@ export default function AddProductPage() {
             {selectedCategory && selectedCategory.options.length > 0 && (
               <p className="text-[10px] text-[#0EA5E9] flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')}) — terisi otomatis
+              </p>
+            )}
+            {selectedCategory && selectedCategory.options.length > 0 && (
+              <p className="text-xs text-[#0EA5E9] flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')}) — akan otomatis terisi saat kategori dipilih
               </p>
             )}
           </div>

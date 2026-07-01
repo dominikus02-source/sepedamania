@@ -1,47 +1,71 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { createProductSchema } from '@/lib/validations';
 import { auth } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
+import { prisma } from '@/lib/prisma';
 
 const productQuerySchema = z.object({
   q: z.string().optional(),
   categoryId: z.string().optional(),
   brandId: z.string().optional(),
+  categorySlug: z.string().optional(),
+  brandSlug: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   sort: z.enum(['price_asc', 'price_desc', 'sold', 'rating', 'newest']).optional(),
+  featured: z.coerce.boolean().optional(),
+  flashSale: z.coerce.boolean().optional(),
 });
 
-const createProductSchema = z.object({
-  name: z.string().min(1, 'Nama produk wajib diisi'),
-  sku: z.string().min(1, 'SKU wajib diisi'),
-  description: z.string().min(1, 'Deskripsi wajib diisi'),
-  categoryId: z.string().min(1, 'Kategori wajib dipilih'),
-  brandId: z.string().min(1, 'Merek wajib dipilih'),
-  price: z.number().min(0, 'Harga tidak boleh negatif'),
-  salePrice: z.number().min(0).nullable().optional(),
-  weight: z.number().min(0, 'Berat tidak boleh negatif'),
-  stock: z.number().int().min(0),
-  images: z.array(z.string()).default([]),
-  videoUrls: z.array(z.string()).default([]),
-  specs: z.record(z.string(), z.string()).default({}),
-  isActive: z.boolean().default(true),
-});
-
-export async function GET(_req: Request) {
-  const { searchParams } = new URL(_req.url);
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
   const parsed = productQuerySchema.safeParse(Object.fromEntries(searchParams));
+
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Invalid query parameters', details: parsed.error.issues },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
-  const { q, categoryId, brandId, limit, sort } = parsed.data;
+  const {
+    q,
+    categoryId,
+    brandId,
+    categorySlug,
+    brandSlug,
+    limit,
+    sort,
+    featured,
+    flashSale,
+  } = parsed.data;
 
   try {
-    const where: Record<string, unknown> = { isActive: true };
+    const where: any = { isActive: true };
+
+    if (categorySlug) {
+      const category = await prisma.category.findUnique({
+        where: { slug: categorySlug },
+      });
+      if (category) {
+        where.categoryId = category.id;
+      }
+    } else if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
+    if (brandSlug) {
+      const brand = await prisma.brand.findUnique({
+        where: { slug: brandSlug },
+      });
+      if (brand) {
+        where.brandId = brand.id;
+      }
+    } else if (brandId) {
+      where.brandId = brandId;
+    }
+
     if (q) {
       where.OR = [
         { name: { contains: q, mode: 'insensitive' } },
@@ -49,18 +73,27 @@ export async function GET(_req: Request) {
         { sku: { contains: q, mode: 'insensitive' } },
       ];
     }
-    if (categoryId) where.categoryId = categoryId;
-    if (brandId) where.brandId = brandId;
 
-    const orderBy: Record<string, string>[] = [];
-    if (sort === 'price_asc') orderBy.push({ price: 'asc' });
-    else if (sort === 'price_desc') orderBy.push({ price: 'desc' });
-    else if (sort === 'sold') orderBy.push({ sold: 'desc' });
-    else if (sort === 'rating') orderBy.push({ sold: 'desc' });
-    else orderBy.push({ createdAt: 'desc' });
+    const orderBy: any = {};
+    switch (sort) {
+      case 'price_asc':
+        orderBy.price = 'asc';
+        break;
+      case 'price_desc':
+        orderBy.price = 'desc';
+        break;
+      case 'sold':
+        orderBy.sold = 'desc';
+        break;
+      case 'rating':
+        orderBy.rating = 'desc';
+        break;
+      default:
+        orderBy.createdAt = 'desc';
+    }
 
     const products = await prisma.product.findMany({
-      where: where as any,
+      where,
       orderBy,
       take: limit,
       include: {
@@ -85,7 +118,7 @@ export async function GET(_req: Request) {
       stock: p.stock,
       sold: p.sold,
       images: p.images,
-      videoUrls: [] as string[],
+      videoUrls: [],
       isActive: p.isActive,
       specs: (p.specs as Record<string, string>) || {},
       category: p.category,
@@ -130,10 +163,11 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const parsed = createProductSchema.safeParse(body);
+
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Data tidak valid', details: parsed.error.issues },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -151,6 +185,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'SKU sudah digunakan' }, { status: 409 });
     }
 
+    const category = await prisma.category.findUnique({
+      where: { id: data.categoryId },
+    });
+    if (!category) {
+      return NextResponse.json({ error: 'Kategori tidak ditemukan' }, { status: 404 });
+    }
+
+    const brand = await prisma.brand.findUnique({
+      where: { id: data.brandId },
+    });
+    if (!brand) {
+      return NextResponse.json({ error: 'Merek tidak ditemukan' }, { status: 404 });
+    }
+
     const product = await prisma.product.create({
       data: {
         name: data.name,
@@ -166,10 +214,20 @@ export async function POST(req: Request) {
         images: data.images,
         specs: data.specs as any,
         isActive: data.isActive,
+        variants: {
+          create: data.variants?.map((v: any) => ({
+            name: v.name,
+            value: v.value,
+            stock: v.stock,
+            price: v.price,
+            sku: v.sku,
+          })) || [],
+        },
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
         brand: { select: { id: true, name: true, slug: true } },
+        variants: true,
       },
     });
 
@@ -180,7 +238,6 @@ export async function POST(req: Request) {
         salePrice: product.salePrice ? Number(product.salePrice) : null,
         videoUrls: [],
         specs: (product.specs as Record<string, string>) || {},
-        variants: [],
         reviews: [],
         rating: 0,
         reviewCount: 0,

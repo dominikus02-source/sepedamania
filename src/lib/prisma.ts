@@ -11,8 +11,13 @@ function createPrismaClient() {
     process.env.POSTGRES_URL_NON_POOLING ||
     process.env.DATABASE_URL ||
     'postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public';
-  const adapter = new PrismaPg({ connectionString: url });
-  return new PrismaClient({ adapter });
+
+  const adapter = new PrismaPg(url);
+
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { trackShipment } from '@/lib/shipping';
 import { checkRateLimit } from '@/lib/rate-limit';
 

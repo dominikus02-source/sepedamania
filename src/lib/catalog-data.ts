@@ -47,6 +47,8 @@ export interface CatalogProduct {
   videoUrls?: string[];
   isActive: boolean;
   specs: Record<string, string>;
+  featured: boolean;
+  flashSale: boolean;
   category: { id: string; name: string; slug: string };
   brand: { id: string; name: string; slug: string };
   variants: { id: string; name: string; value: string; stock: number; price: number | null; sku: string; productId?: string }[];
@@ -328,7 +330,9 @@ export async function getAllProductsFromApi(): Promise<CatalogProduct[]> {
     if (!res.ok) return readStore().products;
     const json = await res.json();
     if (json.products?.length) return json.products as CatalogProduct[];
-  } catch {}
+  } catch {
+    // fallback to local store
+  }
   return readStore().products;
 }
 
@@ -416,6 +420,8 @@ export function addProduct(input: {
     images: input.images || [],
     videoUrls: input.videoUrls?.slice(0, 2) || [],
     isActive: true,
+    featured: false,
+    flashSale: false,
     specs: {},
     category: { id: cat.id, name: cat.name, slug: cat.slug },
     brand: { id: brd.id, name: brd.name, slug: brd.slug },

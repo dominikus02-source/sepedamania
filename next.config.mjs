@@ -63,7 +63,10 @@ const nextConfig = {
       '@radix-ui/react-icons',
     ],
   },
-  turbopack: {},
+  serverExternalPackages: ['@prisma/adapter-pg'],
+  turbopack: {
+    root: new URL('.', import.meta.url).pathname,
+  },
 };
 
 export default withSentryConfig(nextConfig, {

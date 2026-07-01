@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { validateOrigin } from '@/lib/csrf';

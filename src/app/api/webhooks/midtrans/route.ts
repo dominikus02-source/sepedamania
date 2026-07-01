@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { getMockOrder, updateMockOrderPayment } from '@/lib/mock-orders';
 import { verifySignatureKey, mapMidtransStatus } from '@/lib/midtrans';
 
