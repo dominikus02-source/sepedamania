@@ -7,27 +7,19 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function getDatabaseUrl(): string {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_PRISMA_URL ||
-    process.env.POSTGRES_URL_NON_POOLING ||
-    'postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public'
-  );
-}
-
-function cleanDatabaseUrl(url: string): string {
-  const cleaned = url.replace(/[?&]sslmode=[^&]+/g, '');
-  return cleaned.replace(/^(.+?:\/\/[^?]+)&/, '$1?');
+  let url = process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL;
+  if (!url) {
+    return 'postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public';
+  }
+  url = url.replace(/[?&]sslmode=[^&]+/g, '');
+  url = url.replace(/\/[^?]+/, (m) => m.replace(/[&]/, '?'));
+  return url;
 }
 
 function createPrismaClient() {
-  const rawUrl = getDatabaseUrl();
-
   const pool = new Pool({
-    connectionString: cleanDatabaseUrl(rawUrl),
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    connectionString: getDatabaseUrl(),
+    ssl: { rejectUnauthorized: false },
   });
 
   const adapter = new PrismaPg(pool);
