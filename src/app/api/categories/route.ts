@@ -1,21 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
-import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
-import { slugify } from '@/lib/utils';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const featured = searchParams.get('featured');
-    const where: any = { isActive: true };
-    if (featured === 'true') {
-      where.featured = true;
-    }
-
     const categories = await prisma.category.findMany({
-      where,
       orderBy: { name: 'asc' },
     });
 

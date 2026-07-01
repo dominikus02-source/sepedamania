@@ -93,13 +93,7 @@ export async function getPublicProducts(params: {
     where.brandId = brandId;
   }
 
-  if (featured) {
-    where.featured = true;
-  }
-
-  if (flashSale) {
-    where.flashSale = true;
-  }
+  // featured and flashSale filters excluded — fields not in Prisma schema
 
   if (q) {
     where.OR = [
@@ -439,8 +433,8 @@ function mapPrismaProductToCatalog(product: any): CatalogProduct {
     videoUrls: [],
     isActive: product.isActive,
     specs: (product.specs as Record<string, string>) || {},
-    featured: product.featured || false,
-    flashSale: product.flashSale || false,
+    featured: false,
+    flashSale: false,
     category: product.category,
     brand: product.brand,
     variants: product.variants.map((v: any) => ({
