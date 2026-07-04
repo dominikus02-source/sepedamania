@@ -55,7 +55,7 @@ export default auth((req) => {
       '/api/auth/register': { max: 3, window: 60000 },
       '/api/checkout/create-payment': { max: 10, window: 60000 },
       '/api/vouchers/validate': { max: 20, window: 60000 },
-      '/api/webhooks/xendit': { max: 30, window: 60000 },
+      '/api/webhooks/midtrans': { max: 30, window: 60000 },
     };
 
     const matchedKey = Object.keys(limits).find((k) => pathname.startsWith(k));

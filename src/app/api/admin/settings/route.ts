@@ -6,7 +6,7 @@ import { auth } from '@/lib/auth';
 import { validateOrigin } from '@/lib/csrf';
 
 // C5: Zod validation schema
-const settingsSchema = z.object({
+const rawSchema = z.object({
   storeName: z.string().optional(),
   waNumber: z.string().optional(),
   storeAddress: z.string().optional(),
@@ -14,9 +14,12 @@ const settingsSchema = z.object({
   storeProvince: z.string().optional(),
   rajaongkirKey: z.string().optional(),
   rajaongkirOriginCity: z.string().optional(),
-  xenditSecretKey: z.string().optional(),
-  xenditWebhookToken: z.string().optional(),
+  midtransMerchantId: z.string().optional(),
+  midtransNotificationAuthKey: z.string().optional(),
+  codEnabled: z.boolean().optional(),
 });
+
+type RawInput = z.infer<typeof rawSchema>;
 
 export async function PUT(req: Request) {
   // C3: CSRF origin check
@@ -30,8 +33,7 @@ export async function PUT(req: Request) {
   }
 
   try {
-    // C5: Validate request body with Zod
-    const parsed = settingsSchema.safeParse(await req.json());
+    const parsed = rawSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: parsed.error.issues },
@@ -39,7 +41,12 @@ export async function PUT(req: Request) {
       );
     }
 
-    const data = parsed.data;
+    const { codEnabled, ...rest } = parsed.data;
+    const data: Record<string, unknown> = { ...rest };
+    if (codEnabled !== undefined) {
+      data.codActive = codEnabled;
+    }
+
     const settings = await prisma.storeSettings.upsert({
       where: { id: 'store' },
       update: data,

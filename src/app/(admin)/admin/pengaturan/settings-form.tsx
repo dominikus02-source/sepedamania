@@ -20,8 +20,8 @@ interface StoreSettings {
   email: string;
   rajaongkirKey: string;
   rajaongkirOriginCity: string;
-  xenditSecretKey: string;
-  xenditWebhookToken: string;
+  midtransMerchantId: string;
+  midtransNotificationAuthKey: string;
   codEnabled: boolean;
   maintenanceMode: boolean;
   updatedAt: string;
@@ -33,8 +33,6 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
   const [loading, setLoading] = useState(false);
   const [apiKeysOpen, setApiKeysOpen] = useState(false);
   const [showRajaongkir, setShowRajaongkir] = useState(false);
-  const [showXenditKey, setShowXenditKey] = useState(false);
-  const [showXenditWebhook, setShowXenditWebhook] = useState(false);
   const [codEnabled, setCodEnabled] = useState(settings.codEnabled);
   const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenanceMode);
 
@@ -166,28 +164,21 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Midtrans Server Key</Label>
-                  <div className="relative">
-                    <Input
-                      type="password"
-                      value={form.xenditSecretKey || ''}
-                      onChange={update('xenditSecretKey')}
-                      placeholder="Set via env MIDTRANS_SERVER_KEY"
-                    />
-                  </div>
-                  <p className="text-[10px] text-[#8E8E93]">Digunakan dari environment variable MIDTRANS_SERVER_KEY</p>
+                  <Label>Midtrans Merchant ID</Label>
+                  <Input
+                    value={form.midtransMerchantId || ''}
+                    onChange={update('midtransMerchantId')}
+                    placeholder="G123456789"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Midtrans Client Key</Label>
-                  <div className="relative">
-                    <Input
-                      type="password"
-                      value={form.xenditWebhookToken || ''}
-                      onChange={update('xenditWebhookToken')}
-                      placeholder="Set via env MIDTRANS_CLIENT_KEY"
-                    />
-                  </div>
-                  <p className="text-[10px] text-[#8E8E93]">Digunakan dari environment variable MIDTRANS_CLIENT_KEY</p>
+                  <Label>Notification Auth Key</Label>
+                  <Input
+                    value={form.midtransNotificationAuthKey || ''}
+                    onChange={update('midtransNotificationAuthKey')}
+                    placeholder="Kustom untuk verifikasi webhook"
+                  />
+                  <p className="text-[10px] text-[#8E8E93]">Cocokkan dengan yang diatur di dashboard Midtrans</p>
                 </div>
               </div>
             </div>

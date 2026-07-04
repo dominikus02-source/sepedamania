@@ -3,28 +3,44 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { OrderStatusBadge } from '@/components/customer/order-status-badge';
-import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, MessageCircle, Package, Truck, CheckCircle, AlertCircle, Clock, RotateCcw, ExternalLink } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
 import { useCartStore } from '@/store/cart';
-import { getProductById } from '@/lib/catalog-data';
 
 const STATUS_STEPS = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'] as const;
 
 export function OrderDetailClient({ orderId }: { orderId: string }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const status = searchParams.get('status');
   const { toast } = useToast();
+
+  interface OrderItem {
+    id: string;
+    productId?: string;
+    variantId?: string;
+    name: string;
+    productSlug?: string;
+    price: number;
+    qty: number;
+    subtotal?: number;
+    image?: string;
+    selectedVariantName?: string | null;
+  }
+
   interface OrderData {
     id: string;
+    orderNumber: string;
     status: string;
     paymentStatus: string;
     paymentMethod?: string;
+    paymentProvider?: string;
     subtotal: number;
     shippingCost: number;
     discount: number;
@@ -33,34 +49,55 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
     courierService?: string;
     trackingNumber?: string;
     shippingAddress?: Record<string, string>;
-    items: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }[];
+    snapToken?: string;
+    redirectUrl?: string;
+    items: OrderItem[];
     createdAt: string;
+    paidAt?: string | null;
+    cancelledAt?: string | null;
     [key: string]: unknown;
   }
 
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+
+  const fetchOrder = async () => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+      if (!res.ok) throw new Error('Not found');
+      const data = await res.json();
+      setOrder(data);
+    } catch {
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrder = () =>
-      fetch(`/api/orders/${orderId}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.error) throw new Error(data.error);
-          setOrder(data);
-        })
-        .catch(() => setOrder(null))
-        .finally(() => setLoading(false));
-
     fetchOrder();
-
-    // Auto-refresh every 10 detik jika masih PENDING_PAYMENT
-    const interval = setInterval(() => {
-      fetchOrder();
-    }, 10000);
-
+    const interval = setInterval(fetchOrder, 10000);
     return () => clearInterval(interval);
   }, [orderId]);
+
+  const handlePay = async () => {
+    if (!order) return;
+    setPaying(true);
+
+    if (order.redirectUrl) {
+      window.location.href = order.redirectUrl;
+      return;
+    }
+
+    if (order.snapToken) {
+      window.open(`https://app.sandbox.midtrans.com/snap/v2/vtweb/${order.snapToken}`, '_blank');
+      return;
+    }
+
+    toast('Link pembayaran tidak tersedia', 'error');
+    setPaying(false);
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -88,7 +125,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
     );
   }
 
-  const currentStepIndex = STATUS_STEPS.indexOf(order.status as 'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED');
+  const currentStepIndex = STATUS_STEPS.indexOf(order.status as (typeof STATUS_STEPS)[number]);
 
   return (
     <div className="pb-8">
@@ -110,10 +147,9 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
       <div className="p-4">
         <Link href="/pesanan" className="inline-flex items-center gap-1 text-sm text-[#8E8E93] mb-4"><ArrowLeft className="w-4 h-4" />Kembali</Link>
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-[#1C1C1E]">Pesanan #{order.id.slice(0, 8)}</h1>
+          <h1 className="text-xl font-bold text-[#1C1C1E]">Pesanan #{order.orderNumber}</h1>
           <OrderStatusBadge status={order.status} />
         </div>
-        <p className="text-xs text-[#8E8E93] font-mono">ID: {order.id}</p>
         <p className="text-xs text-[#8E8E93] mt-1">{formatDate(order.createdAt)}</p>
 
         {order.status === 'PENDING_PAYMENT' && (
@@ -121,6 +157,15 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             <div className="flex items-center gap-2 mb-2"><Clock className="w-5 h-5 text-[#F5A623]" /><span className="font-semibold text-sm">Menunggu Pembayaran</span></div>
             <p className="text-xs text-[#8E8E93]">Silakan selesaikan pembayaran sebelum batas waktu habis.</p>
             {order.paymentMethod && <p className="text-xs text-[#8E8E93] mt-2">Metode: {order.paymentMethod}</p>}
+            <Button
+              variant="accent"
+              className="w-full mt-3"
+              onClick={handlePay}
+              disabled={paying}
+            >
+              {paying ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <ExternalLink className="w-4 h-4 mr-1" />}
+              Bayar Sekarang
+            </Button>
           </div>
         )}
 
@@ -128,7 +173,6 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
           <div className="mt-4 p-4 bg-[#34C759]/10 rounded-xl border border-[#34C759]/20">
             <div className="flex items-center gap-2 mb-2"><Truck className="w-5 h-5 text-[#34C759]" /><span className="font-semibold text-sm">Dalam Pengiriman</span></div>
             <p className="text-xs text-[#8E8E93]">Resi: <span className="font-mono font-medium">{order.trackingNumber}</span></p>
-            <Button variant="outline" size="sm" className="mt-2">Lacak Paket</Button>
           </div>
         )}
 
@@ -161,13 +205,14 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-[#1C1C1E] mb-3">Produk Dipesan</h3>
           <div className="space-y-3">
-            {order.items.map((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }, i: number) => (
+            {order.items.map((item, i) => (
               <div key={i} className="flex gap-3">
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-[#F2F2F7] flex-shrink-0">
                   <Image src={item.image || '/images/placeholder.svg'} alt={item.name} fill className="object-cover" sizes="64px" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-[#1C1C1E]">{item.name}</p>
+                  {item.selectedVariantName && <p className="text-xs text-[#8E8E93]">{item.selectedVariantName}</p>}
                   <p className="text-xs text-[#8E8E93]">{item.qty}x {formatPrice(item.price)}</p>
                   <p className="text-sm font-semibold mt-1">{formatPrice(item.price * item.qty)}</p>
                 </div>
@@ -203,8 +248,8 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
         </div>
 
         <div className="mt-6 flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={() => copyToClipboard(order.id)}><Copy className="w-4 h-4 mr-1" /> Salin ID</Button>
-          <a href={`https://wa.me/6281318986320?text=Halo,%20saya%20ingin%20bertanya%20tentang%20pesanan%20#${order.id.slice(0, 8)}`} target="_blank" className="flex-1">
+          <Button variant="outline" className="flex-1" onClick={() => copyToClipboard(order.orderNumber)}><Copy className="w-4 h-4 mr-1" /> Salin No. Pesanan</Button>
+          <a href={`https://wa.me/6281318986320?text=Halo,%20saya%20ingin%20bertanya%20tentang%20pesanan%20${order.orderNumber}`} target="_blank" className="flex-1">
             <Button variant="accent" className="w-full"><MessageCircle className="w-4 h-4 mr-1" /> Hubungi CS</Button>
           </a>
         </div>
@@ -218,33 +263,6 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             </Link>
           </div>
         )}
-
-        <div className="mt-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              const addItem = useCartStore.getState().addItem;
-              order.items.forEach((item: { productId: string; variantId?: string; name: string; price: number; qty: number; image?: string }) => {
-                const product = getProductById(item.productId);
-                addItem({
-                  productId: item.productId,
-                  variantId: item.variantId,
-                  name: item.name,
-                  slug: product?.slug || item.productId,
-                  image: item.image || '/images/placeholder.svg',
-                  price: item.price,
-                  qty: item.qty,
-                  maxStock: 999,
-                  weight: product?.weight || 0,
-                });
-              });
-              toast('Produk ditambahkan ke keranjang!', 'success');
-            }}
-          >
-            Beli Lagi
-          </Button>
-        </div>
       </div>
     </div>
   );

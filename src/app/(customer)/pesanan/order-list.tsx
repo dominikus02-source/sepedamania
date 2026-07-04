@@ -10,10 +10,11 @@ import { Package, ChevronRight, Clock, Truck, CheckCircle } from 'lucide-react';
 
 interface OrderListItem {
   id: string;
+  orderNumber: string;
   status: string;
   total: number;
   createdAt: string;
-  items: { id: string; name: string; price: number; qty: number; image?: string }[];
+  items: { id: string; name: string; price: number; qty: number; image?: string; productSlug?: string }[];
   [key: string]: unknown;
 }
 
@@ -50,7 +51,7 @@ export function OrderList({ orders }: { orders: OrderListItem[] }) {
           return (
             <Link
               key={order.id}
-              href={`/pesanan/${order.id}`}
+              href={`/pesanan/${order.orderNumber || order.id}`}
               className="block bg-white rounded-xl border border-[#E5E7EB] card-hover overflow-hidden"
             >
               {/* Header */}

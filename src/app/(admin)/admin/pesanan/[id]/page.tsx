@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { AdminStore } from '@/lib/admin-store';
-import type { AdminOrder } from '@/lib/admin-store';
 import { formatPrice, formatDate, formatDateShort } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,40 +32,96 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+  subtotal: number;
+  image: string;
+  productSlug?: string;
+  selectedVariantName?: string | null;
+  selectedAttributes?: Record<string, string> | null;
+}
+
+interface Order {
+  id: string;
+  orderNumber: string;
+  guestName: string | null;
+  guestEmail: string | null;
+  guestPhone: string | null;
+  status: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  paymentProvider: string;
+  subtotal: number;
+  shippingCost: number;
+  discount: number;
+  total: number;
+  courier: string | null;
+  courierService: string | null;
+  trackingNumber: string | null;
+  shippingAddress: Record<string, string> | null;
+  snapToken: string | null;
+  redirectUrl: string | null;
+  voucherCode: string | null;
+  notes: string | null;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+  paidAt: string | null;
+  cancelledAt: string | null;
+  completedAt: string | null;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING_PAYMENT: 'Menunggu Pembayaran',
+  PAID: 'Dibayar',
   PROCESSING: 'Diproses',
   SHIPPED: 'Dikirim',
   DELIVERED: 'Selesai',
+  COMPLETED: 'Selesai',
   CANCELLED: 'Dibatalkan',
+  RETURN_REQUESTED: 'Retur',
+  RETURNED: 'Dikembalikan',
+  REFUNDED: 'Refund',
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
   PAID: 'Lunas',
   UNPAID: 'Belum Dibayar',
+  EXPIRED: 'Kadaluarsa',
   FAILED: 'Gagal',
+  CANCELLED: 'Dibatalkan',
+  REFUNDED: 'Refund',
 };
 
 const PAYMENT_BADGE_VARIANTS: Record<string, string> = {
   PAID: 'success',
   UNPAID: 'warning',
+  EXPIRED: 'destructive',
   FAILED: 'destructive',
+  CANCELLED: 'destructive',
+  REFUNDED: 'destructive',
 };
 
 const ORDER_BADGE_VARIANTS: Record<string, string> = {
   DELIVERED: 'success',
+  COMPLETED: 'success',
   CANCELLED: 'destructive',
+  REFUNDED: 'destructive',
+  RETURNED: 'destructive',
   SHIPPED: 'primary',
+  PAID: 'info',
   PROCESSING: 'info',
   PENDING_PAYMENT: 'warning',
 };
 
-const STEP_ORDER = ['PENDING_PAYMENT', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+const STEP_ORDER = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 
 const STEP_LABELS: Record<string, string> = {
   PENDING_PAYMENT: 'Pesanan Dibuat',
+  PAID: 'Dibayar',
   PROCESSING: 'Diproses',
   SHIPPED: 'Dikirim',
   DELIVERED: 'Selesai',
@@ -81,15 +135,15 @@ const COURIER_OPTIONS = [
   { value: 'Pos Indonesia', label: 'Pos Indonesia' },
 ];
 
-// ─── Stepper Component ──────────────────────────────────────────────────────
-
 function StatusStepper({ status }: { status: string }) {
-  if (status === 'CANCELLED') {
+  if (['CANCELLED', 'REFUNDED', 'RETURNED'].includes(status)) {
     return (
       <div className="flex items-center justify-center gap-4 py-4">
         <div className="flex items-center gap-2">
           <XCircle className="w-6 h-6 text-[#FF3B30]" />
-          <span className="text-sm font-semibold text-[#FF3B30]">Pesanan Dibatalkan</span>
+          <span className="text-sm font-semibold text-[#FF3B30]">
+            {status === 'CANCELLED' ? 'Pesanan Dibatalkan' : status === 'REFUNDED' ? 'Dana Dikembalikan' : 'Pesanan Dikembalikan'}
+          </span>
         </div>
       </div>
     );
@@ -150,8 +204,6 @@ function StatusStepper({ status }: { status: string }) {
   );
 }
 
-// ─── Main Detail Page ───────────────────────────────────────────────────────
-
 export default function AdminOrderDetailPage() {
   const params = useParams();
   const { toast } = useToast();
@@ -160,25 +212,100 @@ export default function AdminOrderDetailPage() {
   const [ready, setReady] = useState(false);
   const [notFoundState, setNotFoundState] = useState(false);
 
-  const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [notes, setNotes] = useState('');
   const [selectedCourier, setSelectedCourier] = useState('JNE');
   const [trackingNo, setTrackingNo] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [acting, setActing] = useState(false);
 
+  const fetchOrder = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/orders/${id}`);
+      if (!res.ok) {
+        if (res.status === 404) setNotFoundState(true);
+        return;
+      }
+      const data = await res.json();
+      setOrder(data);
+      setNotes(data.notes || '');
+      setSelectedCourier(data.courier || 'JNE');
+      setTrackingNo(data.trackingNumber || '');
+      setReady(true);
+    } catch {
+      toast('Gagal memuat pesanan', 'error');
+    }
+  }, [id, toast]);
+
   useEffect(() => {
-    const found = AdminStore.getOrder(id);
-    if (!found) {
-      setNotFoundState(true);
+    fetchOrder();
+  }, [fetchOrder]);
+
+  const persistAndUpdate = useCallback(async (updates: Record<string, unknown>, successMsg: string) => {
+    setActing(true);
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast(err.error || 'Gagal menyimpan', 'error');
+        return;
+      }
+      const updated = await res.json();
+      setOrder(updated);
+      toast(successMsg, 'success');
+    } catch {
+      toast('Gagal menyimpan', 'error');
+    } finally {
+      setActing(false);
+    }
+  }, [id, toast]);
+
+  const handleConfirmPayment = () => {
+    persistAndUpdate(
+      { paymentStatus: 'PAID', status: 'PROCESSING' },
+      'Pembayaran berhasil dikonfirmasi'
+    );
+  };
+
+  const handleSaveResi = () => {
+    if (!trackingNo.trim()) {
+      toast('Harap masukkan nomor resi', 'error');
       return;
     }
-    setOrder(found);
-    setNotes(found.notes || '');
-    setSelectedCourier(found.courier || 'JNE');
-    setTrackingNo(found.trackingNumber || '');
-    setReady(true);
-  }, [id]);
+    persistAndUpdate(
+      { courier: selectedCourier, trackingNumber: trackingNo.trim(), status: 'SHIPPED' },
+      'Resi berhasil disimpan & status berubah ke Dikirim'
+    );
+  };
+
+  const handleMarkDelivered = () => {
+    persistAndUpdate({ status: 'DELIVERED' }, 'Pesanan ditandai selesai');
+  };
+
+  const handleSaveNotes = async () => {
+    setSavingNotes(true);
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast(err.error || 'Gagal menyimpan catatan', 'error');
+        return;
+      }
+      toast('Catatan berhasil disimpan', 'success');
+    } catch {
+      toast('Gagal menyimpan catatan', 'error');
+    } finally {
+      setSavingNotes(false);
+    }
+  };
 
   if (notFoundState) {
     notFound();
@@ -194,60 +321,10 @@ export default function AdminOrderDetailPage() {
     );
   }
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  const persistAndUpdate = (updates: Partial<AdminOrder>, successMsg: string) => {
-    AdminStore.updateOrder(id, updates);
-    setOrder((prev) => (prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev));
-    toast(successMsg, 'success');
-    setActing(false);
-  };
-
-  const handleConfirmPayment = () => {
-    setActing(true);
-    setTimeout(() => {
-      persistAndUpdate(
-        { paymentStatus: 'PAID', status: 'PROCESSING' },
-        'Pembayaran berhasil dikonfirmasi'
-      );
-    }, 600);
-  };
-
-  const handleSaveResi = () => {
-    if (!trackingNo.trim()) {
-      toast('Harap masukkan nomor resi', 'error');
-      return;
-    }
-    setActing(true);
-    setTimeout(() => {
-      persistAndUpdate(
-        { courier: selectedCourier, trackingNumber: trackingNo.trim(), status: 'SHIPPED' },
-        'Resi berhasil disimpan & status berubah ke Dikirim'
-      );
-    }, 600);
-  };
-
-  const handleMarkDelivered = () => {
-    setActing(true);
-    setTimeout(() => {
-      persistAndUpdate({ status: 'DELIVERED' }, 'Pesanan ditandai selesai');
-    }, 600);
-  };
-
-  const handleSaveNotes = () => {
-    setSavingNotes(true);
-    setTimeout(() => {
-      AdminStore.updateOrder(id, { notes });
-      setSavingNotes(false);
-      toast('Catatan berhasil disimpan', 'success');
-    }, 400);
-  };
-
-  // ── Derived Values ─────────────────────────────────────────────────────────
-
-  const isCancelled = order.status === 'CANCELLED';
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const isCancelled = ['CANCELLED', 'REFUNDED', 'RETURNED'].includes(order.status);
+  const shippingAddr = order.shippingAddress || {};
+  const customerName = order.guestName || 'Pelanggan';
+  const customerPhone = order.guestPhone || '';
 
   return (
     <div className="max-w-4xl">
@@ -261,7 +338,7 @@ export default function AdminOrderDetailPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-[#1C1C1E] flex items-center gap-3">
-              <span className="font-mono">#{order.id}</span>
+              <span className="font-mono">#{order.orderNumber}</span>
               <div className="flex items-center gap-2">
                 <Badge variant={(ORDER_BADGE_VARIANTS[order.status] as 'success' | 'destructive' | 'primary' | 'info' | 'warning') || 'default'}>
                   {STATUS_LABELS[order.status] || order.status}
@@ -273,6 +350,9 @@ export default function AdminOrderDetailPage() {
             </h1>
             <p className="text-sm text-[#8E8E93] mt-1">
               {formatDate(order.createdAt)} &middot; {formatDateShort(order.createdAt)}
+              {order.id !== order.orderNumber && (
+                <span className="ml-2 font-mono text-xs">ID: {order.id.slice(0, 8)}...</span>
+              )}
             </p>
           </div>
         </div>
@@ -298,24 +378,37 @@ export default function AdminOrderDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-[#8E8E93] shrink-0" />
-              <span className="text-sm font-medium text-[#1C1C1E]">{order.user.name}</span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{customerName}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-[#8E8E93] shrink-0" />
-              <span className="text-sm text-[#8E8E93]">{order.user.email}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-[#8E8E93] shrink-0" />
-              <span className="text-sm text-[#8E8E93]">{order.user.phone}</span>
-            </div>
+            {order.guestEmail && (
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-[#8E8E93] shrink-0" />
+                <span className="text-sm text-[#8E8E93]">{order.guestEmail}</span>
+              </div>
+            )}
+            {customerPhone && (
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-[#8E8E93] shrink-0" />
+                <span className="text-sm text-[#8E8E93]">{customerPhone}</span>
+              </div>
+            )}
+            {!order.guestEmail && !customerPhone && (
+              <p className="text-sm text-[#8E8E93] italic">Data pelanggan tidak tersedia</p>
+            )}
             <Separator />
             <div className="flex items-start gap-2">
               <MapPin className="w-4 h-4 text-[#8E8E93] shrink-0 mt-0.5" />
               <div className="text-sm text-[#1C1C1E]">
-                <p className="font-medium">{order.shippingAddress.recipient}</p>
-                <p className="text-[#8E8E93]">{order.shippingAddress.detail}</p>
-                <p className="text-[#8E8E93]">{order.shippingAddress.district}, {order.shippingAddress.city}</p>
-                <p className="text-[#8E8E93]">{order.shippingAddress.province} {order.shippingAddress.postalCode}</p>
+                {shippingAddr.recipient ? (
+                  <>
+                    <p className="font-medium">{shippingAddr.recipient}</p>
+                    <p className="text-[#8E8E93]">{shippingAddr.detail}</p>
+                    <p className="text-[#8E8E93]">{shippingAddr.district}, {shippingAddr.city}</p>
+                    <p className="text-[#8E8E93]">{shippingAddr.province} {shippingAddr.postalCode}</p>
+                  </>
+                ) : (
+                  <p className="text-[#8E8E93] italic">Alamat tidak tersedia</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -332,20 +425,22 @@ export default function AdminOrderDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#8E8E93]">Kurir</span>
-              <span className="text-sm font-medium text-[#1C1C1E]">{order.courier}</span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{order.courier || '-'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#8E8E93]">Layanan</span>
-              <span className="text-sm font-medium text-[#1C1C1E]">{order.courierService}</span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{order.courierService || '-'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[#8E8E93]">Penerima</span>
-              <span className="text-sm font-medium text-[#1C1C1E]">{order.shippingAddress.recipient}</span>
+              <span className="text-sm font-medium text-[#1C1C1E]">{shippingAddr.recipient || '-'}</span>
             </div>
             <div className="flex items-start justify-between">
               <span className="text-sm text-[#8E8E93] shrink-0">Alamat</span>
               <span className="text-sm text-[#1C1C1E] text-right max-w-[200px]">
-                {order.shippingAddress.detail}, {order.shippingAddress.district}, {order.shippingAddress.city}, {order.shippingAddress.province} {order.shippingAddress.postalCode}
+                {shippingAddr.recipient
+                  ? `${shippingAddr.detail}, ${shippingAddr.district}, ${shippingAddr.city}, ${shippingAddr.province} ${shippingAddr.postalCode}`
+                  : '-'}
               </span>
             </div>
             {order.trackingNumber && (
@@ -383,10 +478,15 @@ export default function AdminOrderDetailPage() {
               <tbody>
                 {order.items.map((item) => (
                   <tr key={item.id} className="border-b border-[#E5E5EA] last:border-0">
-                    <td className="py-3 pr-4 text-[#1C1C1E] font-medium">{item.name}</td>
+                    <td className="py-3 pr-4">
+                      <span className="text-[#1C1C1E] font-medium">{item.name}</span>
+                      {item.selectedVariantName && (
+                        <span className="text-[#8E8E93] text-xs ml-1">({item.selectedVariantName})</span>
+                      )}
+                    </td>
                     <td className="py-3 text-center text-[#8E8E93]">{item.qty}</td>
                     <td className="py-3 text-right text-[#8E8E93]">{formatPrice(item.price)}</td>
-                    <td className="py-3 text-right font-semibold text-[#1C1C1E] whitespace-nowrap">{formatPrice(item.price * item.qty)}</td>
+                    <td className="py-3 text-right font-semibold text-[#1C1C1E] whitespace-nowrap">{formatPrice(item.subtotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -418,6 +518,12 @@ export default function AdminOrderDetailPage() {
               <span className="text-[#34C759]">-{formatPrice(order.discount)}</span>
             </div>
           )}
+          {order.voucherCode && (
+            <div className="flex justify-between text-sm">
+              <span className="text-[#8E8E93]">Kode Voucher</span>
+              <span className="text-xs font-mono text-[#8E8E93]">{order.voucherCode}</span>
+            </div>
+          )}
           <Separator />
           <div className="flex justify-between font-bold text-base">
             <span className="text-[#1C1C1E]">Total</span>
@@ -425,8 +531,14 @@ export default function AdminOrderDetailPage() {
           </div>
           <div className="flex justify-between text-sm pt-1">
             <span className="text-[#8E8E93]">Metode Pembayaran</span>
-            <span className="text-[#1C1C1E] font-medium">{order.paymentMethod}</span>
+            <span className="text-[#1C1C1E] font-medium">{order.paymentMethod || order.paymentProvider || '-'}</span>
           </div>
+          {order.paidAt && (
+            <div className="flex justify-between text-sm">
+              <span className="text-[#34C759]">Dibayar pada</span>
+              <span className="text-sm text-[#34C759]">{formatDate(order.paidAt)}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -437,22 +549,24 @@ export default function AdminOrderDetailPage() {
             <ClipboardCheck className="w-4 h-4 text-[#8E8E93]" />
             Aksi Admin
           </CardTitle>
-          <a
-            href={`https://wa.me/${order.user.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(order.user.name)}%2C%20saya%20dari%20SEPEDAMANIA.%20Ada%20yang%20ingin%20saya%20sampaikan%20terkait%20pesanan%20%23${order.id}.`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#25D366] hover:text-[#1DA851] transition-colors"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Hubungi via WhatsApp
-          </a>
+          {customerPhone && (
+            <a
+              href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(customerName)}%2C%20saya%20dari%20SEPEDAMANIA.%20Ada%20yang%20ingin%20saya%20sampaikan%20terkait%20pesanan%20%23${order.orderNumber}.`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#25D366] hover:text-[#1DA851] transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              Hubungi via WhatsApp
+            </a>
+          )}
         </CardHeader>
         <CardContent>
           {isCancelled && (
             <div className="flex items-start gap-3 p-4 bg-[#FF3B30]/5 rounded-xl border border-[#FF3B30]/10">
               <XCircle className="w-5 h-5 text-[#FF3B30] shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-[#FF3B30]">Pesanan Dibatalkan</p>
+                <p className="text-sm font-semibold text-[#FF3B30]">Pesanan {STATUS_LABELS[order.status]?.toLowerCase()}</p>
                 {order.notes && <p className="text-sm text-[#8E8E93] mt-1">Catatan: {order.notes}</p>}
               </div>
             </div>
@@ -478,10 +592,10 @@ export default function AdminOrderDetailPage() {
             </div>
           )}
 
-          {order.status === 'PENDING_PAYMENT' && order.paymentStatus === 'FAILED' && (
+          {order.status === 'PENDING_PAYMENT' && ['FAILED', 'EXPIRED'].includes(order.paymentStatus) && (
             <div className="flex items-center gap-2 text-sm text-[#FF3B30]">
               <XCircle className="w-4 h-4" />
-              Pembayaran gagal. Menunggu tindakan pelanggan.
+              {order.paymentStatus === 'EXPIRED' ? 'Pembayaran kadaluarsa.' : 'Pembayaran gagal.'}
             </div>
           )}
 
@@ -529,7 +643,7 @@ export default function AdminOrderDetailPage() {
             </div>
           )}
 
-          {order.status === 'DELIVERED' && (
+          {['DELIVERED', 'COMPLETED'].includes(order.status) && (
             <div className="flex items-center gap-2 text-sm text-[#34C759]">
               <CheckCircle className="w-4 h-4" />
               Pesanan sudah selesai. Tidak ada tindakan yang diperlukan.

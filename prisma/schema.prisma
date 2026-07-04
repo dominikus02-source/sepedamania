@@ -17,7 +17,10 @@ enum OrderStatus {
   PROCESSING
   SHIPPED
   DELIVERED
+  COMPLETED
   CANCELLED
+  RETURN_REQUESTED
+  RETURNED
   REFUNDED
 }
 
@@ -26,6 +29,8 @@ enum PaymentStatus {
   PAID
   EXPIRED
   FAILED
+  CANCELLED
+  REFUNDED
 }
 
 enum VoucherType {
@@ -208,35 +213,58 @@ model ProductVariant {
 }
 
 model Order {
-  id               String      @id @default(cuid())
+  id               String         @id @default(cuid())
+  orderNumber      String         @unique
   userId           String?
-  user             User?       @relation(fields: [userId], references: [id])
+  user             User?          @relation(fields: [userId], references: [id])
   guestEmail       String?
   guestName        String?
   guestPhone       String?
   items            OrderItem[]
-  status           OrderStatus @default(PENDING_PAYMENT)
+  paymentLogs      PaymentLog[]
+  returnRequests   ReturnRequest[]
+  status           OrderStatus    @default(PENDING_PAYMENT)
   subtotal         Decimal
-  shippingCost     Decimal     @default(0)
-  discount         Decimal     @default(0)
+  shippingCost     Decimal        @default(0)
+  discount         Decimal        @default(0)
   total            Decimal
   shippingAddress  Json
   courier          String
   courierService   String
   trackingNumber   String?
   paymentMethod    String
-  paymentStatus    PaymentStatus @default(UNPAID)
-  xenditInvoiceId  String?
-  xenditPaymentUrl String?
+  paymentStatus    PaymentStatus  @default(UNPAID)
+  paymentProvider  String         @default("MIDTRANS")
+  midtransOrderId  String?        @unique
+  snapToken        String?
+  redirectUrl      String?
   voucherCode      String?
   notes            String?
-  returnRequests   ReturnRequest[]
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  paidAt           DateTime?
+  cancelledAt      DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([userId])
+  @@index([orderNumber])
   @@index([status])
   @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model PaymentLog {
+  id                 String   @id @default(cuid())
+  orderId            String
+  order              Order    @relation(fields: [orderId], references: [id])
+  provider           String   @default("MIDTRANS")
+  eventType          String
+  transactionStatus  String?
+  fraudStatus        String?
+  rawPayload         Json
+  createdAt          DateTime @default(now())
+
+  @@index([orderId])
   @@index([createdAt])
 }
 
@@ -272,16 +300,20 @@ model ReturnRequest {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  variantId String?
-  name      String
-  price     Decimal
-  qty       Int
-  image     String
+  id                   String  @id @default(cuid())
+  orderId              String
+  order                Order   @relation(fields: [orderId], references: [id])
+  productId            String
+  product              Product @relation(fields: [productId], references: [id])
+  variantId            String?
+  name                 String
+  productSlug          String?
+  price                Decimal
+  qty                  Int
+  subtotal             Decimal
+  image                String
+  selectedVariantName  String?
+  selectedAttributes   Json?
 
   @@index([orderId])
   @@index([productId])
@@ -343,9 +375,8 @@ model StoreSettings {
   maintenanceMode Boolean @default(false)
   rajaongkirKey   String?
   rajaongkirOriginCity String?
-  xenditSecretKey String?
-  xenditWebhookToken String?
-  xenditIsLive    Boolean @default(false)
+  midtransMerchantId String?
+  midtransNotificationAuthKey String?
   codActive       Boolean @default(false)
   codAreas        Json    @default("[]")
   createdAt       DateTime @default(now())
