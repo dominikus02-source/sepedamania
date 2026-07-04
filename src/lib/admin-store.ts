@@ -112,13 +112,29 @@ export const AdminStore = {
 export function useAdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
+
+  const fetchFromApi = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/products', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.products?.length) {
+          setProducts(json.products as Product[]);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {}
     setProducts(AdminStore.getProducts());
     setLoading(false);
   }, []);
+
+  useEffect(() => { fetchFromApi(); }, [fetchFromApi]);
+
   const refresh = useCallback(() => {
-    setProducts(AdminStore.getProducts());
-  }, []);
+    fetchFromApi();
+  }, [fetchFromApi]);
+
   return { products, loading, refresh };
 }
 

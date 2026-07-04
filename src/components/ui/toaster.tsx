@@ -2,9 +2,9 @@
 
 import { useState, createContext, useContext, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
-type ToastType = 'success' | 'error' | 'info';
+type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface Toast {
   id: string;
@@ -47,12 +47,14 @@ export function Toaster() {
               'flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg backdrop-blur-xl animate-in slide-in-from-top-2 fade-in duration-200',
               toast.type === 'success' && 'bg-[#34C759] text-white',
               toast.type === 'error' && 'bg-[#FF3B30] text-white',
-              toast.type === 'info' && 'bg-[#1A1A1A] text-white'
+              toast.type === 'info' && 'bg-[#1A1A1A] text-white',
+              toast.type === 'warning' && 'bg-[#F97316] text-white'
             )}
           >
             {toast.type === 'success' && <CheckCircle className="w-4 h-4 flex-shrink-0" />}
             {toast.type === 'error' && <AlertCircle className="w-4 h-4 flex-shrink-0" />}
             {toast.type === 'info' && <Info className="w-4 h-4 flex-shrink-0" />}
+            {toast.type === 'warning' && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
             <p className="text-sm font-medium flex-1">{toast.message}</p>
             <button onClick={() => removeToast(toast.id)} className="flex-shrink-0">
               <X className="w-4 h-4" />

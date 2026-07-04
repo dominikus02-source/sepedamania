@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { revalidateCatalog } from '@/lib/revalidate-catalog';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -63,6 +64,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       },
     });
 
+    revalidateCatalog({ productSlug: product.slug, includeAdmin: true });
     return NextResponse.json({
       ...product,
       price: Number(product.price),
@@ -85,6 +87,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   try {
     await prisma.product.delete({ where: { id } });
+    revalidateCatalog({ includeAdmin: true });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE /api/products error:', err);

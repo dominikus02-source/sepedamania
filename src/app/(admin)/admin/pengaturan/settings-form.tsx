@@ -166,46 +166,28 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Xendit Secret Key</Label>
+                  <Label>Midtrans Server Key</Label>
                   <div className="relative">
                     <Input
-                      type={showXenditKey ? 'text' : 'password'}
+                      type="password"
                       value={form.xenditSecretKey || ''}
                       onChange={update('xenditSecretKey')}
+                      placeholder="Set via env MIDTRANS_SERVER_KEY"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowXenditKey(!showXenditKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-[#1C1C1E]"
-                    >
-                      {showXenditKey ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
                   </div>
+                  <p className="text-[10px] text-[#8E8E93]">Digunakan dari environment variable MIDTRANS_SERVER_KEY</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Xendit Webhook Token</Label>
+                  <Label>Midtrans Client Key</Label>
                   <div className="relative">
                     <Input
-                      type={showXenditWebhook ? 'text' : 'password'}
+                      type="password"
                       value={form.xenditWebhookToken || ''}
                       onChange={update('xenditWebhookToken')}
+                      placeholder="Set via env MIDTRANS_CLIENT_KEY"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowXenditWebhook(!showXenditWebhook)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-[#1C1C1E]"
-                    >
-                      {showXenditWebhook ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
                   </div>
+                  <p className="text-[10px] text-[#8E8E93]">Digunakan dari environment variable MIDTRANS_CLIENT_KEY</p>
                 </div>
               </div>
             </div>

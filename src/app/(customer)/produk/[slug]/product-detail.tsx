@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getProductBySlug, getProductBySlugFromApi, getRelatedProducts } from '@/lib/catalog-data';
+import { getProductBySlugFromApi, getRelatedProductsFromApi } from '@/lib/catalog-data';
 import { useRouter } from 'next/navigation';
 import { formatPrice, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -55,25 +55,28 @@ export function ProductDetail({ slug }: { slug: string }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    getProductBySlugFromApi(slug).then((p) => {
-      if (p) {
-        setProduct({
-          ...p,
-          price: Number(p.price),
-          salePrice: p.salePrice ? Number(p.salePrice) : null,
-          variants: p.variants.map(v => ({ ...v, price: v.price ? Number(v.price) : null })),
-          reviews: p.reviews.map(r => ({ ...r })),
-        } as ProductData);
-        setRelatedProducts(
-        getRelatedProducts(p.id).map(r => ({
+    let cancelled = false;
+    (async () => {
+      const p = await getProductBySlugFromApi(slug);
+      if (cancelled || !p) { if (!cancelled) setLoading(false); return; }
+      setProduct({
+        ...p,
+        price: Number(p.price),
+        salePrice: p.salePrice ? Number(p.salePrice) : null,
+        variants: p.variants.map(v => ({ ...v, price: v.price ? Number(v.price) : null })),
+        reviews: p.reviews.map(r => ({ ...r })),
+      } as ProductData);
+      const related = await getRelatedProductsFromApi(p.id, p.categoryId, 4);
+      setRelatedProducts(
+        related.map(r => ({
           ...r,
           price: Number(r.price),
           salePrice: r.salePrice ? Number(r.salePrice) : null,
         })) as ProductData[]
       );
-    }
-    setLoading(false);
-    });
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, [slug]);
 
   if (loading) {
@@ -238,7 +241,11 @@ export function ProductDetail({ slug }: { slug: string }) {
       <div className="px-4 mt-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-xs text-[#6B7280] mb-1 font-medium uppercase tracking-wider">{product.brand.name}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wider">{product.brand.name}</p>
+              <span className="text-xs text-[#9CA3AF]">·</span>
+              <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wider">{product.category.name}</p>
+            </div>
             <h1 className="text-xl font-bold text-[#111827] leading-tight font-display">{product.name}</h1>
           </div>
         </div>

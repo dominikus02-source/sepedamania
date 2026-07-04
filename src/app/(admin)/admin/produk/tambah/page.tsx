@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminStore } from '@/lib/admin-store';
-import { getAllCategories, getAllBrands, getCategoryById, addCategory, addBrand } from '@/lib/catalog-data';
+import { getAllCategories, getAllBrands, getCategoryById } from '@/lib/catalog-data';
 import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, ArrowLeft, Plus, X, Upload, Tag, Building2, Sparkles, Video, Camera, ImagePlus } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Upload, Tag, Building2, Sparkles, Video, Camera, ImagePlus, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { slugify } from '@/lib/utils';
 
@@ -35,6 +35,7 @@ export default function AddProductPage() {
   const galleryMultipleRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [fallbackActive, setFallbackActive] = useState(false);
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [brands, setBrands] = useState<CatalogBrand[]>([]);
   const [images, setImages] = useState<string[]>([]);
@@ -45,9 +46,30 @@ export default function AddProductPage() {
   const MAX_IMAGES = 10;
   const MAX_VIDEOS = 2;
 
-  const refreshCats = () => setCategories(getAllCategories());
-  const refreshBrands = () => setBrands(getAllBrands());
-  useEffect(() => { refreshCats(); refreshBrands(); }, []);
+  const refreshCats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/categories');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.categories?.length) { setCategories(json.categories); return; }
+      }
+    } catch {}
+    setCategories(getAllCategories());
+  }, []);
+
+  const refreshBrands = useCallback(async () => {
+    try {
+      const res = await fetch('/api/brands');
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json) && json.length) { setBrands(json); return; }
+        if (json.brands?.length) { setBrands(json.brands); return; }
+      }
+    } catch {}
+    setBrands(getAllBrands());
+  }, []);
+
+  useEffect(() => { refreshCats(); refreshBrands(); }, [refreshCats, refreshBrands]);
 
   const [form, setForm] = useState({
     name: '', sku: '', description: '', categoryId: '', brandId: '',
@@ -59,7 +81,9 @@ export default function AddProductPage() {
     ? categories.filter((c) => c.brandId === form.brandId || c.brandId === null)
     : categories;
 
-  const selectedCategory = form.categoryId ? getCategoryById(form.categoryId) : null;
+  const selectedCategory = form.categoryId
+    ? categories.find((c) => c.id === form.categoryId) || getCategoryById(form.categoryId)
+    : null;
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -216,18 +240,34 @@ export default function AddProductPage() {
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCatName.trim()) { toast('Nama kategori wajib diisi', 'error'); return; }
-    const cat = addCategory({ name: newCatName.trim(), brandId: form.brandId || null });
-    refreshCats();
-    setForm((prev) => ({ ...prev, categoryId: cat.id }));
-    setCatDialogOpen(false);
-    setNewCatName('');
-    toast(`Kategori \"${cat.name}\" ditambahkan`, 'success');
-    // Trigger revalidation
-    if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCatName.trim(), brandId: form.brandId || null }),
+      });
+      const json = await res.json();
+      if (!res.ok) { throw new Error(json.error || 'Gagal menyimpan kategori'); }
+      await refreshCats();
+      setForm((prev) => ({ ...prev, categoryId: json.category.id }));
+      setCatDialogOpen(false);
+      setNewCatName('');
+      toast(`Kategori "${json.category.name}" ditambahkan`, 'success');
       fetch('/api/revalidate?tag=categories', { method: 'POST' }).catch(() => {});
-      fetch('/api/revalidate?tag=products', { method: 'POST' }).catch(() => {});
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan kategori', 'error');
+      try {
+        const { addCategory } = await import('@/lib/catalog-data');
+        const cat = addCategory({ name: newCatName.trim(), brandId: form.brandId || null });
+        setCategories(getAllCategories());
+        setForm((prev) => ({ ...prev, categoryId: cat.id }));
+        setCatDialogOpen(false);
+        setNewCatName('');
+        setFallbackActive(true);
+        toast('Database tidak tersambung. Kategori hanya tersimpan sementara.', 'warning');
+      } catch {}
     }
   };
 
@@ -235,18 +275,34 @@ export default function AddProductPage() {
   const [brdDialogOpen, setBrdDialogOpen] = useState(false);
   const [newBrdName, setNewBrdName] = useState('');
 
-  const handleAddBrand = () => {
+  const handleAddBrand = async () => {
     if (!newBrdName.trim()) { toast('Nama merek wajib diisi', 'error'); return; }
-    const brd = addBrand({ name: newBrdName.trim() });
-    refreshBrands();
-    setForm((prev) => ({ ...prev, brandId: brd.id }));
-    setBrdDialogOpen(false);
-    setNewBrdName('');
-    toast(`Merek \"${brd.name}\" ditambahkan`, 'success');
-    // Trigger revalidation
-    if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newBrdName.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) { throw new Error(json.error || 'Gagal menyimpan merek'); }
+      await refreshBrands();
+      setForm((prev) => ({ ...prev, brandId: json.brand.id }));
+      setBrdDialogOpen(false);
+      setNewBrdName('');
+      toast(`Merek "${json.brand.name}" ditambahkan`, 'success');
       fetch('/api/revalidate?tag=brands', { method: 'POST' }).catch(() => {});
-      fetch('/api/revalidate?tag=products', { method: 'POST' }).catch(() => {});
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan merek', 'error');
+      try {
+        const { addBrand } = await import('@/lib/catalog-data');
+        const brd = addBrand({ name: newBrdName.trim() });
+        setBrands(getAllBrands());
+        setForm((prev) => ({ ...prev, brandId: brd.id }));
+        setBrdDialogOpen(false);
+        setNewBrdName('');
+        setFallbackActive(true);
+        toast('Database tidak tersambung. Merek hanya tersimpan sementara.', 'warning');
+      } catch {}
     }
   };
 
@@ -259,22 +315,45 @@ export default function AddProductPage() {
     }
     setLoading(true);
     try {
-      const product = await AdminStore.addProduct({
+      const payload = {
         name: form.name, sku: form.sku, description: form.description,
         categoryId: form.categoryId, brandId: form.brandId,
         price: Number(form.price), salePrice: form.salePrice ? Number(form.salePrice) : null,
         weight: Number(form.weight), stock: Number(form.stock),
         images,
-        videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
+        variants: variants.map((v) => ({
+          name: v.name, value: v.value, stock: v.stock, price: v.price, sku: v.sku,
+        })),
+      };
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      // Save variants
-      if (variants.length > 0 && product) {
-        await AdminStore.updateProduct(product.slug, { variants: variants as any });
-      }
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan produk');
       toast('Produk berhasil ditambahkan', 'success');
       router.push('/admin/produk');
-    } catch {
-      toast('Gagal menyimpan produk', 'error');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan produk', 'error');
+      try {
+        const product = await AdminStore.addProduct({
+          name: form.name, sku: form.sku, description: form.description,
+          categoryId: form.categoryId, brandId: form.brandId,
+          price: Number(form.price), salePrice: form.salePrice ? Number(form.salePrice) : null,
+          weight: Number(form.weight), stock: Number(form.stock),
+          images,
+          videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
+        });
+        if (variants.length > 0 && product) {
+          await AdminStore.updateProduct(product.slug, { variants: variants as any });
+        }
+        setFallbackActive(true);
+        toast('Database tidak tersambung. Produk hanya tersimpan sementara.', 'warning');
+        router.push('/admin/produk');
+      } catch (fallbackErr) {
+        toast('Gagal menyimpan produk', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -282,6 +361,12 @@ export default function AddProductPage() {
 
   return (
     <div className="space-y-6 pb-24">
+      {fallbackActive && (
+        <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-xl px-4 py-3 text-sm text-[#92400E] flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          Mode sementara: database tidak tersambung. Data hanya tersimpan di browser dan mungkin tidak tampil di toko.
+        </div>
+      )}
       <div>
         <div className="flex items-center gap-3 mb-1">
           <Link href="/admin/produk">

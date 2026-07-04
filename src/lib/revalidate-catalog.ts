@@ -1,25 +1,21 @@
-'use server';
-import { revalidateTag, revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
-// ✅ Server-only revalidation helper - no client secrets
 export function revalidateCatalog(options?: {
   productSlug?: string;
   categorySlug?: string;
   includeAdmin?: boolean;
 }) {
-  // Revalidate all public cache tags
   revalidateTag('products', 'max');
   revalidateTag('categories', 'max');
   revalidateTag('brands', 'max');
   revalidateTag('homepage', 'max');
   revalidateTag('search', 'max');
 
-  // Revalidate public paths  
-  revalidatePath('/');
+  revalidatePath('/', 'layout');
   revalidatePath('/cari');
   revalidatePath('/kategori');
+  revalidatePath('/produk-terlaris');
 
-  // Include specific slugs if provided
   if (options?.productSlug) {
     revalidatePath(`/produk/${options.productSlug}`);
   }
@@ -28,10 +24,8 @@ export function revalidateCatalog(options?: {
     revalidatePath(`/kategori/${options.categorySlug}`);
   }
 
-  // Include admin paths if requested
   if (options?.includeAdmin) {
     revalidatePath('/admin/produk');
     revalidatePath('/admin/kategori');
-    revalidatePath('/admin/merek');
   }
 }

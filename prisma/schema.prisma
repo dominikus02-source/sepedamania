@@ -137,21 +137,31 @@ model Address {
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String
-  slug     String    @unique
-  image    String?
-  products Product[]
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  image       String?
+  brandId     String?
+  brand       Brand?    @relation(fields: [brandId], references: [id])
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(999)
+  description String    @default("")
+  color       String    @default("#F5A623")
+  products    Product[]
+  createdAt   DateTime  @default(now())
 }
 
 model Brand {
-  id       String    @id @default(cuid())
-  name     String
-  slug     String    @unique
-  logo     String?
-  products Product[]
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  logo        String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(999)
+  description String    @default("")
+  products    Product[]
+  categories  Category[]
+  createdAt   DateTime  @default(now())
 }
 
 model Product {

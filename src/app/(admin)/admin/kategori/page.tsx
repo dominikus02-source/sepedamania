@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   getAllCategories, getAllBrands,
   addCategory, updateCategory, deleteCategory,
@@ -18,7 +18,7 @@ import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toaster';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Tag, Building2, Settings2, X, ChevronDown, ChevronUp, Eye, EyeOff, Search, ArrowUpDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, Building2, Settings2, X, ChevronDown, ChevronUp, Eye, EyeOff, Search, ArrowUpDown, AlertTriangle } from 'lucide-react';
 
 export default function AdminCategoriesPage() {
   const { toast } = useToast();
@@ -28,12 +28,46 @@ export default function AdminCategoriesPage() {
   const [brdSearch, setBrdSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'category' | 'brand'>('category');
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [fallbackActive, setFallbackActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = () => {
-    const cats = getAllCategories();
-    const brds = getAllBrands();
-    setCategories(cats);
-    setBrands(brds);
+  const normalizeCats = (raw: any[]): CatalogCategory[] =>
+    (Array.isArray(raw) ? raw : []).map((c) => ({
+      ...c,
+      options: Array.isArray(c.options) ? c.options : [],
+    }));
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [catsRes, brdsRes] = await Promise.all([
+        fetch('/api/categories'),
+        fetch('/api/brands'),
+      ]);
+      if (catsRes.ok && brdsRes.ok) {
+        const catsJson = await catsRes.json();
+        const brdsJson = await brdsRes.json();
+        const cats = normalizeCats(catsJson.categories);
+        const brds = Array.isArray(brdsJson) ? brdsJson : (Array.isArray(brdsJson.brands) ? brdsJson.brands : []);
+        if (cats.length || brds.length) {
+          if (cats.length) setCategories(cats);
+          if (brds.length) setBrands(brds);
+          const prods = JSON.parse(localStorage.getItem('spm-catalog') || '{}').products || [];
+          const c: Record<string, number> = {};
+          for (const p of prods) {
+            c[p.categoryId] = (c[p.categoryId] || 0) + 1;
+            c[`brd:${p.brandId}`] = (c[`brd:${p.brandId}`] || 0) + 1;
+          }
+          setCounts(c);
+          return;
+        }
+      }
+    } catch {}
+    // Fallback to localStorage
+    const fallbackCats = getAllCategories();
+    const fallbackBrds = getAllBrands();
+    setCategories(normalizeCats(fallbackCats));
+    setBrands(Array.isArray(fallbackBrds) ? fallbackBrds : []);
     const prods = JSON.parse(localStorage.getItem('spm-catalog') || '{}').products || [];
     const c: Record<string, number> = {};
     for (const p of prods) {
@@ -41,17 +75,12 @@ export default function AdminCategoriesPage() {
       c[`brd:${p.brandId}`] = (c[`brd:${p.brandId}`] || 0) + 1;
     }
     setCounts(c);
-  };
+    setFallbackActive(true);
+  }, []);
 
-  useEffect(refresh, []);
+  useEffect(() => { setIsLoading(false); }, [categories, brands]);
 
-  const filteredCats = categories.filter((c) =>
-    !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase()) || c.slug.includes(catSearch.toLowerCase())
-  );
-
-  const filteredBrds = brands.filter((b) =>
-    !brdSearch || b.name.toLowerCase().includes(brdSearch.toLowerCase()) || b.slug.includes(brdSearch.toLowerCase())
-  );
+  useEffect(() => { refresh(); }, [refresh]);
 
   // ── Category CRUD ──
   const [catOpen, setCatOpen] = useState(false);
@@ -109,59 +138,106 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleSaveCat = () => {
+  const handleSaveCat = async () => {
     if (!catName.trim()) { toast('Nama kategori wajib diisi', 'error'); return; }
     if (!catSlug.trim()) { toast('Slug wajib diisi', 'error'); return; }
     try {
-      // Check duplicate slug
-      const dupSlug = categories.find(
-        (c) => c.slug === catSlug.trim().toLowerCase().replace(/[^\w-]/g, '') && (!catEdit || c.id !== catEdit.id)
-      );
-      if (dupSlug) { toast('Slug sudah digunakan kategori lain', 'error'); return; }
-
       const normalized = normalizeCategoryName(catName);
+      const payload = {
+        name: normalized,
+        slug: catSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
+        description: catDesc,
+        image: catImage || null,
+        color: catColor,
+        brandId: catBrandId || null,
+        sortOrder: catSortOrder,
+      };
       if (catEdit) {
-        const updates: Partial<CatalogCategory> = {
-          name: normalized,
-          slug: catSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
-          description: catDesc,
-          image: catImage || null,
-          color: catColor,
-          brandId: catBrandId || null,
-          sortOrder: catSortOrder,
-        };
-        updateCategory(catEdit.id, updates);
+        const res = await fetch(`/api/categories/${catEdit.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Gagal update kategori');
         toast('Kategori berhasil diperbarui', 'success');
       } else {
-        addCategory({
-          name: normalized,
-          image: catImage || undefined,
-          brandId: catBrandId || null,
-          description: catDesc,
-          color: catColor,
-          sortOrder: catSortOrder,
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Gagal menyimpan kategori');
         toast('Kategori berhasil ditambahkan', 'success');
       }
       setCatOpen(false);
-      refresh();
+      await refresh();
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'Gagal menyimpan kategori', 'error');
+      try {
+        if (catEdit) {
+          updateCategory(catEdit.id, {
+            name: normalizeCategoryName(catName),
+            slug: catSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
+            description: catDesc,
+            image: catImage || null,
+            color: catColor,
+            brandId: catBrandId || null,
+            sortOrder: catSortOrder,
+          });
+        } else {
+          addCategory({
+            name: normalizeCategoryName(catName),
+            image: catImage || undefined,
+            brandId: catBrandId || null,
+            description: catDesc,
+            color: catColor,
+            sortOrder: catSortOrder,
+          });
+        }
+        setCatOpen(false);
+        refresh();
+        setFallbackActive(true);
+        toast('Database tidak tersambung. Kategori hanya tersimpan sementara.', 'warning');
+      } catch {
+        toast(err instanceof Error ? err.message : 'Gagal menyimpan kategori', 'error');
+      }
     }
   };
 
-  const handleToggleCatActive = (c: CatalogCategory) => {
-    updateCategory(c.id, { isActive: !c.isActive });
-    refresh();
-    toast(c.isActive ? 'Kategori dinonaktifkan' : 'Kategori diaktifkan', 'success');
+  const handleToggleCatActive = async (c: CatalogCategory) => {
+    try {
+      const res = await fetch(`/api/categories/${c.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !c.isActive }),
+      });
+      if (!res.ok) throw new Error();
+      await refresh();
+      toast(c.isActive ? 'Kategori dinonaktifkan' : 'Kategori diaktifkan', 'success');
+    } catch {
+      updateCategory(c.id, { isActive: !c.isActive });
+      refresh();
+      setFallbackActive(true);
+      toast('Database tidak tersambung. Perubahan hanya tersimpan sementara.', 'warning');
+    }
   };
 
-  const handleDeleteCat = (id: string, name: string) => {
+  const handleDeleteCat = async (id: string, name: string) => {
     if (!window.confirm(`Hapus kategori "${name}"?`)) return;
-    const ok = deleteCategory(id);
-    if (!ok) { toast('Tidak bisa menghapus: masih ada produk dalam kategori ini', 'error'); return; }
-    toast('Kategori berhasil dihapus', 'success');
-    refresh();
+    try {
+      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal hapus');
+      toast('Kategori berhasil dihapus', 'success');
+      await refresh();
+    } catch (err: unknown) {
+      const ok = deleteCategory(id);
+      if (!ok) { toast(err instanceof Error ? err.message : 'Tidak bisa menghapus: masih ada produk', 'error'); return; }
+      setFallbackActive(true);
+      toast('Database tidak tersambung. Penghapusan hanya tersimpan sementara.', 'warning');
+      refresh();
+    }
   };
 
   // ── Brand CRUD ──
@@ -200,52 +276,99 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleSaveBrd = () => {
+  const handleSaveBrd = async () => {
     if (!brdName.trim()) { toast('Nama merek wajib diisi', 'error'); return; }
     if (!brdSlug.trim()) { toast('Slug wajib diisi', 'error'); return; }
     try {
-      const dupSlug = brands.find(
-        (b) => b.slug === brdSlug.trim().toLowerCase().replace(/[^\w-]/g, '') && (!brdEdit || b.id !== brdEdit.id)
-      );
-      if (dupSlug) { toast('Slug sudah digunakan merek lain', 'error'); return; }
-
+      const payload = {
+        name: brdName.trim(),
+        slug: brdSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
+        description: brdDesc,
+        logo: brdLogo || null,
+        sortOrder: brdSortOrder,
+      };
       if (brdEdit) {
-        updateBrand(brdEdit.id, {
-          name: brdName.trim(),
-          slug: brdSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
-          description: brdDesc,
-          logo: brdLogo || null,
-          sortOrder: brdSortOrder,
+        const res = await fetch(`/api/brands/${brdEdit.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Gagal update merek');
         toast('Merek berhasil diperbarui', 'success');
       } else {
-        addBrand({
-          name: brdName.trim(),
-          logo: brdLogo || undefined,
-          description: brdDesc,
-          sortOrder: brdSortOrder,
+        const res = await fetch('/api/brands', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Gagal menyimpan merek');
         toast('Merek berhasil ditambahkan', 'success');
       }
       setBrdOpen(false);
-      refresh();
+      await refresh();
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'Gagal menyimpan merek', 'error');
+      try {
+        if (brdEdit) {
+          updateBrand(brdEdit.id, {
+            name: brdName.trim(),
+            slug: brdSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
+            description: brdDesc,
+            logo: brdLogo || null,
+            sortOrder: brdSortOrder,
+          });
+        } else {
+          addBrand({
+            name: brdName.trim(),
+            logo: brdLogo || undefined,
+            description: brdDesc,
+            sortOrder: brdSortOrder,
+          });
+        }
+        setBrdOpen(false);
+        refresh();
+        setFallbackActive(true);
+        toast('Database tidak tersambung. Merek hanya tersimpan sementara.', 'warning');
+      } catch {
+        toast(err instanceof Error ? err.message : 'Gagal menyimpan merek', 'error');
+      }
     }
   };
 
-  const handleToggleBrdActive = (b: CatalogBrand) => {
-    updateBrand(b.id, { isActive: !b.isActive });
-    refresh();
-    toast(b.isActive ? 'Merek dinonaktifkan' : 'Merek diaktifkan', 'success');
+  const handleToggleBrdActive = async (b: CatalogBrand) => {
+    try {
+      const res = await fetch(`/api/brands/${b.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !b.isActive }),
+      });
+      if (!res.ok) throw new Error();
+      await refresh();
+      toast(b.isActive ? 'Merek dinonaktifkan' : 'Merek diaktifkan', 'success');
+    } catch {
+      updateBrand(b.id, { isActive: !b.isActive });
+      refresh();
+      setFallbackActive(true);
+      toast('Database tidak tersambung. Perubahan hanya tersimpan sementara.', 'warning');
+    }
   };
 
-  const handleDeleteBrd = (id: string, name: string) => {
+  const handleDeleteBrd = async (id: string, name: string) => {
     if (!window.confirm(`Hapus merek "${name}"?`)) return;
-    const ok = deleteBrand(id);
-    if (!ok) { toast('Tidak bisa menghapus: masih ada produk dengan merek ini', 'error'); return; }
-    toast('Merek berhasil dihapus', 'success');
-    refresh();
+    try {
+      const res = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal hapus');
+      toast('Merek berhasil dihapus', 'success');
+      await refresh();
+    } catch (err: unknown) {
+      const ok = deleteBrand(id);
+      if (!ok) { toast(err instanceof Error ? err.message : 'Tidak bisa menghapus: masih ada produk', 'error'); return; }
+      setFallbackActive(true);
+      toast('Database tidak tersambung. Penghapusan hanya tersimpan sementara.', 'warning');
+      refresh();
+    }
   };
 
   // ── Options Editor ──
@@ -297,8 +420,35 @@ export default function AdminCategoriesPage() {
     if (updated) { refresh(); }
   };
 
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeBrands = Array.isArray(brands) ? brands : [];
+  const safeCounts = counts || {};
+
+  const filteredCats = safeCategories.filter((c) =>
+    !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase()) || c.slug.includes(catSearch.toLowerCase())
+  );
+
+  const filteredBrds = safeBrands.filter((b) =>
+    !brdSearch || b.name.toLowerCase().includes(brdSearch.toLowerCase()) || b.slug.includes(brdSearch.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-[#F2F2F7] rounded animate-pulse" />
+        <div className="h-64 bg-[#F2F2F7] rounded-xl animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {fallbackActive && (
+        <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-xl px-4 py-3 text-sm text-[#92400E] flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          Mode sementara: database tidak tersambung. Data hanya tersimpan di browser dan mungkin tidak tampil di toko.
+        </div>
+      )}
       {/* Tab Switcher */}
       <div className="flex items-center gap-4 border-b border-[#E5E5EA] pb-0">
         <button
@@ -321,7 +471,7 @@ export default function AdminCategoriesPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-b border-[#E5E5EA] bg-[#FAFAFA]">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-[#1C1C1E]">Kategori</h2>
-              <span className="text-xs text-[#8E8E93] bg-[#F2F2F7] px-2 py-0.5 rounded-full">{categories.length}</span>
+              <span className="text-xs text-[#8E8E93] bg-[#F2F2F7] px-2 py-0.5 rounded-full">{safeCategories.length}</span>
               <span className="text-xs text-[#22C55E] bg-[#DCFCE7] px-2 py-0.5 rounded-full">{getActiveCategories().length} aktif</span>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -359,22 +509,24 @@ export default function AdminCategoriesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCats.map((c) => (
+                    {filteredCats.map((c) => {
+                      const catOptions = Array.isArray(c.options) ? c.options : [];
+                      return (
                     <tr key={c.id} className="border-b border-[#E5E5EA] last:border-0 hover:bg-[#F2F2F7]/50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color || '#F5A623' }} />
                           <span className="font-medium text-[#1C1C1E]">{c.name}</span>
-                          {c.options.length > 0 && (
-                            <span className="text-[10px] bg-[#EFF6FF] text-[#0284C7] px-1.5 py-0.5 rounded font-medium hidden sm:inline">{c.options.length} opsi</span>
+                          {catOptions.length > 0 && (
+                            <span className="text-[10px] bg-[#EFF6FF] text-[#0284C7] px-1.5 py-0.5 rounded font-medium hidden sm:inline">{catOptions.length} opsi</span>
                           )}
                         </div>
                         {c.description && <p className="text-[10px] text-[#8E8E93] mt-0.5 hidden md:block">{c.description}</p>}
                       </td>
                       <td className="p-3 text-[#8E8E93] font-mono text-xs hidden md:table-cell">{c.slug}</td>
-                      <td className="p-3 text-[#8E8E93] text-xs hidden sm:table-cell">{brands.find((b) => b.id === c.brandId)?.name || '-'}</td>
+                      <td className="p-3 text-[#8E8E93] text-xs hidden sm:table-cell">{safeBrands.find((b) => b.id === c.brandId)?.name || '-'}</td>
                       <td className="p-3 text-center">
-                        <span className="text-xs font-medium text-[#1C1C1E]">{counts[c.id] || 0}</span>
+                        <span className="text-xs font-medium text-[#1C1C1E]">{safeCounts[c.id] || 0}</span>
                       </td>
                       <td className="p-3 text-center">
                         <button onClick={() => handleToggleCatActive(c)} className="inline-flex">
@@ -401,7 +553,8 @@ export default function AdminCategoriesPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -415,8 +568,8 @@ export default function AdminCategoriesPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-b border-[#E5E5EA] bg-[#FAFAFA]">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-[#1C1C1E]">Merek</h2>
-              <span className="text-xs text-[#8E8E93] bg-[#F2F2F7] px-2 py-0.5 rounded-full">{brands.length}</span>
-              <span className="text-xs text-[#22C55E] bg-[#DCFCE7] px-2 py-0.5 rounded-full">{brands.filter((b) => b.isActive).length} aktif</span>
+              <span className="text-xs text-[#8E8E93] bg-[#F2F2F7] px-2 py-0.5 rounded-full">{safeBrands.length}</span>
+              <span className="text-xs text-[#22C55E] bg-[#DCFCE7] px-2 py-0.5 rounded-full">{safeBrands.filter((b) => b.isActive).length} aktif</span>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
@@ -467,7 +620,7 @@ export default function AdminCategoriesPage() {
                       </td>
                       <td className="p-3 text-[#8E8E93] font-mono text-xs hidden md:table-cell">{b.slug}</td>
                       <td className="p-3 text-center">
-                        <span className="text-xs font-medium text-[#1C1C1E]">{counts[`brd:${b.id}`] || 0}</span>
+                        <span className="text-xs font-medium text-[#1C1C1E]">{safeCounts[`brd:${b.id}`] || 0}</span>
                       </td>
                       <td className="p-3 text-center">
                         <button onClick={() => handleToggleBrdActive(b)} className="inline-flex">
@@ -545,7 +698,7 @@ export default function AdminCategoriesPage() {
                 className="w-full border border-[#E5E5EA] rounded-lg px-3 py-2 text-sm bg-white text-[#1C1C1E] outline-none focus:border-[#F5A623]"
               >
                 <option value="">-- Tanpa Merek --</option>
-                {brands.map((b) => (
+                {safeBrands.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
@@ -621,9 +774,11 @@ export default function AdminCategoriesPage() {
             <p className="text-xs text-[#64748B]">
               Opsi adalah variasi produk seperti ukuran, warna, dll. Opsi akan otomatis tersedia saat menambah produk di kategori ini.
             </p>
-            {optCategory && optCategory.options.length > 0 ? (
+              {optCategory && Array.isArray(optCategory.options) && optCategory.options.length > 0 ? (
               <div className="space-y-3 max-h-64 overflow-y-auto">
-                {optCategory.options.map((opt) => (
+                {optCategory.options.map((opt) => {
+                  const safeValues = Array.isArray(opt.values) ? opt.values : [];
+                  return (
                   <div key={opt.id} className="border border-[#E5E5EA] rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <input
@@ -636,14 +791,15 @@ export default function AdminCategoriesPage() {
                       </button>
                     </div>
                     <input
-                      value={opt.values.join(', ')}
+                      value={safeValues.join(', ')}
                       onChange={(e) => handleUpdateOptionValues(opt, e.target.value)}
                       placeholder="Nilai (pisahkan dengan koma)"
                       className="w-full text-xs border border-[#E5E5EA] rounded-lg px-2 py-1.5 bg-[#FAFAFA] outline-none focus:border-[#F5A623]"
                     />
-                    <p className="text-[10px] text-[#8E8E93]">{opt.values.length} nilai: {opt.values.join(', ')}</p>
+                    <p className="text-[10px] text-[#8E8E93]">{safeValues.length} nilai: {safeValues.join(', ')}</p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-[#8E8E93] text-center py-6">Belum ada opsi untuk kategori ini.</p>

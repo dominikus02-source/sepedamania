@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ProductCard } from '@/components/customer/product-card';
 import { FilterBar } from './filter-bar';
-import { getCategoryBySlug, getProductsByCategoryFromApi, CatalogProduct } from '@/lib/catalog-data';
+import { getCategoryBySlugFromApi, getProductsByCategoryFromApi, CatalogProduct } from '@/lib/catalog-data';
 import { LoaderCircle } from 'lucide-react';
 
 export function CategoryProducts() {
@@ -14,12 +14,18 @@ export function CategoryProducts() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const cat = getCategoryBySlug(slug);
-    if (cat) setCategoryName(cat.name);
-    getProductsByCategoryFromApi(slug).then((result) => {
+    let cancelled = false;
+    (async () => {
+      const [cat, result] = await Promise.all([
+        getCategoryBySlugFromApi(slug),
+        getProductsByCategoryFromApi(slug),
+      ]);
+      if (cancelled) return;
+      if (cat) setCategoryName(cat.name);
       setProducts(result);
       setLoading(false);
-    });
+    })();
+    return () => { cancelled = true; };
   }, [slug]);
 
   if (loading) return (

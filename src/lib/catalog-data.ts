@@ -478,4 +478,71 @@ export function getServerBrands(): CatalogBrand[] {
   return seedBrands as CatalogBrand[];
 }
 
+export async function getActiveCategoriesFromApi(): Promise<CatalogCategory[]> {
+  try {
+    const res = await fetch('/api/categories?limit=100');
+    if (!res.ok) return getActiveCategories();
+    const json = await res.json();
+    const cats = (json.categories as CatalogCategory[]) || [];
+    return cats.filter((c) => c.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+  } catch {
+    return getActiveCategories();
+  }
+}
+
+export async function getActiveBrandsFromApi(): Promise<CatalogBrand[]> {
+  try {
+    const res = await fetch('/api/brands?limit=100');
+    if (!res.ok) return getActiveBrands();
+    const json = await res.json();
+    const brds = (Array.isArray(json) ? json : json.brands) as CatalogBrand[] || [];
+    return brds.filter((b) => b.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+  } catch {
+    return getActiveBrands();
+  }
+}
+
+export async function getAllCategoriesFromApi(): Promise<CatalogCategory[]> {
+  try {
+    const res = await fetch('/api/categories');
+    if (!res.ok) return getAllCategories();
+    const json = await res.json();
+    return (json.categories as CatalogCategory[]) || getAllCategories();
+  } catch {
+    return getAllCategories();
+  }
+}
+
+export async function getCategoryBySlugFromApi(slug: string): Promise<CatalogCategory | null> {
+  const cats = await getAllCategoriesFromApi();
+  return cats.find((c) => c.slug === slug) || getCategoryBySlug(slug) || null;
+}
+
+export async function getRelatedProductsFromApi(
+  productId: string,
+  categoryId?: string,
+  limit = 6,
+): Promise<CatalogProduct[]> {
+  try {
+    const params = categoryId ? `?categoryId=${categoryId}&limit=${limit}` : `?limit=${limit * 3}`;
+    const res = await fetch(`/api/products${params}`);
+    if (!res.ok) return getRelatedProducts(productId, limit);
+    const json = await res.json();
+    const products = (json.products as CatalogProduct[]) || [];
+    if (categoryId) {
+      return products.filter((p) => p.id !== productId && p.isActive).slice(0, limit);
+    }
+    // If no categoryId, find the product's category first
+    const product = products.find((p) => p.id === productId);
+    if (product) {
+      return products
+        .filter((p) => p.categoryId === product.categoryId && p.id !== productId && p.isActive)
+        .slice(0, limit);
+    }
+    return products.slice(0, limit);
+  } catch {
+    return getRelatedProducts(productId, limit);
+  }
+}
+
 export { slugify } from './utils';

@@ -5,6 +5,7 @@ import { createProductSchema } from '@/lib/validations';
 import { auth } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 import { prisma } from '@/lib/prisma';
+import { revalidateCatalog } from '@/lib/revalidate-catalog';
 
 const productQuerySchema = z.object({
   q: z.string().optional(),
@@ -245,6 +246,7 @@ export async function POST(req: Request) {
         reviewCount: 0,
       },
     }, { status: 201 });
+    revalidateCatalog({ productSlug: slug, includeAdmin: true });
   } catch (err) {
     console.error('POST /api/products error:', err);
     return NextResponse.json({ error: 'Gagal menyimpan produk' }, { status: 500 });

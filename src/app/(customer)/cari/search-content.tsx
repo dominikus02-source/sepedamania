@@ -7,7 +7,7 @@ import { ProductCard } from '@/components/customer/product-card';
 import { ProductCardSkeleton } from '@/components/customer/product-skeleton';
 import { Search, X, TrendingUp, LoaderCircle } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { getAllCategories, getAllProductsFromApi } from '@/lib/catalog-data';
+import { getAllCategoriesFromApi, getAllProductsFromApi } from '@/lib/catalog-data';
 
 interface SearchResult {
   id: string;
@@ -28,9 +28,14 @@ export function SearchContent() {
   const searchParams = useSearchParams();
   const q = searchParams.get('q') || '';
   const [query, setQuery] = useState(q);
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 400);
+
+  useEffect(() => {
+    getAllCategoriesFromApi().then(setCategories).catch(() => {});
+  }, []);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sepedamania-recent-searches');
@@ -93,7 +98,7 @@ export function SearchContent() {
         <div className="mb-4">
           <h3 className="text-sm font-medium text-[#1C1C1E] mb-2">Kategori</h3>
           <div className="flex flex-wrap gap-2">
-            {getAllCategories().map((cat) => (
+            {(categories || []).map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.slug)}

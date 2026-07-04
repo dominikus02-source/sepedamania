@@ -35,7 +35,7 @@ export const voucherSchema = z.object({
 
 export const productSchema = z.object({
   name: z.string().min(1, 'Nama produk wajib diisi'),
-  slug: z.string().min(1, 'Slug wajib diisi'),
+  slug: z.string().optional(),
   sku: z.string().min(1, 'SKU wajib diisi'),
   description: z.string().min(1, 'Deskripsi wajib diisi'),
   categoryId: z.string().min(1, 'Kategori wajib dipilih'),
