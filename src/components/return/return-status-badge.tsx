@@ -1,8 +1,8 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import type { ReturnStatus } from '@/lib/mock-returns';
-import { RETURN_STATUS_LABELS, RETURN_STATUS_VARIANTS } from '@/lib/mock-returns';
+import type { ReturnStatus } from '@prisma/client';
+import { RETURN_STATUS_LABELS, RETURN_STATUS_VARIANTS } from '@/lib/returns-shared';
 
 const VARIANT_MAP: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'destructive' | 'info' | 'outline'> = {
   blue: 'info',

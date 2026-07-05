@@ -1,8 +1,8 @@
 'use client';
 
 import { CheckCircle, XCircle } from 'lucide-react';
-import type { ReturnStatus } from '@/lib/mock-returns';
-import { RETURN_STATUS_LABELS } from '@/lib/mock-returns';
+import type { ReturnStatus } from '@prisma/client';
+import { RETURN_STATUS_LABELS } from '@/lib/returns-shared';
 import { formatDate } from '@/lib/utils';
 
 interface ReturnTimelineProps {

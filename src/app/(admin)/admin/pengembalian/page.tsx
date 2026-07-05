@@ -2,19 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { getAllMockReturns } from '@/lib/mock-returns';
-import { RETURN_STATUS_LABELS, RETURN_REASON_LABELS } from '@/lib/mock-returns';
-import type { MockReturnRequest } from '@/lib/mock-returns';
-import { AdminStore } from '@/lib/admin-store';
-import type { AdminOrder } from '@/lib/admin-store';
 import { formatDateShort } from '@/lib/utils';
-import { ReturnStatusBadge } from '@/components/return/return-status-badge';
-import { ReturnReasonLabel } from '@/components/return/return-reason-label';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Search, RotateCcw, ChevronRight } from 'lucide-react';
-
-// ─── Resolution Labels ─────────────────────────────────────────────────────
+import { RETURN_STATUS_LABELS, RETURN_REASON_LABELS } from '@/lib/returns-shared';
 
 const RESOLUTION_LABELS: Record<string, string> = {
   REFUND: 'Refund',
@@ -22,6 +11,11 @@ const RESOLUTION_LABELS: Record<string, string> = {
   STORE_CREDIT: 'Kredit Toko',
   ADMIN_HELP: 'Bantuan Admin',
 };
+import { ReturnStatusBadge } from '@/components/return/return-status-badge';
+import { ReturnReasonLabel } from '@/components/return/return-reason-label';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Search, RotateCcw, ChevronRight } from 'lucide-react';
 
 // ─── Status filter options ─────────────────────────────────────────────────
 
@@ -46,8 +40,7 @@ const REASON_OPTIONS = [
 // ─── Page Component ────────────────────────────────────────────────────────
 
 export default function AdminReturnsPage() {
-  const [returns, setReturns] = useState<MockReturnRequest[]>([]);
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [returns, setReturns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [q, setQ] = useState('');
@@ -55,27 +48,22 @@ export default function AdminReturnsPage() {
   const [reason, setReason] = useState('');
 
   useEffect(() => {
-    setReturns(getAllMockReturns());
-    setOrders(AdminStore.getOrders());
-    setLoading(false);
+    fetch('/api/returns')
+      .then((r) => r.json())
+      .then((data) => {
+        setReturns(data.returns ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  // Build a map for quick order lookup
-  const orderLookup = useMemo(() => {
-    const map = new Map<string, AdminOrder>();
-    orders.forEach((o) => map.set(o.id, o));
-    return map;
-  }, [orders]);
-
-  // Filtered & sorted list
   const filtered = useMemo(() => {
     let result = [...returns];
 
     if (q) {
       const query = q.toLowerCase();
       result = result.filter((ret) => {
-        const order = orderLookup.get(ret.orderId);
-        const customerName = order?.user?.name?.toLowerCase() ?? '';
+        const customerName = ret.order?.orderNumber?.toLowerCase() ?? '';
         return (
           ret.returnNumber.toLowerCase().includes(query) ||
           ret.orderId.toLowerCase().includes(query) ||
@@ -92,13 +80,8 @@ export default function AdminReturnsPage() {
       result = result.filter((ret) => ret.reason === reason);
     }
 
-    // Newest first
-    result.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
     return result;
-  }, [returns, q, status, reason, orderLookup]);
+  }, [returns, q, status, reason]);
 
   // ─── Render helpers ─────────────────────────────────────────────────────
 
@@ -232,8 +215,7 @@ export default function AdminReturnsPage() {
                 </thead>
                 <tbody>
                   {filtered.map((ret) => {
-                    const order = orderLookup.get(ret.orderId);
-                    const customerName = order?.user?.name ?? '—';
+                    const orderNumber = ret.order?.orderNumber ?? '';
                     return (
                       <tr
                         key={ret.id}
@@ -249,11 +231,11 @@ export default function AdminReturnsPage() {
                             href={`/admin/pesanan/${ret.orderId}`}
                             className="font-mono text-xs text-[#F5A623] hover:text-[#F5A623]/80 transition-colors"
                           >
-                            #{ret.orderId.slice(0, 12)}...
+                            {orderNumber ? `#${orderNumber}` : `#${ret.orderId.slice(0, 12)}...`}
                           </Link>
                         </td>
                         <td className="p-3 text-sm font-medium text-[#1C1C1E]">
-                          {customerName}
+                          {ret.user?.name || '—'}
                         </td>
                         <td className="p-3">
                           <ReturnReasonLabel reason={ret.reason} />
@@ -286,11 +268,8 @@ export default function AdminReturnsPage() {
             </div>
           </div>
 
-          {/* ── Mobile cards ──────────────────────────────────────────────── */}
           <div className="md:hidden space-y-3">
             {filtered.map((ret) => {
-              const order = orderLookup.get(ret.orderId);
-              const customerName = order?.user?.name ?? '—';
               return (
                 <Link
                   key={ret.id}
@@ -302,13 +281,13 @@ export default function AdminReturnsPage() {
                       <span className="font-mono text-xs font-bold text-[#1C1C1E]">
                         {ret.returnNumber}
                       </span>
-                      <p className="text-sm font-medium text-[#1C1C1E]">{customerName}</p>
+                      <p className="text-sm font-medium text-[#1C1C1E]">{ret.user?.name || '—'}</p>
                     </div>
                     <ReturnStatusBadge status={ret.status} />
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-[#8E8E93]">
-                    <span>#{ret.orderId.slice(0, 12)}...</span>
+                    <span>#{ret.order?.orderNumber || ret.orderId.slice(0, 12)}...</span>
                     <span>&middot;</span>
                     <span>{formatDateShort(ret.createdAt)}</span>
                   </div>

@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import type { ReturnStatus } from '@/lib/mock-returns';
+import type { ReturnStatus } from '@prisma/client';
 import {
   RETURN_STATUS_LABELS,
   VALID_RETURN_TRANSITIONS,
   RETURN_STATUS_VARIANTS,
-} from '@/lib/mock-returns';
+} from '@/lib/returns-shared';
 import { ChevronDown, Loader2 } from 'lucide-react';
 
 interface ReturnActionPanelProps {
@@ -22,7 +22,7 @@ export function ReturnActionPanel({
   isLoading = false,
 }: ReturnActionPanelProps) {
   const [open, setOpen] = useState(false);
-  const transitions = VALID_RETURN_TRANSITIONS[currentStatus];
+  const transitions = (VALID_RETURN_TRANSITIONS[currentStatus] || []) as ReturnStatus[];
 
   if (!transitions || transitions.length === 0) {
     return (

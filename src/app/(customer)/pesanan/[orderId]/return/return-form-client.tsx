@@ -17,44 +17,20 @@ import {
   Camera,
   Info,
 } from 'lucide-react';
-import type {
-  ReturnReason,
-  ReturnStatus,
-  PreferredResolution,
-  MockReturnRequest,
-} from '@/lib/mock-returns';
-import { RETURN_REASON_LABELS, RESOLUTION_LABELS } from '@/lib/mock-returns';
-
-interface OrderItem {
-  productId: string;
-  variantId?: string;
-  name: string;
-  price: number;
-  qty: number;
-  image?: string;
-}
-
-interface OrderData {
-  id: string;
-  status: string;
-  items: OrderItem[];
-  [key: string]: unknown;
-}
+import type { ReturnReason, ReturnStatus, PreferredResolution } from '@prisma/client';
+import { RETURN_REASON_LABELS, RESOLUTION_LABELS } from '@/lib/returns-shared';
 
 export function ReturnFormClient({ orderId }: { orderId: string }) {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const { toast } = useToast();
 
-  // Order state
-  const [order, setOrder] = useState<OrderData | null>(null);
+  const [order, setOrder] = useState<any>(null);
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
 
-  // Active return check
-  const [activeReturn, setActiveReturn] = useState<MockReturnRequest | null>(null);
+  const [activeReturn, setActiveReturn] = useState<any>(null);
 
-  // Form state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState<ReturnReason | ''>('');
   const [detail, setDetail] = useState('');
@@ -83,28 +59,23 @@ export function ReturnFormClient({ orderId }: { orderId: string }) {
 
     const fetchData = async () => {
       try {
-        // Fetch order
         const orderRes = await fetch(`/api/orders/${orderId}`);
         const orderData = await orderRes.json();
         if (orderData.error) throw new Error(orderData.error);
-        setOrder(orderData);
+        const ord = orderData.order || orderData;
+        setOrder(ord);
 
-        // Pre-select all items
-        if (orderData.items && Array.isArray(orderData.items)) {
-          setSelectedItems(new Set(orderData.items.map((i: OrderItem) => i.productId)));
-        }
+          if (ord.items && ord.items.length > 0) {
+            setSelectedItems(new Set(ord.items.map((i: any) => i.productId)));
+          }
 
         // Check for active returns on this order
         const returnsRes = await fetch(`/api/returns?orderId=${orderId}`);
         const returnsData = await returnsRes.json();
         if (!returnsData.error) {
-          const returnsList: MockReturnRequest[] = Array.isArray(returnsData)
-            ? returnsData
-            : returnsData.returns ?? [];
+          const returnsList = returnsData.returns ?? [];
           const terminal: ReturnStatus[] = ['COMPLETED', 'CANCELLED', 'REJECTED'];
-          const active = returnsList.find(
-            (r: MockReturnRequest) => !terminal.includes(r.status)
-          );
+          const active = returnsList.find((r: any) => !terminal.includes(r.status));
           if (active) setActiveReturn(active);
         }
       } catch (err) {
@@ -119,11 +90,8 @@ export function ReturnFormClient({ orderId }: { orderId: string }) {
     fetchData();
   }, [orderId, authStatus]);
 
-  // Validate order status for return
-  const canReturn =
-    order &&
-    (order.status === 'DELIVERED' || order.status === 'COMPLETED') &&
-    !activeReturn;
+  const orderStatus = (order?.status as string) || (order?.order?.status as string);
+  const canReturn = order && (orderStatus === 'DELIVERED' || orderStatus === 'COMPLETED') && !activeReturn;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,14 +121,11 @@ export function ReturnFormClient({ orderId }: { orderId: string }) {
 
     setSubmitting(true);
     try {
-      const items = order?.items.filter((i) => selectedItems.has(i.productId)) || [];
-
       const res = await fetch('/api/returns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          items,
           reason,
           detail,
           preferredResolution: resolution,
@@ -173,7 +138,8 @@ export function ReturnFormClient({ orderId }: { orderId: string }) {
       if (data.error) throw new Error(data.error);
 
       toast('Pengembalian berhasil diajukan!', 'success');
-      router.push(`/return/${data.returnNumber}`);
+      const returnNumber = data.return?.returnNumber || data.returnNumber;
+      router.push(`/return/${returnNumber}`);
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Gagal mengajukan pengembalian'
@@ -330,7 +296,7 @@ export function ReturnFormClient({ orderId }: { orderId: string }) {
             Pilih Produk yang Dikembalikan
           </h2>
           <div className="space-y-3">
-            {order.items.map((item, i) => (
+            {order.items.map((item: any, i: number) => (
               <label
                 key={item.productId + i}
                 className="flex items-center gap-3 p-3 rounded-xl border border-[#E5E5EA] cursor-pointer transition-all duration-200 hover:border-[#F5A623] has-checked:border-[#F5A623] has-checked:bg-[#F5A623]/5"

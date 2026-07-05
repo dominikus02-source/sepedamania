@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,14 +25,12 @@ import {
   CheckCircle,
   RefreshCw,
 } from 'lucide-react';
-import type { MockReturnRequest } from '@/lib/mock-returns';
-import { RESOLUTION_LABELS } from '@/lib/mock-returns';
+import { RESOLUTION_LABELS } from '@/lib/returns-shared';
 
 export function ReturnDetailClient({ returnNumber }: { returnNumber: string }) {
-  const router = useRouter();
   const { toast } = useToast();
 
-  const [returnData, setReturnData] = useState<MockReturnRequest | null>(null);
+  const [returnData, setReturnData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -44,7 +41,7 @@ export function ReturnDetailClient({ returnNumber }: { returnNumber: string }) {
       .then((r) => r.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
-        setReturnData(data);
+        setReturnData(data.return ?? data);
       })
       .catch((err) => {
         setError(err.message || 'Gagal memuat detail pengembalian');
@@ -62,7 +59,7 @@ export function ReturnDetailClient({ returnNumber }: { returnNumber: string }) {
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setReturnData(data);
+      setReturnData(data.return ?? data);
       toast('Pengembalian berhasil dibatalkan', 'success');
       setCancelDialogOpen(false);
     } catch (err) {
@@ -192,7 +189,7 @@ export function ReturnDetailClient({ returnNumber }: { returnNumber: string }) {
         </h3>
         {ret.evidenceImages && ret.evidenceImages.length > 0 ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {ret.evidenceImages.map((url, i) => (
+            {ret.evidenceImages.map((url: string, i: number) => (
               <a
                 key={i}
                 href={url}
@@ -236,7 +233,7 @@ export function ReturnDetailClient({ returnNumber }: { returnNumber: string }) {
           Barang Dikembalikan
         </h3>
         <div className="space-y-3">
-          {ret.items.map((item, i) => (
+          {ret.items.map((item: any, i: number) => (
             <div key={item.productId + i} className="flex gap-3">
               <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-[#F2F2F7] flex-shrink-0 border border-[#E5E5EA]">
                 {item.image ? (

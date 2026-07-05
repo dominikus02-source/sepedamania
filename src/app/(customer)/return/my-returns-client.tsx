@@ -3,21 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ReturnStatusBadge } from '@/components/return/return-status-badge';
 import { ReturnReasonLabel } from '@/components/return/return-reason-label';
 import { Loader2, Package, ChevronRight, RefreshCw } from 'lucide-react';
-import type { MockReturnRequest } from '@/lib/mock-returns';
-import { RESOLUTION_LABELS } from '@/lib/mock-returns';
+import { RESOLUTION_LABELS } from '@/lib/returns-shared';
 
 export function MyReturnsClient() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useSession();
 
-  const [returns, setReturns] = useState<MockReturnRequest[]>([]);
+  const [returns, setReturns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,11 +29,7 @@ export function MyReturnsClient() {
       .then((r) => r.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
-        const list: MockReturnRequest[] = Array.isArray(data) ? data : data.returns ?? [];
-        list.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setReturns(list);
+        setReturns(data.returns ?? []);
       })
       .catch((err) => {
         setError(err.message || 'Gagal memuat data pengembalian');
@@ -148,9 +141,9 @@ export function MyReturnsClient() {
             <div className="px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-[#1C1C1E]">{ret.returnNumber}</span>
-                <span className="text-xs text-[#8E8E93]">
-                  Pesanan #{ret.orderId.slice(0, 8)}
-                </span>
+                  <span className="text-xs text-[#8E8E93]">
+                    Pesanan #{ret.order?.orderNumber || ret.orderId.slice(0, 8)}
+                  </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-[#8E8E93]">
                 <span>Alasan: <ReturnReasonLabel reason={ret.reason} /></span>
@@ -159,7 +152,7 @@ export function MyReturnsClient() {
               </div>
               {ret.items && ret.items.length > 0 && (
                 <div className="flex items-center gap-1.5 pt-1">
-                  {ret.items.slice(0, 3).map((item, i) => (
+                  {ret.items.slice(0, 3).map((item: any, i: number) => (
                     <div
                       key={item.productId + i}
                       className="w-8 h-8 rounded-lg bg-[#F2F2F7] overflow-hidden flex-shrink-0 border border-[#E5E5EA]"

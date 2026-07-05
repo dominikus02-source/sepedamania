@@ -401,7 +401,7 @@ export function ProductDetail({ slug }: { slug: string }) {
         <div className="grid grid-cols-3 gap-3">
           {[
             { icon: Truck, text: 'Gratis Ongkir*', href: '/pengiriman' },
-            { icon: Shield, text: 'Garansi Resmi', href: '#' },
+            { icon: Shield, text: 'Garansi Resmi', href: '/syarat-ketentuan' },
             { icon: RotateCcw, text: '30 Hari Retur', href: '/pengembalian' },
           ].map(({ icon: Icon, text, href }) => (
             <Link key={text} href={href} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-[#F3F4F6] hover:bg-[#FDE68A] transition-colors">

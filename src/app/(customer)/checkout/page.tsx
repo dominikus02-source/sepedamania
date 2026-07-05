@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote
 const addressSchema = z.object({
   recipient: z.string().min(2, 'Nama minimal 2 karakter'),
   phone: z.string().regex(/^08\d{8,11}$/, 'Format: 08xxxxxxxxxx'),
+  email: z.string().email('Email tidak valid').optional().or(z.literal('')),
   province: z.string().min(1, 'Pilih provinsi'),
   city: z.string().min(1, 'Pilih kota'),
   district: z.string().min(2, 'Isi kecamatan'),
@@ -89,7 +90,7 @@ export default function CheckoutPage() {
 
   const form = useForm<AddressForm>({
     resolver: zodResolver(addressSchema),
-    defaultValues: { recipient: '', phone: '', province: '', city: '', district: '', postalCode: '', detail: '' },
+    defaultValues: { recipient: '', phone: '', email: session?.user?.email || '', province: '', city: '', district: '', postalCode: '', detail: '' },
   });
 
   const {
@@ -158,31 +159,37 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const addr = getValues();
-      const itemPrices: Record<string, number> = {};
-      items.forEach((i) => {
-        const key = i.variantId ? `${i.productId}-${i.variantId}` : i.productId;
-        itemPrices[key] = i.price;
-      });
+      const customerEmail = session?.user?.email || addr.email || '';
+      const customerName = session?.user?.name || addr.recipient;
+      const customerPhone = (session?.user as any)?.phone || addr.phone;
+
       const orderPayload = {
         items: items.map((i) => ({
           productId: i.productId,
           variantId: i.variantId,
-          name: i.name,
-          price: i.price,
           qty: i.qty,
-          image: i.image,
         })),
-        address: addr,
+        customerName,
+        customerEmail,
+        customerPhone,
+        address: {
+          recipient: addr.recipient,
+          phone: addr.phone,
+          email: customerEmail,
+          detail: addr.detail,
+          district: addr.district,
+          city: addr.city,
+          province: addr.province,
+          postalCode: addr.postalCode,
+        },
         courier: selectedCourier,
         courierService: selectedService,
         shippingCost,
         paymentMethod,
         voucherCode,
-        voucherDiscount,
-        itemPrices,
       };
 
-      const res = await fetch('/api/checkout/create-payment', {
+      const res = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload),
@@ -194,8 +201,10 @@ export default function CheckoutPage() {
 
       if (result.snapRedirectUrl) {
         window.location.href = result.snapRedirectUrl;
+      } else if (result.orderNumber) {
+        router.push(`/pesanan/${result.orderNumber}`);
       } else {
-        router.push(`/pesanan/${result.orderId}`);
+        router.push('/pesanan');
       }
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : 'Gagal membuat pesanan', 'error');
@@ -300,6 +309,13 @@ export default function CheckoutPage() {
                 {errors.city && <p className="text-xs text-[#EF4444] mt-1">{errors.city.message}</p>}
               </div>
             </div>
+            {!session?.user?.email && (
+              <div>
+                <Label>Email</Label>
+                <Input {...register('email')} placeholder="email@contoh.com" type="email" />
+                {errors.email && <p className="text-xs text-[#EF4444] mt-1">{errors.email.message}</p>}
+              </div>
+            )}
             <div>
               <Label>Kecamatan</Label>
               <Input {...register('district')} placeholder="Menteng" />

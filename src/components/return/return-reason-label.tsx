@@ -1,7 +1,7 @@
 'use client';
 
-import type { ReturnReason } from '@/lib/mock-returns';
-import { RETURN_REASON_LABELS } from '@/lib/mock-returns';
+import type { ReturnReason } from '@prisma/client';
+import { RETURN_REASON_LABELS } from '@/lib/returns-shared';
 
 interface ReturnReasonLabelProps {
   reason: ReturnReason;
