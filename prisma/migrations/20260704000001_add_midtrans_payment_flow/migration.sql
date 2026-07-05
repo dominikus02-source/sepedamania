@@ -17,8 +17,14 @@ ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "paidAt" TIMESTAMP(3);
 ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cancelledAt" TIMESTAMP(3);
 ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "completedAt" TIMESTAMP(3);
 
--- Make orderNumber NOT NULL and UNIQUE after backfill
-UPDATE "Order" SET "orderNumber" = CONCAT('INV-', LPAD(CAST(ROW_NUMBER() OVER (ORDER BY "createdAt") AS TEXT), 8, '0')) WHERE "orderNumber" IS NULL;
+-- Backfill orderNumber (window function in subquery to avoid PostgreSQL restriction)
+UPDATE "Order" SET "orderNumber" = sub.seq
+FROM (
+  SELECT "id", CONCAT('INV-', LPAD(CAST(ROW_NUMBER() OVER (ORDER BY "createdAt") AS TEXT), 8, '0')) AS seq
+  FROM "Order"
+) sub
+WHERE "Order"."id" = sub."id" AND "Order"."orderNumber" IS NULL;
+
 ALTER TABLE "Order" ALTER COLUMN "orderNumber" SET NOT NULL;
 ALTER TABLE "Order" ADD CONSTRAINT "Order_orderNumber_key" UNIQUE ("orderNumber");
 ALTER TABLE "Order" ADD CONSTRAINT "Order_midtransOrderId_key" UNIQUE ("midtransOrderId");

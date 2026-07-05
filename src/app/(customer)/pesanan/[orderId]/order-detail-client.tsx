@@ -91,7 +91,9 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
     }
 
     if (order.snapToken) {
-      window.open(`https://app.sandbox.midtrans.com/snap/v2/vtweb/${order.snapToken}`, '_blank');
+      const isProd = window.location.hostname === 'www.sepedamania.com' || window.location.hostname === 'sepedamania.com';
+      const snapBase = isProd ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
+      window.open(`${snapBase}/snap/v2/vtweb/${order.snapToken}`, '_blank');
       return;
     }
 
