@@ -25,7 +25,7 @@ export async function POST(req: Request) {
           id: true,
           orderNumber: true,
           userId: true,
-          customerEmail: true,
+          guestEmail: true,
           status: true,
           paymentStatus: true,
           paidAt: true,
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
           paidAt: true,
           completedAt: true,
           userId: true,
-          customerEmail: true,
+          guestEmail: true,
           total: true,
         },
       });
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
       const hashedPassword = await bcrypt.hash(password, 12);
       const user = await prisma.user.create({
-        data: { email, name, password: hashedPassword, role: 'USER' },
+        data: { email, name, password: hashedPassword, role: 'CUSTOMER' },
         select: { id: true, name: true, email: true, role: true },
       });
 
@@ -106,12 +106,12 @@ export async function POST(req: Request) {
         where: { orderNumber },
         data: {
           userId: user.id,
-          customerEmail: email,
+          guestEmail: email,
         },
         select: {
           orderNumber: true,
           userId: true,
-          customerEmail: true,
+          guestEmail: true,
           status: true,
           paymentStatus: true,
         },
