@@ -16,7 +16,7 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://sepedamania.com'
+const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.sepedamania.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     description:
       'Beli sepeda MTB, Road Bike, BMX, Fixie & aksesoris terlengkap di SEPEDAMANIA.',
     images: [
-      { url: '/og-default.jpg', width: 1200, height: 630, alt: 'SEPEDAMANIA' },
+      { url: `${baseUrl}/og-default.jpg`, width: 1200, height: 630, alt: 'SEPEDAMANIA' },
     ],
   },
   twitter: {
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     title: 'SEPEDAMANIA — Toko Sepeda Online Terlengkap',
     description:
       'Beli sepeda MTB, Road Bike, BMX, Fixie & aksesoris terlengkap di SEPEDAMANIA.',
-    images: ['/og-default.jpg'],
+    images: [`${baseUrl}/og-default.jpg`],
   },
   appleWebApp: {
     capable: true,
@@ -96,6 +96,18 @@ export const viewport: Viewport = {
   themeColor: '#0F172A',
 }
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  name: 'SEPEDAMANIA',
+  url: baseUrl,
+  description: 'Premium Bicycle Store. Toko sepeda online terlengkap di Indonesia. Jual MTB, Road Bike, BMX, Fixie, aksesoris, dan suku cadang original.',
+  image: `${baseUrl}/og-default.jpg`,
+  address: { '@type': 'PostalAddress', addressLocality: 'Jakarta Pusat', addressCountry: 'ID' },
+  contactPoint: { '@type': 'ContactPoint', telephone: '+62-813-1898-6320', contactType: 'customer service' },
+  sameAs: ['https://wa.me/6281318986320'],
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -104,6 +116,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning className={inter.variable}>
       <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

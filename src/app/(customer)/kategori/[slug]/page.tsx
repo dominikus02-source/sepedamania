@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = mockCategories.find((c) => c.slug === slug);
   if (!category) return { title: 'Kategori tidak ditemukan' };
-  const title = `${category.name} Terbaik | SEPEDAMANIA`;
+  const title = `${category.name} Terbaik`;
   const description = `Temukan koleksi ${category.name} terlengkap di SEPEDAMANIA. Harga kompetitif, produk original, pengiriman ke seluruh Indonesia.`;
   return {
     title,
