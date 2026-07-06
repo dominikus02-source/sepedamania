@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         where: { orderNumber },
         data: {
           paymentStatus: 'PAID',
-          status: 'COMPLETED',
+          status: 'DELIVERED',
           paidAt: new Date(),
           completedAt: new Date(),
           updatedAt: new Date(),
