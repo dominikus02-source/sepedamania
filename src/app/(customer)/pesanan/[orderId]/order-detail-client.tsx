@@ -256,7 +256,7 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
           </a>
         </div>
 
-        {order.status === 'DELIVERED' && (
+        {(order.status === 'DELIVERED' || order.status === 'COMPLETED') && (
           <div className="mt-4">
             <Link href={`/pesanan/${orderId}/return`}>
               <Button variant="outline" className="w-full">
