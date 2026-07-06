@@ -68,7 +68,7 @@ export function ProductsSection() {
       <Section>
         <Container>
           <SectionHeader
-            title="Terlaris"
+            title="Sepeda Pilihan Pelanggan"
             action={
               <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#F97316] hover:text-[#EA580C] transition-colors">
                 Lihat Semua <ChevronRight className="w-4 h-4" />
@@ -86,7 +86,7 @@ export function ProductsSection() {
       <Section>
         <Container>
           <SectionHeader
-            title="Baru"
+            title="Koleksi Baru"
             action={
               <Link href="/kategori" className="flex items-center gap-0.5 text-sm font-medium text-[#F97316] hover:text-[#EA580C] transition-colors">
                 Lihat Semua <ChevronRight className="w-4 h-4" />

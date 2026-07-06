@@ -31,7 +31,7 @@ function DesktopFooter() {
           <div className="col-span-1">
             <h3 className="text-lg font-bold text-[#FBBF24]">SEPEDAMANIA</h3>
             <p className="text-sm text-[#94A3B8] mt-2 leading-relaxed">
-              Premium Bicycle Store. Tempat terbaik untuk menemukan sepeda impianmu.
+              Temukan sepeda yang cocok untuk gaya hidupmu. Toko sepeda online terpercaya dengan produk original, pembayaran aman, dan pengiriman ke seluruh Indonesia.
             </p>
             <div className="flex items-center gap-2 mt-4">
               <a
@@ -99,7 +99,7 @@ function DesktopFooter() {
             &copy; 2026 SEPEDAMANIA. All rights reserved.
           </p>
           <p className="text-xs text-[#64748B]">
-            Premium Bicycle Store — Sepeda Berkualitas, Harga Terbaik.
+            Sepedamania — Temukan sepeda yang cocok untuk gaya hidupmu.
           </p>
         </div>
       </div>

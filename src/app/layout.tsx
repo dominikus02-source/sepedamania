@@ -21,11 +21,11 @@ const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.sepedamania.com'
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'SEPEDAMANIA — Toko Sepeda Online Terlengkap',
+    default: 'SEPEDAMANIA — Temukan Sepeda yang Cocok untuk Gaya Hidupmu',
     template: '%s | SEPEDAMANIA',
   },
   description:
-    'Beli sepeda MTB, Road Bike, BMX, Fixie & aksesoris terlengkap di SEPEDAMANIA. Harga terbaik, original, pengiriman ke seluruh Indonesia.',
+    'Toko sepeda online terlengkap. Temukan MTB, Road Bike, BMX, Fixie, City Bike & aksesoris original. Pembayaran aman via Midtrans, pengiriman ke seluruh Indonesia.',
   keywords: [
     'toko sepeda online',
     'beli sepeda',
@@ -50,18 +50,18 @@ export const metadata: Metadata = {
     locale: 'id_ID',
     url: baseUrl,
     siteName: 'SEPEDAMANIA',
-    title: 'SEPEDAMANIA — Toko Sepeda Online Terlengkap',
+    title: 'SEPEDAMANIA — Temukan Sepeda yang Cocok untuk Gaya Hidupmu',
     description:
-      'Beli sepeda MTB, Road Bike, BMX, Fixie & aksesoris terlengkap di SEPEDAMANIA.',
+      'Toko sepeda online terlengkap. Temukan MTB, Road Bike, BMX, Fixie, City Bike & aksesoris original. Pembayaran aman via Midtrans.',
     images: [
       { url: `${baseUrl}/og-default.jpg`, width: 1200, height: 630, alt: 'SEPEDAMANIA' },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SEPEDAMANIA — Toko Sepeda Online Terlengkap',
+    title: 'SEPEDAMANIA — Temukan Sepeda yang Cocok untuk Gaya Hidupmu',
     description:
-      'Beli sepeda MTB, Road Bike, BMX, Fixie & aksesoris terlengkap di SEPEDAMANIA.',
+      'Toko sepeda online terlengkap. Temukan MTB, Road Bike, BMX, Fixie, City Bike & aksesoris original. Pembayaran aman via Midtrans.',
     images: [`${baseUrl}/og-default.jpg`],
   },
   appleWebApp: {

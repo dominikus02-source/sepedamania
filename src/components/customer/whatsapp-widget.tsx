@@ -21,7 +21,7 @@ export function WhatsAppWidget() {
               <p className="text-xs text-[#8E8E93]">Online</p>
             </div>
           </div>
-          <p className="text-sm text-[#1C1C1E] mb-3">Halo! Ada yang bisa kami bantu?</p>
+          <p className="text-sm text-[#1C1C1E] mb-3">Halo! Bingung pilih sepeda? Konsultasi gratis dulu aja, yuk!</p>
           <a
             href={`https://wa.me/${WA_NUMBER}`}
             target="_blank"
