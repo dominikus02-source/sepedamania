@@ -7,7 +7,6 @@ import { Container, Section } from '@/components/ui/container';
 import { ProductsSection } from './products-section';
 
 export const metadata: Metadata = {
-  title: 'SEPEDAMANIA — Temukan Sepeda yang Cocok untuk Gaya Hidupmu',
   description:
     'Toko sepeda online terlengkap. Temukan MTB, Road Bike, BMX, Fixie, City Bike & aksesoris original. Pembayaran aman via Midtrans, pengiriman ke seluruh Indonesia.',
 };
