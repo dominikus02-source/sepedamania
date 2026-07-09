@@ -234,6 +234,8 @@ export async function POST(req: Request) {
       },
     });
 
+    revalidateCatalog({ productSlug: slug, includeAdmin: true });
+
     return NextResponse.json({
       product: {
         ...product,
@@ -246,7 +248,6 @@ export async function POST(req: Request) {
         reviewCount: 0,
       },
     }, { status: 201 });
-    revalidateCatalog({ productSlug: slug, includeAdmin: true });
   } catch (err) {
     console.error('POST /api/products error:', err);
     return NextResponse.json({ error: 'Gagal menyimpan produk' }, { status: 500 });

@@ -51,7 +51,7 @@ export default function AddProductPage() {
       const res = await fetch('/api/categories');
       if (res.ok) {
         const json = await res.json();
-        if (json.categories?.length) { setCategories(json.categories); return; }
+        if (json.categories?.length) { setCategories(json.categories.map((c: any) => ({ ...c, options: Array.isArray(c.options) ? c.options : [] }))); return; }
       }
     } catch {}
     setCategories(getAllCategories());
@@ -102,7 +102,7 @@ export default function AddProductPage() {
 
   // Auto-suggest variants from category options (after manual category creation)
   useEffect(() => {
-    if (!selectedCategory || selectedCategory.options.length === 0) return;
+    if (!selectedCategory || !selectedCategory.options?.length) return;
     // Only suggest if variants are empty
     if (variants.length > 0) return;
     const suggested: Variant[] = [];
@@ -331,28 +331,35 @@ export default function AddProductPage() {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan produk');
+      if (!res.ok) {
+        const details = json.details?.map((d: any) => d.message).join(', ');
+        throw new Error(details || json.error || 'Gagal menyimpan produk');
+      }
       toast('Produk berhasil ditambahkan', 'success');
       router.push('/admin/produk');
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Gagal menyimpan produk', 'error');
-      try {
-        const product = await AdminStore.addProduct({
-          name: form.name, sku: form.sku, description: form.description,
-          categoryId: form.categoryId, brandId: form.brandId,
-          price: Number(form.price), salePrice: form.salePrice ? Number(form.salePrice) : null,
-          weight: Number(form.weight), stock: Number(form.stock),
-          images,
-          videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
-        });
-        if (variants.length > 0 && product) {
-          await AdminStore.updateProduct(product.slug, { variants: variants as any });
+      const msg = err instanceof Error ? err.message : 'Gagal menyimpan produk';
+      toast(msg, 'error');
+      // Only fallback to localStorage if API is unreachable (network error)
+      if (msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('Failed to fetch') || msg.includes('load')) {
+        try {
+          const product = await AdminStore.addProduct({
+            name: form.name, sku: form.sku, description: form.description,
+            categoryId: form.categoryId, brandId: form.brandId,
+            price: Number(form.price), salePrice: form.salePrice ? Number(form.salePrice) : null,
+            weight: Number(form.weight), stock: Number(form.stock),
+            images,
+            videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
+          });
+          if (variants.length > 0 && product) {
+            await AdminStore.updateProduct(product.slug, { variants: variants as any });
+          }
+          setFallbackActive(true);
+          toast('Database tidak tersambung. Produk hanya tersimpan sementara.', 'warning');
+          router.push('/admin/produk');
+        } catch (fallbackErr) {
+          toast('Gagal menyimpan produk', 'error');
         }
-        setFallbackActive(true);
-        toast('Database tidak tersambung. Produk hanya tersimpan sementara.', 'warning');
-        router.push('/admin/produk');
-      } catch (fallbackErr) {
-        toast('Gagal menyimpan produk', 'error');
       }
     } finally {
       setLoading(false);
@@ -394,7 +401,7 @@ export default function AddProductPage() {
         {/* Deskripsi */}
         <div className="space-y-2">
           <Label>Deskripsi</Label>
-          <Textarea value={form.description} onChange={update('description')} rows={4} />
+          <Textarea value={form.description} onChange={update('description')} rows={4} required />
         </div>
 
         {/* Merek & Kategori — cascade */}
@@ -434,7 +441,7 @@ export default function AddProductPage() {
                   onChange={update('categoryId')}
                   options={filteredCats.map((c) => ({
                     value: c.id,
-                    label: `${c.name}${c.options.length > 0 ? ` (${c.options.length} opsi)` : ''}`,
+                    label: `${c.name}${(c.options?.length ?? 0) > 0 ? ` (${c.options?.length ?? 0} opsi)` : ''}`,
                   }))}
                   placeholder={form.brandId ? 'Pilih kategori' : 'Pilih merek dulu'}
                   disabled={!form.brandId}
@@ -449,16 +456,16 @@ export default function AddProductPage() {
                 <Plus className="w-4 h-4 text-[#8E8E93]" />
               </button>
             </div>
-            {selectedCategory && selectedCategory.options.length > 0 && (
+            {selectedCategory?.options?.length ? (
               <p className="text-[10px] text-[#0EA5E9] flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')}) — terisi otomatis
+                <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({(selectedCategory.options ?? []).map((o) => o.name).join(', ')}) — terisi otomatis
               </p>
-            )}
-            {selectedCategory && selectedCategory.options.length > 0 && (
+            ) : null}
+            {selectedCategory?.options?.length ? (
               <p className="text-xs text-[#0EA5E9] flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')}) — akan otomatis terisi saat kategori dipilih
+                <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({(selectedCategory.options ?? []).map((o) => o.name).join(', ')}) — akan otomatis terisi saat kategori dipilih
               </p>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -606,7 +613,7 @@ export default function AddProductPage() {
           </div>
           {variants.length === 0 ? (
             <p className="text-sm text-[#8E8E93] py-6 text-center">
-              {selectedCategory && selectedCategory.options.length > 0
+              {selectedCategory?.options?.length
                 ? `Klik "Gunakan Opsi" di atas atau tambah baris manual`
                 : 'Belum ada opsi. Pilih kategori untuk opsi otomatis.'}
             </p>

@@ -355,7 +355,7 @@ export default function EditProductPage() {
                     onChange={update('categoryId')}
                     options={filteredCats.map((c) => ({
                       value: c.id,
-                      label: `${c.name}${c.options.length > 0 ? ` (${c.options.length} opsi)` : ''}`,
+                      label: `${c.name}${(c.options?.length ?? 0) > 0 ? ` (${c.options?.length ?? 0} opsi)` : ''}`,
                     }))}
                     placeholder={form.brandId ? 'Pilih kategori' : 'Pilih merek dulu'}
                     disabled={!form.brandId}
@@ -370,11 +370,11 @@ export default function EditProductPage() {
                   <Plus className="w-4 h-4 text-[#8E8E93]" />
                 </button>
               </div>
-              {selectedCategory && selectedCategory.options.length > 0 && (
+              {selectedCategory?.options?.length ? (
                 <p className="text-[10px] text-[#0EA5E9] flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({selectedCategory.options.map((o) => o.name).join(', ')})
+                  <Sparkles className="w-3 h-3" /> {selectedCategory.options.length} opsi ({(selectedCategory.options ?? []).map((o) => o.name).join(', ')})
                 </p>
-              )}
+              ) : null}
             </div>
           </div>
           <div className="grid grid-cols-4 gap-4">
@@ -542,7 +542,7 @@ export default function EditProductPage() {
 
           {variants.length === 0 ? (
             <p className="text-sm text-[#8E8E93] py-6 text-center">
-              {selectedCategory && selectedCategory.options.length > 0
+              {selectedCategory?.options?.length
                 ? 'Pilih ulang kategori untuk mengisi opsi otomatis'
                 : 'Belum ada opsi. Tambah baris manual.'}
             </p>

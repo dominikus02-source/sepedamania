@@ -63,7 +63,7 @@ function paymentBadgeVariant(status: string) {
   return 'destructive';
 }
 
-export function AdminOrdersClient({ orders }: { orders: AdminOrder[] }) {
+export function AdminOrdersClient({ orders = [] }: { orders: AdminOrder[] }) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [payment, setPayment] = useState('');
