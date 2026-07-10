@@ -1,6 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+
 export default function AdminError({ error, reset }: { error: Error; reset: () => void }) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    console.error('[AdminError] Route:', pathname, 'Error:', error.message, error.stack);
+  }, [pathname, error]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
       <div className="bg-white rounded-2xl border border-[#E5E5EA] p-8 max-w-md w-full text-center space-y-4">

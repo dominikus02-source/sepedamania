@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingCart, DollarSign, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 
+import { normalizeArray } from '@/lib/safe-array';
 import type { DashboardStats, RevenuePoint, OrderStatusCount, AdminOrder } from '@/lib/mock-admin-data';
 
 const RevenueChart = dynamic(() => import('./revenue-chart').then((m) => m.RevenueChart), {
@@ -37,6 +38,11 @@ export function AdminDashboard({
   recentOrders: Partial<AdminOrder>[];
   lowStockProducts: { id: string; name: string; stock: number; price: number; salePrice: number | null }[];
 }) {
+  const safeRevenueData = normalizeArray<RevenuePoint>(revenueData);
+  const safeOrderStatusCounts = normalizeArray<OrderStatusCount>(orderStatusCounts);
+  const safeRecentOrders = normalizeArray<Partial<AdminOrder>>(recentOrders);
+  const safeLowStockProducts = normalizeArray<{ id: string; name: string; stock: number; price: number; salePrice: number | null }>(lowStockProducts);
+
   const kpis = [
     { label: 'Pesanan Hari Ini', value: stats.todayOrders, icon: ShoppingCart, color: 'text-[#007AFF]' },
     { label: 'Pendapatan Hari Ini', value: formatPrice(stats.todayRevenue), icon: DollarSign, color: 'text-[#34C759]' },
@@ -84,7 +90,7 @@ export function AdminDashboard({
         </CardHeader>
         <CardContent>
           <div className="h-80">
-            <RevenueChart data={revenueData} />
+            <RevenueChart data={safeRevenueData} />
           </div>
         </CardContent>
       </Card>
@@ -97,7 +103,7 @@ export function AdminDashboard({
           </CardHeader>
           <CardContent>
             <div className="h-72">
-              <OrdersChart data={revenueData} />
+              <OrdersChart data={safeRevenueData} />
             </div>
           </CardContent>
         </Card>
@@ -108,7 +114,7 @@ export function AdminDashboard({
           </CardHeader>
           <CardContent>
             <div className="h-72 flex flex-col items-center">
-              <StatusPieChart data={orderStatusCounts} />
+              <StatusPieChart data={safeOrderStatusCounts} />
             </div>
           </CardContent>
         </Card>
@@ -116,17 +122,17 @@ export function AdminDashboard({
 
       {/* Low Stock Alert + Recent Orders — Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {lowStockProducts.length > 0 && (
+        {safeLowStockProducts.length > 0 && (
           <Card className="border-[#FF3B30]/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[#FF3B30]">
                 <AlertTriangle className="w-5 h-5" />
-                Stok Kritis ({lowStockProducts.length} produk)
+                Stok Kritis ({safeLowStockProducts.length} produk)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {lowStockProducts.map((p) => (
+                {safeLowStockProducts.map((p) => (
                   <div key={p.id} className="flex items-center justify-between text-sm">
                     <Link
                       href={`/admin/produk/${p.id}`}
@@ -148,7 +154,7 @@ export function AdminDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentOrders.map((order) => (
+              {safeRecentOrders.map((order) => (
                 <Link
                   key={order.id ?? ''}
                   href={`/admin/pesanan/${order.id}`}

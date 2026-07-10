@@ -1,14 +1,16 @@
 'use client';
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { normalizeArray } from '@/lib/safe-array';
 import type { OrderStatusCount } from '@/lib/mock-admin-data';
 
 export function StatusPieChart({ data }: { data: OrderStatusCount[] }) {
+  const safeData = normalizeArray<OrderStatusCount>(data);
   return (
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
         <Pie
-          data={data}
+          data={safeData}
           cx="50%"
           cy="50%"
           outerRadius={80}
@@ -17,7 +19,7 @@ export function StatusPieChart({ data }: { data: OrderStatusCount[] }) {
             `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
           }
         >
-          {data.map((entry: OrderStatusCount, index: number) => (
+          {safeData.map((entry: OrderStatusCount, index: number) => (
             <Cell key={index} fill={entry.color} />
           ))}
         </Pie>

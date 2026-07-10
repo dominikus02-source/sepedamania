@@ -461,7 +461,7 @@ export default function AdminOrderDetailPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Package className="w-4 h-4 text-[#8E8E93]" />
-            Produk ({order.items.length})
+            Produk ({order.items?.length ?? 0})
           </CardTitle>
         </CardHeader>
         <CardContent>

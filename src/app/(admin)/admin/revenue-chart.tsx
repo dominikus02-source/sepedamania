@@ -2,6 +2,7 @@
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatPrice } from '@/lib/utils';
+import { normalizeArray } from '@/lib/safe-array';
 import type { RevenuePoint } from '@/lib/mock-admin-data';
 
 const formatRevenueTick = (val: number) => {
@@ -11,9 +12,10 @@ const formatRevenueTick = (val: number) => {
 };
 
 export function RevenueChart({ data }: { data: RevenuePoint[] }) {
+  const safeData = normalizeArray<RevenuePoint>(data);
   return (
     <ResponsiveContainer width="100%" height={256}>
-      <AreaChart data={data}>
+      <AreaChart data={safeData}>
         <defs>
           <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#F5A623" stopOpacity={0.3} />
