@@ -1,13 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
-import { AdminStore } from '@/lib/admin-store';
-import type { Product } from '@/lib/admin-store';
-import { getAllCategories, getAllBrands, getCategoryById, addCategory, addBrand } from '@/lib/catalog-data';
 import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +12,35 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, ArrowLeft, Plus, X, Upload, ChevronDown, ChevronUp, Tag, Building2, Sparkles, Video, Camera, ImagePlus } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, ChevronDown, ChevronUp, Tag, Building2, Sparkles } from 'lucide-react';
+import { ProductMediaUploader } from '@/components/admin/product-media-uploader';
+
+interface ApiVariant {
+  id: string;
+  name: string;
+  value: string;
+  stock: number;
+  price: number | null;
+  sku?: string;
+}
+
+interface ApiProduct {
+  id: string;
+  slug: string;
+  name: string;
+  sku: string;
+  description: string;
+  categoryId: string;
+  brandId: string;
+  price: number;
+  salePrice: number | null;
+  weight: number;
+  stock: number;
+  isActive: boolean;
+  images: string[];
+  videoUrls: string[];
+  variants: ApiVariant[];
+}
 
 interface Variant {
   id: string;
@@ -32,24 +56,17 @@ export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryMultipleRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const slug = params?.slug as string | undefined;
   const [ready, setReady] = useState(false);
   const [notFoundState, setNotFoundState] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [productId, setProductId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [videoFileNames, setVideoFileNames] = useState<string[]>([]);
-  const MAX_IMAGES = 10;
-  const MAX_VIDEOS = 2;
 
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [brands, setBrands] = useState<CatalogBrand[]>([]);
-  const refreshCats = () => setCategories(getAllCategories());
-  const refreshBrands = () => setBrands(getAllBrands());
 
   const [form, setForm] = useState({
     name: '', sku: '', description: '', categoryId: '', brandId: '',
@@ -58,6 +75,7 @@ export default function EditProductPage() {
   });
 
   const [images, setImages] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [originalSlug, setOriginalSlug] = useState('');
 
@@ -66,7 +84,9 @@ export default function EditProductPage() {
     ? categories.filter((c) => c.brandId === form.brandId || c.brandId === null)
     : categories;
 
-  const selectedCategory = form.categoryId ? getCategoryById(form.categoryId) : null;
+  const selectedCategory = form.categoryId
+    ? categories.find((c) => c.id === form.categoryId) ?? null
+    : null;
 
   // ── Inline category ──
   const [catDialogOpen, setCatDialogOpen] = useState(false);
@@ -77,38 +97,98 @@ export default function EditProductPage() {
   const [newBrdName, setNewBrdName] = useState('');
 
   useEffect(() => {
-    refreshCats();
-    refreshBrands();
     if (!slug) return;
-    const product = AdminStore.getProductBySlug(slug);
-    if (!product) {
-      setNotFoundState(true);
-      return;
-    }
-    setOriginalSlug(slug);
-    setForm({
-      name: product.name,
-      sku: product.sku,
-      description: product.description,
-      categoryId: product.categoryId,
-      brandId: product.brandId,
-      price: String(product.price),
-      salePrice: product.salePrice ? String(product.salePrice) : '',
-      weight: String(product.weight),
-      stock: String(product.stock),
-      isActive: product.isActive,
-      metaTitle: product.name,
-      metaDescription: product.description.slice(0, 160),
-    });
-    setImages(product.images || []);
-    setVariants(product.variants || []);
-    setVideoUrls(product.videoUrls || []);
-    setVideoFileNames(product.videoUrls ? product.videoUrls.map(() => 'Video tersimpan') : []);
-    setReady(true);
+    let cancelled = false;
+
+    (async () => {
+      // Categories and brands come from the database so their ids match what
+      // the product API will accept on save.
+      try {
+        const [catRes, brdRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/brands'),
+        ]);
+        if (catRes.ok) {
+          const json = await catRes.json();
+          if (!cancelled && json.categories) {
+            setCategories(json.categories.map((c: CatalogCategory) => ({
+              ...c,
+              options: Array.isArray(c.options) ? c.options : [],
+            })));
+          }
+        }
+        if (brdRes.ok) {
+          const json = await brdRes.json();
+          const list = Array.isArray(json) ? json : json.brands;
+          if (!cancelled && list) setBrands(list);
+        }
+      } catch {
+        // Non-fatal: the selects stay empty and the user sees the load error below.
+      }
+
+      try {
+        const res = await fetch('/api/admin/products', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Gagal memuat produk');
+        const json = await res.json();
+        const product = (json.products || []).find((p: ApiProduct) => p.slug === slug);
+        if (!product) {
+          if (!cancelled) setNotFoundState(true);
+          return;
+        }
+        if (cancelled) return;
+
+        setProductId(product.id);
+        setOriginalSlug(product.slug);
+        setForm({
+          name: product.name,
+          sku: product.sku,
+          description: product.description,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          price: String(product.price),
+          salePrice: product.salePrice ? String(product.salePrice) : '',
+          weight: String(product.weight),
+          stock: String(product.stock),
+          isActive: product.isActive,
+          metaTitle: product.name,
+          metaDescription: product.description.slice(0, 160),
+        });
+        setImages(product.images || []);
+        setVideoUrls(product.videoUrls || []);
+        setVariants(
+          (product.variants || []).map((v: ApiVariant) => ({
+            id: v.id,
+            name: v.name,
+            value: v.value,
+            stock: v.stock,
+            price: v.price,
+            sku: v.sku || '',
+          })),
+        );
+        setReady(true);
+      } catch (err) {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Gagal memuat produk');
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [slug]);
 
   if (notFoundState) {
     notFound();
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-lg space-y-4">
+        <h1 className="text-xl font-bold text-[#1C1C1E]">Gagal memuat produk</h1>
+        <p className="text-sm text-[#64748B]">{loadError}</p>
+        <div className="flex gap-3">
+          <Button variant="accent" onClick={() => router.refresh()}>Coba lagi</Button>
+          <Link href="/admin/produk"><Button variant="outline">Kembali</Button></Link>
+        </div>
+      </div>
+    );
   }
 
   if (!ready) {
@@ -125,107 +205,13 @@ export default function EditProductPage() {
     setForm((prev) => {
       const next = { ...prev, [field]: val };
       if (field === 'brandId' && prev.categoryId) {
-        const cat = getCategoryById(prev.categoryId);
+        const cat = categories.find((c) => c.id === prev.categoryId);
         if (cat && cat.brandId && cat.brandId !== val) {
           next.categoryId = '';
         }
       }
       return next;
     });
-  };
-
-  const readFileAsDataUrl = (file: File) => {
-    return new Promise<string>((resolve, reject) => {
-      if (!file.type.startsWith('image/')) { reject(new Error('Hanya file gambar yang diizinkan')); return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target?.result as string;
-        if (dataUrl) resolve(dataUrl);
-        else reject(new Error('Gagal membaca file'));
-      };
-      reader.onerror = () => reject(new Error('Gagal membaca file'));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const readVideoAsDataUrl = (file: File) => {
-    return new Promise<string>((resolve, reject) => {
-      if (!file.type.startsWith('video/')) { reject(new Error('Hanya file video yang diizinkan')); return; }
-      if (file.size > 50 * 1024 * 1024) { reject(new Error('Video maksimal 50MB')); return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target?.result as string;
-        if (dataUrl) resolve(dataUrl);
-        else reject(new Error('Gagal membaca file'));
-      };
-      reader.onerror = () => reject(new Error('Gagal membaca file'));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) { e.target.value = ''; return; }
-    readFileAsDataUrl(file).then((url) => {
-      setImages((prev) => prev.length < MAX_IMAGES ? [...prev, url] : prev);
-    }).catch((err) => toast(err.message, 'error'));
-    e.target.value = '';
-  };
-
-  const handleGalleryMultiplePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) { e.target.value = ''; return; }
-    const slots = MAX_IMAGES - images.length;
-    const toRead = Array.from(files).slice(0, slots);
-    const results: string[] = [];
-    for (const file of toRead) {
-      try {
-        const url = await readFileAsDataUrl(file);
-        results.push(url);
-      } catch (err: unknown) {
-        toast(err instanceof Error ? err.message : 'Gagal membaca gambar', 'error');
-      }
-    }
-    if (results.length > 0) setImages((prev) => [...prev, ...results]);
-    if (files.length > slots) toast(`Hanya ${slots} slot tersisa, ${files.length - slots} file dilewati`, 'error');
-    e.target.value = '';
-  };
-
-  const addImage = () => {
-    if (!imageUrl.trim()) return;
-    if (images.length >= MAX_IMAGES) { toast(`Maksimal ${MAX_IMAGES} gambar`, 'error'); return; }
-    setImages((prev) => [...prev, imageUrl.trim()]);
-    setImageUrl('');
-  };
-
-  // ── Video upload ──
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) { e.target.value = ''; return; }
-    const slots = MAX_VIDEOS - videoUrls.length;
-    const toRead = Array.from(files).slice(0, slots);
-    const urls: string[] = [];
-    const names: string[] = [];
-    for (const file of toRead) {
-      try {
-        const url = await readVideoAsDataUrl(file);
-        urls.push(url);
-        names.push(file.name);
-      } catch (err: unknown) {
-        toast(err instanceof Error ? err.message : 'Gagal membaca video', 'error');
-      }
-    }
-    if (urls.length > 0) {
-      setVideoUrls((prev) => [...prev, ...urls]);
-      setVideoFileNames((prev) => [...prev, ...names]);
-    }
-    if (files.length > slots) toast(`Hanya ${slots} slot video tersisa`, 'error');
-    e.target.value = '';
-  };
-
-  const removeVideo = (idx: number) => {
-    setVideoUrls((prev) => prev.filter((_, i) => i !== idx));
-    setVideoFileNames((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const updateVariant = (id: string, field: string, val: string | number) => {
@@ -237,32 +223,62 @@ export default function EditProductPage() {
   };
 
   // ── Inline category ──
-  const handleAddCategory = () => {
+  // Goes through the API so the new id exists server-side; a locally minted id
+  // would be rejected on save with "Kategori tidak ditemukan".
+  const handleAddCategory = async () => {
     if (!newCatName.trim()) { toast('Nama kategori wajib diisi', 'error'); return; }
-    const cat = addCategory({ name: newCatName.trim(), brandId: form.brandId || null });
-    refreshCats();
-    setForm((prev) => ({ ...prev, categoryId: cat.id }));
-    setCatDialogOpen(false);
-    setNewCatName('');
-    toast(`Kategori "${cat.name}" ditambahkan`, 'success');
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCatName.trim(), brandId: form.brandId || null }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan kategori');
+      setCategories((prev) => [...prev, { ...json.category, options: [] }]);
+      setForm((prev) => ({ ...prev, categoryId: json.category.id }));
+      setCatDialogOpen(false);
+      setNewCatName('');
+      toast(`Kategori "${json.category.name}" ditambahkan`, 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan kategori', 'error');
+    }
   };
 
   // ── Inline brand ──
-  const handleAddBrand = () => {
+  const handleAddBrand = async () => {
     if (!newBrdName.trim()) { toast('Nama merek wajib diisi', 'error'); return; }
-    const brd = addBrand({ name: newBrdName.trim() });
-    refreshBrands();
-    setForm((prev) => ({ ...prev, brandId: brd.id }));
-    setBrdDialogOpen(false);
-    setNewBrdName('');
-    toast(`Merek "${brd.name}" ditambahkan`, 'success');
+    try {
+      const res = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newBrdName.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan merek');
+      setBrands((prev) => [...prev, json.brand]);
+      setForm((prev) => ({ ...prev, brandId: json.brand.id }));
+      setBrdDialogOpen(false);
+      setNewBrdName('');
+      toast(`Merek "${json.brand.name}" ditambahkan`, 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan merek', 'error');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploading) {
+      toast('Tunggu media selesai diunggah', 'error');
+      return;
+    }
+    if (!productId) {
+      toast('Produk belum termuat', 'error');
+      return;
+    }
     setLoading(true);
     try {
-      const updated: Record<string, unknown> = {
+      const payload = {
         name: form.name,
         sku: form.sku,
         description: form.description,
@@ -274,22 +290,30 @@ export default function EditProductPage() {
         stock: Number(form.stock),
         isActive: form.isActive,
         images,
-        videoUrls: videoUrls.length > 0 ? videoUrls : undefined,
-        variants,
-        category: categories.find((c) => c.id === form.categoryId) || { id: '', name: '', slug: '' },
-        brand: brands.find((b) => b.id === form.brandId) || { id: '', name: '', slug: '' },
+        videoUrls,
+        variants: variants.map((v) => ({
+          name: v.name,
+          value: v.value,
+          stock: v.stock,
+          price: v.price,
+          sku: v.sku,
+        })),
       };
-      // If slug changed, update it
-      const newSlug = form.name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-      if (newSlug !== originalSlug) {
-        updated.slug = newSlug;
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const details = json.details?.map((d: { message: string }) => d.message).join(', ');
+        throw new Error(details || json.error || `Gagal menyimpan produk (${res.status})`);
       }
-      const ok = AdminStore.updateProduct(originalSlug, updated);
-      if (!ok) throw new Error('Produk tidak ditemukan');
       toast('Produk berhasil disimpan', 'success');
       router.push('/admin/produk');
-    } catch {
-      toast('Gagal menyimpan produk', 'error');
+      router.refresh();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan produk', 'error');
     } finally {
       setLoading(false);
     }
@@ -408,122 +432,15 @@ export default function EditProductPage() {
           </div>
         </section>
 
-        {/* Gambar — 5 slot */}
-        <section className="bg-white rounded-xl border border-[#E5E5EA] p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#1C1C1E]">Gambar Produk</h2>
-            <span className="text-[10px] text-[#8E8E93]">{images.length}/{MAX_IMAGES}</span>
-          </div>
-          <div className="grid grid-cols-5 gap-2 max-w-[420px]">
-            {Array.from({ length: MAX_IMAGES }).map((_, i) => (
-              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-[#E5E5EA] bg-[#F8FAFC]">
-                {images[i] ? (
-                  <>
-                    <Image src={images[i]} alt={`Gambar ${i + 1}`} fill className="object-cover" sizes="80px" />
-                    <button
-                      type="button"
-                      onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center shadow-sm hover:bg-[#DC2626] transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </>
-                ) : i === images.length && images.length < MAX_IMAGES ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 hover:bg-[#FFFBEB] transition-colors group cursor-pointer"
-                      title="Ambil foto"
-                    >
-                      <Camera className="w-5 h-5 text-[#8E8E93] group-hover:text-[#F5A623]" />
-                      <span className="text-[8px] text-[#8E8E93] group-hover:text-[#F5A623] font-medium">Kamera</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => galleryMultipleRef.current?.click()}
-                      className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 hover:bg-[#FFFBEB] transition-colors group cursor-pointer opacity-0 hover:opacity-100"
-                      title="Pilih dari galeri"
-                    >
-                      <ImagePlus className="w-5 h-5 text-[#8E8E93] group-hover:text-[#F5A623]" />
-                      <span className="text-[8px] text-[#8E8E93] group-hover:text-[#F5A623] font-medium">Galeri</span>
-                    </button>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Upload className="w-5 h-5 text-[#D1D5DB]" />
-                  </div>
-                )}
-              </div>
-            ))}
-            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleCameraCapture} className="hidden" />
-            <input ref={galleryMultipleRef} type="file" accept="image/*" multiple onChange={handleGalleryMultiplePick} className="hidden" />
-          </div>
-          {images.length < MAX_IMAGES && (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Atau masukkan URL gambar..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-              />
-              <Button type="button" variant="outline" size="sm" onClick={addImage} disabled={!imageUrl.trim()}>
-                Tambah URL
-              </Button>
-            </div>
-          )}
-        </section>
-
-        {/* Video — 2 slot */}
-        <section className="bg-white rounded-xl border border-[#E5E5EA] p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-[#1C1C1E]">Video Produk (maks {MAX_VIDEOS})</h2>
-          <div className="grid grid-cols-2 gap-2 max-w-[340px]">
-            {Array.from({ length: MAX_VIDEOS }).map((_, i) => (
-              <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-[#E5E5EA] bg-[#F8FAFC]">
-                {videoUrls[i] ? (
-                  <>
-                    {videoUrls[i].startsWith('data:') ? (
-                      <video src={videoUrls[i]} className="w-full h-full object-cover" controls />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-black/5">
-                        <Video className="w-8 h-8 text-[#8E8E93]" />
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeVideo(i)}
-                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-[#FF3B30] text-white rounded-full flex items-center justify-center shadow-sm hover:bg-[#DC2626] transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                    <span className="absolute bottom-1 left-1 text-[8px] text-white bg-black/50 px-1.5 py-0.5 rounded truncate max-w-[calc(100%-8px)]">
-                      {videoFileNames[i] || `Video ${i + 1}`}
-                    </span>
-                  </>
-                ) : i === videoUrls.length && videoUrls.length < MAX_VIDEOS ? (
-                  <button
-                    type="button"
-                    onClick={() => videoInputRef.current?.click()}
-                    className="absolute inset-0 flex flex-col items-center justify-center gap-1 hover:bg-[#FFFBEB] transition-colors group cursor-pointer"
-                  >
-                    <Video className="w-6 h-6 text-[#8E8E93] group-hover:text-[#F5A623]" />
-                    <span className="text-[10px] text-[#8E8E93] group-hover:text-[#F5A623] font-medium">Upload</span>
-                  </button>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Video className="w-6 h-6 text-[#D1D5DB]" />
-                  </div>
-                )}
-              </div>
-            ))}
-            <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={handleVideoUpload} className="hidden" />
-          </div>
-          <div className="flex gap-2">
-            <Input placeholder="URL video (YouTube/Vimeo)" value={videoUrls.find((v) => !v.startsWith('data:')) || ''}
-              onChange={(e) => {
-                const url = e.target.value;
-                if (url && videoUrls.length < MAX_VIDEOS) setVideoUrls((prev) => [...prev, url]);
-              }} />
-          </div>
+        <section className="bg-white rounded-xl border border-[#E5E5EA] p-6">
+          <ProductMediaUploader
+            images={images}
+            onImagesChange={setImages}
+            videos={videoUrls}
+            onVideosChange={setVideoUrls}
+            folder={originalSlug || 'produk'}
+            onUploadingChange={setUploading}
+          />
         </section>
 
         {/* Varian / Opsi */}
@@ -612,8 +529,9 @@ export default function EditProductPage() {
 
         {/* Actions */}
         <div className="flex gap-4">
-          <Button type="submit" variant="accent" disabled={loading}>
-            <Save className="w-4 h-4 mr-1" /> {loading ? 'Menyimpan...' : 'Simpan'}
+          <Button type="submit" variant="accent" disabled={loading || uploading}>
+            <Save className="w-4 h-4 mr-1" />
+            {loading ? 'Menyimpan...' : uploading ? 'Mengunggah gambar...' : 'Simpan'}
           </Button>
           <Link href="/admin/produk">
             <Button variant="outline" type="button">Batal</Button>

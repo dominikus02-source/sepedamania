@@ -112,21 +112,24 @@ export const AdminStore = {
 export function useAdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
+  // The database is the only source. An earlier localStorage fallback made an
+  // empty catalog look populated with browser-only ghosts that no shopper saw.
   const fetchFromApi = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetch('/api/admin/products', { cache: 'no-store' });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.products?.length) {
-          setProducts(json.products as Product[]);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch {}
-    setProducts(AdminStore.getProducts());
-    setLoading(false);
+      if (!res.ok) throw new Error(`Gagal memuat produk (${res.status})`);
+      const json = await res.json();
+      setProducts((json.products ?? []) as Product[]);
+      setError('');
+    } catch (err) {
+      setProducts([]);
+      setError(err instanceof Error ? err.message : 'Gagal memuat produk');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchFromApi(); }, [fetchFromApi]);
@@ -135,7 +138,7 @@ export function useAdminProducts() {
     fetchFromApi();
   }, [fetchFromApi]);
 
-  return { products, loading, refresh };
+  return { products, loading, error, refresh };
 }
 
 export function useAdminOrders() {

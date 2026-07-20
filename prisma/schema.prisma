@@ -183,6 +183,7 @@ model Product {
   salePrice   Decimal?
   weight      Int
   images      String[]
+  videoUrls   String[]        @default([])
   specs       Json            @default("[]")
   variants    ProductVariant[]
   stock       Int             @default(0)

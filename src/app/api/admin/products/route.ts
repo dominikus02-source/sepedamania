@@ -37,6 +37,7 @@ export async function GET() {
       stock: p.stock,
       sold: p.sold,
       images: p.images,
+      videoUrls: p.videoUrls,
       isActive: p.isActive,
       specs: (p.specs as Record<string, string>) || {},
       category: p.category,

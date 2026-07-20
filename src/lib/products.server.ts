@@ -430,7 +430,7 @@ function mapPrismaProductToCatalog(product: any): CatalogProduct {
     stock: product.stock,
     sold: product.sold,
     images: product.images,
-    videoUrls: [],
+    videoUrls: product.videoUrls ?? [],
     isActive: product.isActive,
     specs: (product.specs as Record<string, string>) || {},
     featured: false,

@@ -17,6 +17,34 @@ import { useCompareStore } from '@/store/compare-store';
 import { useToast } from '@/components/ui/toaster';
 import { ShoppingCart, ChevronLeft, Heart, Truck, Shield, RotateCcw, Minus, Plus, BarChart3 } from 'lucide-react';
 
+/**
+ * Maps a YouTube/Vimeo watch link to its embed URL, or returns null for
+ * anything that a plain <video> tag can play (uploaded MP4/WebM/MOV).
+ */
+function toEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url, 'https://example.com');
+    const host = u.hostname.replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const id = u.pathname.slice(1);
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (u.pathname.startsWith('/embed/')) return url;
+      const id = u.searchParams.get('v');
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === 'vimeo.com') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      return id && /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}` : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 interface ProductData {
   id: string;
   name: string;
@@ -223,17 +251,25 @@ export function ProductDetail({ slug }: { slug: string }) {
       {/* Video */}
       {(product.videoUrls?.filter(Boolean).length || product.videoUrl) && (
         <div className="px-4 mt-2 space-y-2">
-          {(product.videoUrls?.filter(Boolean).length ? product.videoUrls : [product.videoUrl]).filter(Boolean).map((v, i) => (
-            <div key={i}>
-              {v!.startsWith('data:') ? (
-                <video src={v} className="w-full aspect-video rounded-xl object-cover" controls />
-              ) : (
-                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
-                  <video src={v} className="w-full h-full object-contain" controls />
-                </div>
-              )}
-            </div>
-          ))}
+          {(product.videoUrls?.filter(Boolean).length ? product.videoUrls : [product.videoUrl]).filter(Boolean).map((v, i) => {
+            const embed = toEmbedUrl(v!);
+            return (
+              <div key={i} className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
+                {embed ? (
+                  // YouTube/Vimeo links cannot play in a <video> tag.
+                  <iframe
+                    src={embed}
+                    title={`Video ${i + 1}`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video src={v} className="w-full h-full object-contain" controls preload="metadata" />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -33,6 +33,18 @@ export const voucherSchema = z.object({
   code: z.string().min(1, 'Kode voucher wajib diisi'),
 });
 
+/**
+ * Media must already live at a URL. Base64 data URLs are rejected: they inflate
+ * a request past the 4.5MB serverless body limit and bloat the row if they land.
+ */
+const mediaUrl = (label: string) =>
+  z
+    .string()
+    .refine(
+      (v) => /^https?:\/\//.test(v) || v.startsWith('/'),
+      `${label} harus berupa URL hasil unggahan, bukan data mentah`,
+    );
+
 export const productSchema = z.object({
   name: z.string().min(1, 'Nama produk wajib diisi'),
   slug: z.string().optional(),
@@ -44,7 +56,16 @@ export const productSchema = z.object({
   salePrice: z.number().min(0).nullable().optional(),
   weight: z.number().min(0, 'Berat tidak boleh negatif'),
   stock: z.number().int().min(0),
-  images: z.array(z.string()).optional().default([]),
+  images: z
+    .array(mediaUrl('Gambar'))
+    .max(10, 'Maksimal 10 gambar')
+    .optional()
+    .default([]),
+  videoUrls: z
+    .array(mediaUrl('Video'))
+    .max(2, 'Maksimal 2 video')
+    .optional()
+    .default([]),
   specs: z.record(z.string(), z.string()).optional().default({}),
   isActive: z.boolean().default(true),
   metaTitle: z.string().optional().nullable(),
@@ -59,3 +80,6 @@ export const productSchema = z.object({
 });
 
 export const createProductSchema = productSchema;
+
+/** Edit form: every field optional, but each still validated when present. */
+export const updateProductSchema = productSchema.partial();

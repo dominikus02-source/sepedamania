@@ -5,25 +5,42 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { useAdminProducts } from '@/lib/admin-store';
-import { getAllCategories, getAllBrands } from '@/lib/catalog-data';
 import type { CatalogCategory, CatalogBrand } from '@/lib/catalog-data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Plus, Search, Image as ImageIcon, ChevronLeft, ChevronRight, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/ui/toaster';
-import { AdminStore } from '@/lib/admin-store';
 
 const PAGE_SIZE = 10;
 
 export default function AdminProductsPage() {
-  const { products, loading, refresh } = useAdminProducts();
+  const { products, loading, error, refresh } = useAdminProducts();
   const [allCats, setAllCats] = useState<CatalogCategory[]>([]);
   const [allBrands, setAllBrands] = useState<CatalogBrand[]>([]);
   useEffect(() => {
-    setAllCats(getAllCategories());
-    setAllBrands(getAllBrands());
+    let cancelled = false;
+    (async () => {
+      try {
+        const [catRes, brdRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/brands'),
+        ]);
+        if (cancelled) return;
+        if (catRes.ok) {
+          const json = await catRes.json();
+          if (!cancelled) setAllCats(json.categories ?? []);
+        }
+        if (brdRes.ok) {
+          const json = await brdRes.json();
+          if (!cancelled) setAllBrands(Array.isArray(json) ? json : json.brands ?? []);
+        }
+      } catch {
+        // Filters just stay empty; the product table below still loads.
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
@@ -59,17 +76,41 @@ export default function AdminProductsPage() {
   const getBrandName = (id: string) => allBrands.find((b) => b.id === id)?.name || '-';
   const { toast } = useToast();
 
-  const handleToggleActive = (slug: string, current: boolean) => {
-    AdminStore.updateProduct(slug, { isActive: !current });
-    refresh();
-    toast(`Produk ${current ? 'dinonaktifkan' : 'diaktifkan'}`, 'success');
+  const [busyId, setBusyId] = useState('');
+
+  const handleToggleActive = async (id: string, current: boolean) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !current }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `Gagal mengubah status (${res.status})`);
+      await refresh();
+      toast(`Produk ${current ? 'dinonaktifkan' : 'diaktifkan'}`, 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal mengubah status', 'error');
+    } finally {
+      setBusyId('');
+    }
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Hapus "${name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
-    AdminStore.deleteProduct(id);
-    refresh();
-    toast('Produk berhasil dihapus', 'success');
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `Gagal menghapus produk (${res.status})`);
+      await refresh();
+      toast('Produk berhasil dihapus', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal menghapus produk', 'error');
+    } finally {
+      setBusyId('');
+    }
   };
 
   if (loading) {
@@ -84,6 +125,12 @@ export default function AdminProductsPage() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#991B1B] flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={refresh}>Coba lagi</Button>
+        </div>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#1C1C1E]">Produk</h1>
@@ -204,8 +251,9 @@ export default function AdminProductsPage() {
                 <td className="p-3 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <button
-                      onClick={() => handleToggleActive(p.slug, p.isActive)}
-                      className="p-1.5 rounded-lg hover:bg-[#F2F2F7] transition-colors"
+                      onClick={() => handleToggleActive(p.id, p.isActive)}
+                      disabled={busyId === p.id}
+                      className="p-1.5 rounded-lg hover:bg-[#F2F2F7] transition-colors disabled:opacity-40"
                       title={p.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                     >
                       {p.isActive ? <EyeOff className="w-3.5 h-3.5 text-[#8E8E93]" /> : <Eye className="w-3.5 h-3.5 text-[#34C759]" />}
@@ -219,7 +267,8 @@ export default function AdminProductsPage() {
                     </Link>
                     <button
                       onClick={() => handleDelete(p.id, p.name)}
-                      className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10 transition-colors"
+                      disabled={busyId === p.id}
+                      className="p-1.5 rounded-lg hover:bg-[#FF3B30]/10 transition-colors disabled:opacity-40"
                       title="Hapus"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
