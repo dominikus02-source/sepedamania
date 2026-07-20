@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
@@ -17,12 +17,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { TrustBadges } from '@/components/customer/trust-badges';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/components/ui/toaster';
-import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote, Smartphone, QrCode, Loader2, LogIn } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Package, CreditCard, Truck, Banknote, Smartphone, QrCode, Loader2, LogIn, Search, Check } from 'lucide-react';
+import type { Destination } from '@/lib/rajaongkir';
 
 const addressSchema = z.object({
   recipient: z.string().min(2, 'Nama minimal 2 karakter'),
   phone: z.string().regex(/^08\d{8,11}$/, 'Format: 08xxxxxxxxxx'),
   email: z.string().email('Email tidak valid').optional().or(z.literal('')),
+  destinationId: z.string().min(1, 'Cari dan pilih kecamatan tujuan'),
   province: z.string().min(1, 'Pilih provinsi'),
   city: z.string().min(1, 'Pilih kota'),
   district: z.string().min(2, 'Isi kecamatan'),
@@ -55,7 +57,6 @@ const COURIERS = [
   { id: 'lion', label: 'Lion Parcel' },
 ];
 
-const ORIGIN_CITY = 'tangerang';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -65,8 +66,11 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [shippingLoading, setShippingLoading] = useState(false);
-  const [provinces, setProvinces] = useState<{ province_id: string; province: string }[]>([]);
-  const [cities, setCities] = useState<{ city_id: string; city_name: string }[]>([]);
+  const [destQuery, setDestQuery] = useState('');
+  const [destResults, setDestResults] = useState<Destination[]>([]);
+  const [destLoading, setDestLoading] = useState(false);
+  const [destPicked, setDestPicked] = useState<Destination | null>(null);
+  const [shippingError, setShippingError] = useState('');
   const [selectedCourier, setSelectedCourier] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [shippingCost, setShippingCost] = useState(0);
@@ -90,7 +94,7 @@ export default function CheckoutPage() {
 
   const form = useForm<AddressForm>({
     resolver: zodResolver(addressSchema),
-    defaultValues: { recipient: '', phone: '', email: session?.user?.email || '', province: '', city: '', district: '', postalCode: '', detail: '' },
+    defaultValues: { recipient: '', phone: '', email: session?.user?.email || '', destinationId: '', province: '', city: '', district: '', postalCode: '', detail: '' },
   });
 
   const {
@@ -101,57 +105,95 @@ export default function CheckoutPage() {
     formState: { errors },
   } = form;
 
-  const selectedProvince = useWatch({ control: form.control, name: 'province' });
-
+  // Debounced destination lookup. Picking a result fills in the whole address
+  // and gives us the id RajaOngkir needs to quote a real rate.
   useEffect(() => {
-    fetch('/api/shipping')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.provinces) setProvinces(data.provinces);
-      })
-      .catch(() => {});
-  }, []);
+    const q = destQuery.trim();
+    if (q.length < 3) {
+      // Clearing happens in the same async slot as the fetch results, so the
+      // effect body itself never triggers a synchronous re-render.
+      const clear = setTimeout(() => setDestResults([]), 0);
+      return () => clearTimeout(clear);
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setDestLoading(true);
+      try {
+        const res = await fetch(`/api/shipping/destinations?search=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) throw new Error(json.error || 'Gagal mencari alamat');
+        setDestResults(json.destinations ?? []);
+        setShippingError('');
+      } catch (err) {
+        if (cancelled) return;
+        setDestResults([]);
+        setShippingError(err instanceof Error ? err.message : 'Gagal mencari alamat');
+      } finally {
+        if (!cancelled) setDestLoading(false);
+      }
+    }, 350);
 
-  useEffect(() => {
-    if (!selectedProvince) return;
-    fetch(`/api/shipping/cities?provinceId=${selectedProvince}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.cities) setCities(data.cities);
-      })
-      .catch(() => setCities([]));
-    setValue('city', '');
-  }, [selectedProvince, setValue]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [destQuery]);
 
-  useEffect(() => {
-    if (!selectedCourier || !form.getValues('city')) return;
+  const pickDestination = (d: Destination) => {
+    setDestPicked(d);
+    setDestResults([]);
+    setDestQuery('');
+    setValue('destinationId', String(d.id), { shouldValidate: true });
+    setValue('province', d.provinceName, { shouldValidate: true });
+    setValue('city', d.cityName, { shouldValidate: true });
+    setValue('district', d.districtName, { shouldValidate: true });
+    setValue('postalCode', d.zipCode, { shouldValidate: true });
+    // Any previously chosen service belongs to the old destination.
     setSelectedService('');
     setShippingCost(0);
     setShippingRates([]);
-    setShippingLoading(true);
-    const cityVal = form.getValues('city');
-    const destination = cities.find((c) => c.city_id === cityVal)?.city_name || cityVal;
-    fetch(`/api/shipping/cost`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        origin: ORIGIN_CITY,
-        destination: destination.toLowerCase().replace(/\s+/g, ''),
-        weight: totalWeight,
-        couriers: [selectedCourier],
-      }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const rates = (data.data?.rates || data.costs || []).map((r: ShippingRate) => ({
-          ...r,
-          courier: r.courier || selectedCourier,
-        }));
+  };
+
+  useEffect(() => {
+    if (!selectedCourier || !destPicked) return;
+    let cancelled = false;
+
+    (async () => {
+      setSelectedService('');
+      setShippingCost(0);
+      setShippingRates([]);
+      setShippingLoading(true);
+      setShippingError('');
+      try {
+        const res = await fetch('/api/shipping/cost', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinationId: String(destPicked.id),
+            weight: totalWeight,
+            couriers: [selectedCourier],
+          }),
+        });
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) throw new Error(json.error || 'Gagal menghitung ongkir');
+
+        const rates: ShippingRate[] = json.data?.rates ?? [];
         setShippingRates(rates);
-      })
-      .catch(() => setShippingRates([]))
-      .finally(() => setShippingLoading(false));
-  }, [selectedCourier, totalWeight, cities, form]);
+        if (rates.length === 0) {
+          setShippingError('Kurir ini belum melayani tujuan tersebut. Coba kurir lain.');
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setShippingRates([]);
+        // Surfaced rather than swallowed: charging a guessed rate is worse
+        // than telling the buyer to retry.
+        setShippingError(err instanceof Error ? err.message : 'Gagal menghitung ongkir');
+      } finally {
+        if (!cancelled) setShippingLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [selectedCourier, totalWeight, destPicked]);
 
   const onAddressSubmit = () => setStep(2);
 
@@ -161,7 +203,7 @@ export default function CheckoutPage() {
       const addr = getValues();
       const customerEmail = session?.user?.email || addr.email || '';
       const customerName = session?.user?.name || addr.recipient;
-      const customerPhone = (session?.user as any)?.phone || addr.phone;
+      const customerPhone = (session?.user as { phone?: string } | undefined)?.phone || addr.phone;
 
       const orderPayload = {
         items: items.map((i) => ({
@@ -291,24 +333,66 @@ export default function CheckoutPage() {
               <Input {...register('phone')} placeholder="08123456789" type="tel" />
               {errors.phone && <p className="text-xs text-[#EF4444] mt-1">{errors.phone.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Provinsi</Label>
-                  <select {...register('province')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#FBBF24]">
-                  <option value="">Pilih Provinsi</option>
-                  {provinces.map((p) => <option key={p.province_id} value={p.province_id}>{p.province}</option>)}
-                </select>
-                {errors.province && <p className="text-xs text-[#EF4444] mt-1">{errors.province.message}</p>}
-              </div>
-              <div>
-                <Label>Kota</Label>
-                <select {...register('city')} className="w-full h-10 rounded-lg border border-[#E2E8F0] px-3 text-sm bg-white outline-none focus:ring-1 focus:ring-[#FBBF24]" disabled={!selectedProvince}>
-                  <option value="">Pilih Kota</option>
-                  {cities.map((c) => <option key={c.city_id} value={c.city_name}>{c.city_name}</option>)}
-                </select>
-                {errors.city && <p className="text-xs text-[#EF4444] mt-1">{errors.city.message}</p>}
-              </div>
+            <div>
+              <Label>Kecamatan Tujuan</Label>
+              {destPicked ? (
+                <div className="flex items-start justify-between gap-3 rounded-lg border border-[#34C759] bg-[#F0FDF4] px-3 py-2">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <Check className="w-4 h-4 text-[#34C759] shrink-0 mt-0.5" />
+                    <p className="text-sm text-[#166534] leading-snug">{destPicked.label}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDestPicked(null);
+                      setValue('destinationId', '');
+                      setShippingRates([]);
+                      setSelectedService('');
+                      setShippingCost(0);
+                    }}
+                    className="text-xs font-medium text-[#F5A623] shrink-0"
+                  >
+                    Ubah
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8E8E93]" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Ketik kelurahan, kecamatan, atau kode pos..."
+                    value={destQuery}
+                    onChange={(e) => setDestQuery(e.target.value)}
+                    autoComplete="off"
+                  />
+                  {destLoading && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8E8E93] animate-spin" />
+                  )}
+                  {destResults.length > 0 && (
+                    <ul className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-lg border border-[#E2E8F0] bg-white shadow-lg">
+                      {destResults.map((d) => (
+                        <li key={d.id}>
+                          <button
+                            type="button"
+                            onClick={() => pickDestination(d)}
+                            className="w-full text-left px-3 py-2 text-sm text-[#1C1C1E] hover:bg-[#FFFBEB] transition-colors"
+                          >
+                            {d.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+              {errors.destinationId && (
+                <p className="text-xs text-[#EF4444] mt-1">{errors.destinationId.message}</p>
+              )}
+              <p className="text-[10px] text-[#8E8E93] mt-1">
+                Provinsi, kota, kecamatan, dan kode pos terisi otomatis dari pilihan ini.
+              </p>
             </div>
+
             {!session?.user?.email && (
               <div>
                 <Label>Email</Label>
@@ -318,13 +402,13 @@ export default function CheckoutPage() {
             )}
             <div>
               <Label>Kecamatan</Label>
-              <Input {...register('district')} placeholder="Menteng" />
+              <Input {...register('district')} placeholder="Terisi dari kecamatan tujuan" readOnly className="bg-[#F8FAFC] text-[#64748B]" />
               {errors.district && <p className="text-xs text-[#EF4444] mt-1">{errors.district.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Kode Pos</Label>
-                <Input {...register('postalCode')} placeholder="12345" maxLength={5} />
+                <Input {...register('postalCode')} placeholder="Otomatis" maxLength={5} readOnly className="bg-[#F8FAFC] text-[#64748B]" />
                 {errors.postalCode && <p className="text-xs text-[#EF4444] mt-1">{errors.postalCode.message}</p>}
               </div>
               <div>
@@ -386,6 +470,17 @@ export default function CheckoutPage() {
                               <span className="font-semibold">{formatPrice(rate.cost)}</span>
                             </button>
                           ))
+                        ) : shippingError ? (
+                          <div className="py-3 space-y-2">
+                            <p className="text-sm text-[#991B1B]">{shippingError}</p>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCourier((c) => c)}
+                              className="text-xs font-medium text-[#F5A623]"
+                            >
+                              Coba lagi
+                            </button>
+                          </div>
                         ) : (
                           <p className="text-sm text-[#64748B] py-3">Tidak ada layanan tersedia</p>
                         )}
