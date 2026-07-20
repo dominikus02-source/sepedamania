@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { verifySignatureKey, mapMidtransStatus, type MidtransNotification } from '@/lib/midtrans';
 import { applyStockForPaidOrder } from '@/lib/stock';
+import { notifyOrder } from '@/lib/order-notifications';
 
 export async function POST(req: Request) {
   try {
@@ -61,7 +62,9 @@ export async function POST(req: Request) {
     });
 
     // Inventory moves only once payment is confirmed. applyStockForPaidOrder is
-    // idempotent, so a Midtrans redelivery cannot deduct twice.
+    // idempotent, so a Midtrans redelivery cannot deduct twice. The guard above
+    // already returns early for an order that was PAID before, so the buyer
+    // receives exactly one confirmation.
     if (mapped.paymentStatus === 'PAID') {
       try {
         await applyStockForPaidOrder(order.id);
@@ -70,6 +73,7 @@ export async function POST(req: Request) {
         // record matters more. Surfaced for manual reconciliation instead.
         console.error('Stock update failed for order', order.id, stockErr);
       }
+      await notifyOrder(order.id, 'confirmation');
     }
 
     await prisma.paymentLog.create({

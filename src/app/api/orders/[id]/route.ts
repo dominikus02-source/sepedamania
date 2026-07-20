@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { applyStockForPaidOrder } from '@/lib/stock';
+import { notifyOrder } from '@/lib/order-notifications';
 import { auth } from '@/lib/auth';
 import { validateOrigin } from '@/lib/csrf';
 
@@ -241,6 +243,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: updateData,
     include: { items: true },
   });
+
+  // An admin marking an order paid by hand must move stock the same way the
+  // payment webhook does — applyStockForPaidOrder is idempotent, so if the
+  // webhook already ran this is a no-op.
+  if (updateData.paymentStatus === 'PAID') {
+    try {
+      await applyStockForPaidOrder(order.id);
+    } catch (stockErr) {
+      console.error('Stock update failed for order', order.id, stockErr);
+    }
+    await notifyOrder(order.id, 'confirmation');
+  }
+
+  if (updateData.status === 'SHIPPED') {
+    await notifyOrder(order.id, 'shipped');
+  } else if (updateData.status === 'DELIVERED') {
+    await notifyOrder(order.id, 'delivered');
+  }
 
   return NextResponse.json({
     ...updated,
