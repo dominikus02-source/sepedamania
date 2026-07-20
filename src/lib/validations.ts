@@ -29,10 +29,6 @@ export const reviewSchema = z.object({
   comment: z.string().min(10, 'Ulasan minimal 10 karakter').optional(),
 });
 
-export const voucherSchema = z.object({
-  code: z.string().min(1, 'Kode voucher wajib diisi'),
-});
-
 /**
  * Media must already live at a URL. Base64 data URLs are rejected: they inflate
  * a request past the 4.5MB serverless body limit and bloat the row if they land.
@@ -83,3 +79,25 @@ export const createProductSchema = productSchema;
 
 /** Edit form: every field optional, but each still validated when present. */
 export const updateProductSchema = productSchema.partial();
+
+export const createVoucherSchema = z
+  .object({
+    code: z.string().min(3, 'Kode minimal 3 karakter').max(32, 'Kode maksimal 32 karakter'),
+    type: z.enum(['PERCENTAGE', 'NOMINAL']),
+    value: z.number().positive('Nilai diskon harus lebih dari 0'),
+    minPurchase: z.number().min(0).default(0),
+    maxDiscount: z.number().positive().nullable().optional(),
+    quota: z.number().int().positive('Kuota harus lebih dari 0').nullable().optional(),
+    expiresAt: z.string().datetime().nullable().optional(),
+    isActive: z.boolean().default(true),
+  })
+  .refine((v) => v.type !== 'PERCENTAGE' || v.value <= 100, {
+    message: 'Diskon persentase tidak boleh lebih dari 100%',
+    path: ['value'],
+  });
+
+export const stockAdjustSchema = z.object({
+  productId: z.string().min(1, 'Produk wajib dipilih'),
+  change: z.number().int().refine((n) => n !== 0, 'Jumlah tidak boleh nol'),
+  reason: z.string().max(200).optional(),
+});

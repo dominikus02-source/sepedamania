@@ -1,9 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getAllProducts, updateProduct } from '@/lib/catalog-data';
-import type { CatalogProduct } from '@/lib/catalog-data';
-import { mockStockLogs, StockLog } from '@/lib/mock-admin-data';
+import { useState, useEffect, useCallback } from 'react';
+
+interface StockProduct {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  stock: number;
+  price: number;
+  salePrice: number | null;
+  images: string[];
+  sold: number;
+}
+
+interface StockLog {
+  id: string;
+  productId: string;
+  productName: string;
+  type: 'IN' | 'OUT';
+  qty: number;
+  note: string;
+  createdAt: string;
+}
 import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,77 +45,98 @@ const stockStatus = (stock: number) => {
   return 'Habis';
 };
 
-const typeBadgeVariant = (type: StockLog['type']) => {
-  switch (type) {
-    case 'IN': return 'success' as const;
-    case 'OUT': return 'destructive' as const;
-    case 'ADJUSTMENT': return 'warning' as const;
-  }
-};
+const typeBadgeVariant = (type: StockLog['type']) =>
+  type === 'IN' ? ('success' as const) : ('destructive' as const);
 
-const typeLabel = (type: StockLog['type']) => {
-  switch (type) {
-    case 'IN': return 'IN';
-    case 'OUT': return 'OUT';
-    case 'ADJUSTMENT': return 'ADJUSTMENT';
-  }
-};
+const typeLabel = (type: StockLog['type']) => (type === 'IN' ? 'Masuk' : 'Keluar');
 
 export default function AdminStockPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [stockLogs, setStockLogs] = useState<StockLog[]>([...mockStockLogs]);
+  const [products, setProducts] = useState<StockProduct[]>([]);
+  const [stockLogs, setStockLogs] = useState<StockLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
-  const [restockProduct, setRestockProduct] = useState<CatalogProduct | null>(null);
+  const [restockProduct, setRestockProduct] = useState<StockProduct | null>(null);
   const [restockQty, setRestockQty] = useState(1);
   const [restockNote, setRestockNote] = useState('');
   const [restockOpen, setRestockOpen] = useState(false);
 
-  useEffect(() => {
-    setProducts(getAllProducts().sort((a, b) => a.stock - b.stock));
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
+    try {
+      const [pRes, lRes] = await Promise.all([
+        fetch('/api/admin/products', { cache: 'no-store' }),
+        fetch('/api/admin/stock', { cache: 'no-store' }),
+      ]);
+      if (!pRes.ok) throw new Error('Gagal memuat produk');
+
+      const pJson = await pRes.json();
+      if (signal?.cancelled) return;
+      setProducts(
+        [...(pJson.products ?? [])].sort((a: StockProduct, b: StockProduct) => a.stock - b.stock),
+      );
+
+      if (lRes.ok) {
+        const lJson = await lRes.json();
+        if (signal?.cancelled) return;
+        setStockLogs(lJson.logs ?? []);
+      }
+      setError('');
+    } catch (err) {
+      if (signal?.cancelled) return;
+      setError(err instanceof Error ? err.message : 'Gagal memuat data stok');
+    } finally {
+      if (!signal?.cancelled) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    const signal = { cancelled: false };
+    (async () => { await load(signal); })();
+    return () => { signal.cancelled = true; };
+  }, [load]);
 
   const filteredProducts = search
     ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
     : products;
 
-  const openRestock = (product: CatalogProduct) => {
+  const openRestock = (product: StockProduct) => {
     setRestockProduct(product);
     setRestockQty(1);
     setRestockNote('');
     setRestockOpen(true);
   };
 
-  const handleRestock = () => {
+  const handleRestock = async () => {
     if (!restockProduct || restockQty < 1) return;
 
-    const stockBefore = restockProduct.stock;
-    const stockAfter = stockBefore + restockQty;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: restockProduct.id,
+          change: restockQty,
+          reason: restockNote || 'Restok manual',
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const details = json.details?.map((d: { message: string }) => d.message).join(', ');
+        throw new Error(details || json.error || `Gagal restok (${res.status})`);
+      }
 
-    updateProduct(restockProduct.slug, { stock: stockAfter });
-
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === restockProduct.id ? { ...p, stock: stockAfter } : p
-      )
-    );
-
-    const newLog: StockLog = {
-      id: `sl-${Date.now()}`,
-      productId: restockProduct.id,
-      productName: restockProduct.name,
-      type: 'IN',
-      qty: restockQty,
-      stockBefore,
-      stockAfter,
-      note: restockNote || 'Restok manual',
-      createdAt: new Date().toISOString(),
-    };
-
-    setStockLogs((prev) => [newLog, ...prev]);
-    setRestockOpen(false);
-    toast('Restok berhasil', 'success');
+      setRestockOpen(false);
+      toast(`Stok ${restockProduct.name} kini ${json.stock}`, 'success');
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal restok', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -104,11 +144,18 @@ export default function AdminStockPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-[#1C1C1E]">Stok & Inventori</h1>
-        <Button variant="accent" onClick={() => {}}>
+        <Button variant="outline" onClick={() => load()} disabled={loading}>
           <PackageSearch className="w-4 h-4 mr-2" />
-          Restok Massal
+          {loading ? 'Memuat...' : 'Muat Ulang'}
         </Button>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#991B1B] flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={() => load()}>Coba lagi</Button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative mb-4 max-w-sm">
@@ -137,7 +184,13 @@ export default function AdminStockPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-[#8E8E93]">
+                      Memuat produk...
+                    </td>
+                  </tr>
+                ) : filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-[#8E8E93]">
                       Tidak ada produk ditemukan
@@ -237,8 +290,9 @@ export default function AdminStockPage() {
                   variant="default"
                   className="flex-1"
                   onClick={handleRestock}
+                  disabled={saving}
                 >
-                  Simpan
+                  {saving ? 'Menyimpan...' : 'Simpan'}
                 </Button>
               </div>
             </div>
@@ -271,7 +325,6 @@ export default function AdminStockPage() {
                     <th className="text-left p-3 font-medium text-[#8E8E93]">Produk</th>
                     <th className="text-center p-3 font-medium text-[#8E8E93]">Tipe</th>
                     <th className="text-right p-3 font-medium text-[#8E8E93]">Qty</th>
-                    <th className="text-right p-3 font-medium text-[#8E8E93]">Stok Akhir</th>
                     <th className="text-left p-3 font-medium text-[#8E8E93]">Catatan</th>
                   </tr>
                 </thead>
@@ -295,7 +348,6 @@ export default function AdminStockPage() {
                           </Badge>
                         </td>
                         <td className="p-3 text-right text-[#1C1C1E] font-medium">{log.qty}</td>
-                        <td className="p-3 text-right text-[#1C1C1E]">{log.stockAfter}</td>
                         <td className="p-3 text-[#8E8E93] text-xs max-w-[200px] truncate" title={log.note}>
                           {log.note}
                         </td>

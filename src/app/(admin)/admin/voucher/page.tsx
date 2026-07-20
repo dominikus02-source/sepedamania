@@ -1,9 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { mockVouchers, AdminVoucher } from '@/lib/mock-admin-data';
-import { mockProducts } from '@/lib/mock-data';
+
+interface AdminVoucher {
+  id: string;
+  code: string;
+  type: 'PERCENTAGE' | 'NOMINAL';
+  value: number;
+  minPurchase: number;
+  maxDiscount: number | null;
+  quota: number | null;
+  used: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface FlashProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  salePrice: number | null;
+  images: string[];
+  stock: number;
+}
 import { formatPrice, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +39,12 @@ import { Plus, Zap } from 'lucide-react';
 
 export default function AdminVoucherPage() {
   const { toast } = useToast();
-  const [vouchers, setVouchers] = useState<AdminVoucher[]>([...mockVouchers]);
+  const [vouchers, setVouchers] = useState<AdminVoucher[]>([]);
+  const [flashProducts, setFlashProducts] = useState<FlashProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   const [code, setCode] = useState('');
@@ -28,7 +55,39 @@ export default function AdminVoucherPage() {
   const [quota, setQuota] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
 
-  const flashProducts = mockProducts.filter((p) => p.salePrice !== null);
+
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
+    try {
+      const [vRes, pRes] = await Promise.all([
+        fetch('/api/admin/vouchers', { cache: 'no-store' }),
+        fetch('/api/admin/products', { cache: 'no-store' }),
+      ]);
+      if (!vRes.ok) throw new Error('Gagal memuat voucher');
+      const vJson = await vRes.json();
+      if (signal?.cancelled) return;
+      setVouchers(vJson.vouchers ?? []);
+
+      if (pRes.ok) {
+        const pJson = await pRes.json();
+        if (signal?.cancelled) return;
+        setFlashProducts(
+          (pJson.products ?? []).filter((p: FlashProduct) => p.salePrice !== null),
+        );
+      }
+      setError('');
+    } catch (err) {
+      if (signal?.cancelled) return;
+      setError(err instanceof Error ? err.message : 'Gagal memuat voucher');
+    } finally {
+      if (!signal?.cancelled) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const signal = { cancelled: false };
+    (async () => { await load(signal); })();
+    return () => { signal.cancelled = true; };
+  }, [load]);
 
   const resetForm = () => {
     setCode('');
@@ -40,22 +99,30 @@ export default function AdminVoucherPage() {
     setExpiresAt('');
   };
 
-  const toggleVoucherStatus = (id: string) => {
-    setVouchers((prev) =>
-      prev.map((v) =>
-        v.id === id ? { ...v, isActive: !v.isActive } : v
-      )
-    );
+  const toggleVoucherStatus = async (id: string) => {
     const voucher = vouchers.find((v) => v.id === id);
-    if (voucher) {
-      toast(
-        `Voucher ${voucher.code} ${voucher.isActive ? 'dinonaktifkan' : 'diaktifkan'}`,
-        'success'
-      );
+    if (!voucher) return;
+
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/vouchers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !voucher.isActive }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `Gagal mengubah status (${res.status})`);
+
+      setVouchers((prev) => prev.map((v) => (v.id === id ? json.voucher : v)));
+      toast(`Voucher ${voucher.code} ${voucher.isActive ? 'dinonaktifkan' : 'diaktifkan'}`, 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal mengubah status', 'error');
+    } finally {
+      setBusyId('');
     }
   };
 
-  const handleCreateVoucher = () => {
+  const handleCreateVoucher = async () => {
     if (!code.trim()) {
       toast('Kode voucher wajib diisi', 'error');
       return;
@@ -69,28 +136,47 @@ export default function AdminVoucherPage() {
       return;
     }
 
-    const newVoucher: AdminVoucher = {
-      id: `v-${Date.now()}`,
-      code: code.toUpperCase(),
-      type,
-      value: Number(value),
-      minPurchase: Number(minPurchase) || 0,
-      maxDiscount: type === 'PERCENTAGE' ? (Number(maxDiscount) || null) : null,
-      quota: Number(quota) || 0,
-      used: 0,
-      expiresAt: expiresAt || null,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/vouchers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code.trim().toUpperCase(),
+          type,
+          value: Number(value),
+          minPurchase: Number(minPurchase) || 0,
+          maxDiscount: type === 'PERCENTAGE' && maxDiscount ? Number(maxDiscount) : null,
+          quota: quota ? Number(quota) : null,
+          // <input type="date"> gives YYYY-MM-DD; the API wants a full timestamp.
+          expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : null,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const details = json.details?.map((d: { message: string }) => d.message).join(', ');
+        throw new Error(details || json.error || `Gagal membuat voucher (${res.status})`);
+      }
 
-    setVouchers((prev) => [newVoucher, ...prev]);
-    setCreateOpen(false);
-    resetForm();
-    toast('Voucher berhasil dibuat', 'success');
+      setVouchers((prev) => [json.voucher, ...prev]);
+      setCreateOpen(false);
+      resetForm();
+      toast('Voucher berhasil dibuat', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Gagal membuat voucher', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div>
+      {error && (
+        <div className="mb-4 bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#991B1B] flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={() => load()}>Coba lagi</Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-[#1C1C1E]">Diskon & Voucher</h1>
         <Button variant="accent" onClick={() => setCreateOpen(true)}>
@@ -115,7 +201,13 @@ export default function AdminVoucherPage() {
                 </tr>
               </thead>
               <tbody>
-                {vouchers.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-[#8E8E93]">
+                      Memuat voucher...
+                    </td>
+                  </tr>
+                ) : vouchers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-[#8E8E93]">
                       Belum ada voucher
@@ -147,7 +239,9 @@ export default function AdminVoucherPage() {
                       <td className="p-3 text-center">
                         <button
                           onClick={() => toggleVoucherStatus(v.id)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A623] focus-visible:ring-offset-2 ${
+                          disabled={busyId === v.id}
+                          aria-label={v.isActive ? `Nonaktifkan ${v.code}` : `Aktifkan ${v.code}`}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A623] focus-visible:ring-offset-2 ${
                             v.isActive ? 'bg-[#34C759]' : 'bg-[#E5E5EA]'
                           }`}
                         >
@@ -267,8 +361,9 @@ export default function AdminVoucherPage() {
                 variant="default"
                 className="flex-1"
                 onClick={handleCreateVoucher}
+                disabled={saving}
               >
-                Simpan
+                {saving ? 'Menyimpan...' : 'Simpan'}
               </Button>
             </div>
           </div>

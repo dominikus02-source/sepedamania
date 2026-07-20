@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminDashboard } from './dashboard-client';
-import { mockDashboardStats, mockRevenueData, mockOrderStatusCounts, mockOrders } from '@/lib/mock-admin-data';
+import { getDashboardData, EMPTY_DASHBOARD } from '@/lib/admin-analytics';
 
 export const metadata: Metadata = {
   title: 'Dashboard Admin',
@@ -8,21 +8,34 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminDashboardPage() {
-  const lowStockProducts: { id: string; name: string; slug: string; stock: number; price: number; salePrice: number | null; images: string[] }[] = [];
+// Figures must reflect the current database, never a cached snapshot.
+export const dynamic = 'force-dynamic';
 
-  const recentOrders = mockOrders.slice(0, 5).map((order) => ({
-    ...order,
-    user: { ...order.user },
-  }));
+export default async function AdminDashboardPage() {
+  let data = EMPTY_DASHBOARD;
+  let error = '';
+
+  try {
+    data = await getDashboardData();
+  } catch (err) {
+    console.error('Admin dashboard load failed:', err);
+    error = err instanceof Error ? err.message : 'Gagal memuat data dashboard';
+  }
 
   return (
-    <AdminDashboard
-      stats={mockDashboardStats}
-      revenueData={mockRevenueData}
-      orderStatusCounts={mockOrderStatusCounts}
-      recentOrders={recentOrders}
-      lowStockProducts={lowStockProducts}
-    />
+    <>
+      {error && (
+        <div className="mb-4 bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#991B1B]">
+          Gagal memuat data dashboard. Angka di bawah belum tentu akurat.
+        </div>
+      )}
+      <AdminDashboard
+        stats={data.stats}
+        revenueData={data.revenueData}
+        orderStatusCounts={data.orderStatusCounts}
+        recentOrders={data.recentOrders}
+        lowStockProducts={data.lowStockProducts}
+      />
+    </>
   );
 }

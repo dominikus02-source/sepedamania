@@ -239,14 +239,6 @@ export async function POST(req: Request) {
       console.error('Midtrans Snap error:', snapError);
     }
 
-    await prisma.stockLog.create({
-      data: {
-        productId: 'checkout',
-        change: 0,
-        reason: `Order ${orderNumber} created`,
-      },
-    });
-
     return NextResponse.json({
       orderId: order.id,
       orderNumber: order.orderNumber,

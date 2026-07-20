@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  getAllCategories, getAllBrands,
-  addCategory, updateCategory, deleteCategory,
   addCategoryOption, updateCategoryOption, deleteCategoryOption,
-  addBrand, updateBrand, deleteBrand,
   getActiveCategories,
   normalizeCategoryName,
 } from '@/lib/catalog-data';
@@ -14,11 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toaster';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Tag, Building2, Settings2, X, ChevronDown, ChevronUp, Eye, EyeOff, Search, ArrowUpDown, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, Building2, Settings2, X, Eye, EyeOff, Search, AlertTriangle } from 'lucide-react';
 
 export default function AdminCategoriesPage() {
   const { toast } = useToast();
@@ -28,11 +24,12 @@ export default function AdminCategoriesPage() {
   const [brdSearch, setBrdSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'category' | 'brand'>('category');
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [fallbackActive, setFallbackActive] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const normalizeCats = (raw: any[]): CatalogCategory[] =>
-    (Array.isArray(raw) ? raw : []).map((c) => ({
+  // The API may omit `options`; the UI always expects an array.
+  const normalizeCats = (raw: unknown): CatalogCategory[] =>
+    (Array.isArray(raw) ? raw : []).map((c: CatalogCategory) => ({
       ...c,
       options: Array.isArray(c.options) ? c.options : [],
     }));
@@ -40,47 +37,40 @@ export default function AdminCategoriesPage() {
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [catsRes, brdsRes] = await Promise.all([
+      // Product counts come from the database, not localStorage — a browser-only
+      // tally showed numbers no other admin could see.
+      const [catsRes, brdsRes, prodsRes] = await Promise.all([
         fetch('/api/categories'),
         fetch('/api/brands'),
+        fetch('/api/admin/products', { cache: 'no-store' }),
       ]);
-      if (catsRes.ok && brdsRes.ok) {
-        const catsJson = await catsRes.json();
-        const brdsJson = await brdsRes.json();
-        const cats = normalizeCats(catsJson.categories);
-        const brds = Array.isArray(brdsJson) ? brdsJson : (Array.isArray(brdsJson.brands) ? brdsJson.brands : []);
-        if (cats.length || brds.length) {
-          if (cats.length) setCategories(cats);
-          if (brds.length) setBrands(brds);
-          const prods = JSON.parse(localStorage.getItem('spm-catalog') || '{}').products || [];
-          const c: Record<string, number> = {};
-          for (const p of prods) {
-            c[p.categoryId] = (c[p.categoryId] || 0) + 1;
-            c[`brd:${p.brandId}`] = (c[`brd:${p.brandId}`] || 0) + 1;
-          }
-          setCounts(c);
-          return;
+      if (!catsRes.ok || !brdsRes.ok) throw new Error('Gagal memuat kategori dan merek');
+
+      const catsJson = await catsRes.json();
+      const brdsJson = await brdsRes.json();
+      setCategories(normalizeCats(catsJson.categories));
+      setBrands(Array.isArray(brdsJson) ? brdsJson : brdsJson.brands ?? []);
+
+      const counts: Record<string, number> = {};
+      if (prodsRes.ok) {
+        const prodsJson = await prodsRes.json();
+        for (const p of prodsJson.products ?? []) {
+          counts[p.categoryId] = (counts[p.categoryId] || 0) + 1;
+          counts[`brd:${p.brandId}`] = (counts[`brd:${p.brandId}`] || 0) + 1;
         }
       }
-    } catch {}
-    // Fallback to localStorage
-    const fallbackCats = getAllCategories();
-    const fallbackBrds = getAllBrands();
-    setCategories(normalizeCats(fallbackCats));
-    setBrands(Array.isArray(fallbackBrds) ? fallbackBrds : []);
-    const prods = JSON.parse(localStorage.getItem('spm-catalog') || '{}').products || [];
-    const c: Record<string, number> = {};
-    for (const p of prods) {
-      c[p.categoryId] = (c[p.categoryId] || 0) + 1;
-      c[`brd:${p.brandId}`] = (c[`brd:${p.brandId}`] || 0) + 1;
+      setCounts(counts);
+      setLoadError('');
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Gagal memuat kategori dan merek');
+    } finally {
+      setIsLoading(false);
     }
-    setCounts(c);
-    setFallbackActive(true);
   }, []);
 
-  useEffect(() => { setIsLoading(false); }, [categories, brands]);
-
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    (async () => { await refresh(); })();
+  }, [refresh]);
 
   // ── Category CRUD ──
   const [catOpen, setCatOpen] = useState(false);
@@ -174,34 +164,9 @@ export default function AdminCategoriesPage() {
       setCatOpen(false);
       await refresh();
     } catch (err: unknown) {
-      try {
-        if (catEdit) {
-          updateCategory(catEdit.id, {
-            name: normalizeCategoryName(catName),
-            slug: catSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
-            description: catDesc,
-            image: catImage || null,
-            color: catColor,
-            brandId: catBrandId || null,
-            sortOrder: catSortOrder,
-          });
-        } else {
-          addCategory({
-            name: normalizeCategoryName(catName),
-            image: catImage || undefined,
-            brandId: catBrandId || null,
-            description: catDesc,
-            color: catColor,
-            sortOrder: catSortOrder,
-          });
-        }
-        setCatOpen(false);
-        refresh();
-        setFallbackActive(true);
-        toast('Database tidak tersambung. Kategori hanya tersimpan sementara.', 'warning');
-      } catch {
-        toast(err instanceof Error ? err.message : 'Gagal menyimpan kategori', 'error');
-      }
+      // No local fallback: a browser-only category never reaches the storefront
+      // and its id is rejected the moment a product references it.
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan kategori', 'error');
     }
   };
 
@@ -215,11 +180,8 @@ export default function AdminCategoriesPage() {
       if (!res.ok) throw new Error();
       await refresh();
       toast(c.isActive ? 'Kategori dinonaktifkan' : 'Kategori diaktifkan', 'success');
-    } catch {
-      updateCategory(c.id, { isActive: !c.isActive });
-      refresh();
-      setFallbackActive(true);
-      toast('Database tidak tersambung. Perubahan hanya tersimpan sementara.', 'warning');
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Gagal mengubah status kategori', 'error');
     }
   };
 
@@ -232,11 +194,7 @@ export default function AdminCategoriesPage() {
       toast('Kategori berhasil dihapus', 'success');
       await refresh();
     } catch (err: unknown) {
-      const ok = deleteCategory(id);
-      if (!ok) { toast(err instanceof Error ? err.message : 'Tidak bisa menghapus: masih ada produk', 'error'); return; }
-      setFallbackActive(true);
-      toast('Database tidak tersambung. Penghapusan hanya tersimpan sementara.', 'warning');
-      refresh();
+      toast(err instanceof Error ? err.message : 'Gagal menghapus kategori', 'error');
     }
   };
 
@@ -309,30 +267,7 @@ export default function AdminCategoriesPage() {
       setBrdOpen(false);
       await refresh();
     } catch (err: unknown) {
-      try {
-        if (brdEdit) {
-          updateBrand(brdEdit.id, {
-            name: brdName.trim(),
-            slug: brdSlug.trim().toLowerCase().replace(/[^\w-]/g, ''),
-            description: brdDesc,
-            logo: brdLogo || null,
-            sortOrder: brdSortOrder,
-          });
-        } else {
-          addBrand({
-            name: brdName.trim(),
-            logo: brdLogo || undefined,
-            description: brdDesc,
-            sortOrder: brdSortOrder,
-          });
-        }
-        setBrdOpen(false);
-        refresh();
-        setFallbackActive(true);
-        toast('Database tidak tersambung. Merek hanya tersimpan sementara.', 'warning');
-      } catch {
-        toast(err instanceof Error ? err.message : 'Gagal menyimpan merek', 'error');
-      }
+      toast(err instanceof Error ? err.message : 'Gagal menyimpan merek', 'error');
     }
   };
 
@@ -346,11 +281,8 @@ export default function AdminCategoriesPage() {
       if (!res.ok) throw new Error();
       await refresh();
       toast(b.isActive ? 'Merek dinonaktifkan' : 'Merek diaktifkan', 'success');
-    } catch {
-      updateBrand(b.id, { isActive: !b.isActive });
-      refresh();
-      setFallbackActive(true);
-      toast('Database tidak tersambung. Perubahan hanya tersimpan sementara.', 'warning');
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : 'Gagal mengubah status merek', 'error');
     }
   };
 
@@ -363,11 +295,7 @@ export default function AdminCategoriesPage() {
       toast('Merek berhasil dihapus', 'success');
       await refresh();
     } catch (err: unknown) {
-      const ok = deleteBrand(id);
-      if (!ok) { toast(err instanceof Error ? err.message : 'Tidak bisa menghapus: masih ada produk', 'error'); return; }
-      setFallbackActive(true);
-      toast('Database tidak tersambung. Penghapusan hanya tersimpan sementara.', 'warning');
-      refresh();
+      toast(err instanceof Error ? err.message : 'Gagal menghapus merek', 'error');
     }
   };
 
@@ -443,10 +371,13 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      {fallbackActive && (
-        <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-xl px-4 py-3 text-sm text-[#92400E] flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          Mode sementara: database tidak tersambung. Data hanya tersimpan di browser dan mungkin tidak tampil di toko.
+      {loadError && (
+        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#991B1B] flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {loadError}
+          </span>
+          <Button variant="outline" size="sm" onClick={() => refresh()}>Coba lagi</Button>
         </div>
       )}
       {/* Tab Switcher */}

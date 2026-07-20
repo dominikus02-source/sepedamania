@@ -8,7 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingCart, DollarSign, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 
 import { normalizeArray } from '@/lib/safe-array';
-import type { DashboardStats, RevenuePoint, OrderStatusCount, AdminOrder } from '@/lib/mock-admin-data';
+import { orderStatusLabel } from '@/lib/order-status';
+import type {
+  DashboardStats,
+  RevenuePoint,
+  OrderStatusCount,
+  DashboardOrder,
+  LowStockProduct,
+} from '@/lib/admin-analytics';
 
 const RevenueChart = dynamic(() => import('./revenue-chart').then((m) => m.RevenueChart), {
   ssr: false,
@@ -35,13 +42,13 @@ export function AdminDashboard({
   stats: DashboardStats;
   revenueData: RevenuePoint[];
   orderStatusCounts: OrderStatusCount[];
-  recentOrders: Partial<AdminOrder>[];
-  lowStockProducts: { id: string; name: string; stock: number; price: number; salePrice: number | null }[];
+  recentOrders: DashboardOrder[];
+  lowStockProducts: LowStockProduct[];
 }) {
   const safeRevenueData = normalizeArray<RevenuePoint>(revenueData);
   const safeOrderStatusCounts = normalizeArray<OrderStatusCount>(orderStatusCounts);
-  const safeRecentOrders = normalizeArray<Partial<AdminOrder>>(recentOrders);
-  const safeLowStockProducts = normalizeArray<{ id: string; name: string; stock: number; price: number; salePrice: number | null }>(lowStockProducts);
+  const safeRecentOrders = normalizeArray<DashboardOrder>(recentOrders);
+  const safeLowStockProducts = normalizeArray<LowStockProduct>(lowStockProducts);
 
   const kpis = [
     { label: 'Pesanan Hari Ini', value: stats.todayOrders, icon: ShoppingCart, color: 'text-[#007AFF]' },
@@ -156,25 +163,23 @@ export function AdminDashboard({
             <div className="space-y-3">
               {safeRecentOrders.map((order) => (
                 <Link
-                  key={order.id ?? ''}
+                  key={order.id}
                   href={`/admin/pesanan/${order.id}`}
                   className="flex items-center justify-between py-2 border-b border-[#E5E5EA] last:border-0"
                 >
                   <div>
-                    <p className="text-sm font-medium text-[#1C1C1E]">
-                      #{order.id?.slice(0, 8) ?? ''}
-                    </p>
+                    <p className="text-sm font-medium text-[#1C1C1E]">{order.orderNumber}</p>
                     <p className="text-xs text-[#8E8E93]">
-                      {order.user?.name || 'Guest'} • {formatDate(order.createdAt ?? '')}
+                      {order.customerName} • {formatDate(order.createdAt)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{formatPrice(order.total ?? 0)}</p>
+                    <p className="text-sm font-semibold">{formatPrice(order.total)}</p>
                     <Badge
                       variant={order.paymentStatus === 'PAID' ? 'success' : 'warning'}
                       className="text-[10px]"
                     >
-                      {order.status}
+                      {orderStatusLabel(order.status)}
                     </Badge>
                   </div>
                 </Link>

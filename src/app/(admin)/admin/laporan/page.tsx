@@ -5,32 +5,97 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
-import { mockDashboardStats, mockRevenueData } from '@/lib/mock-admin-data';
-import { getAllProducts } from '@/lib/catalog-data';
-import type { CatalogProduct } from '@/lib/catalog-data';
+import type { DashboardStats, RevenuePoint } from '@/lib/admin-analytics';
 import { Download } from 'lucide-react';
 import Papa from 'papaparse';
 
 const AdminRevenueChart = lazy(() => import('./revenue-chart').then((m) => ({ default: m.AdminRevenueChart })));
 const AdminOrdersChart = lazy(() => import('./orders-chart').then((m) => ({ default: m.AdminOrdersChart })));
 
-export default function AdminReportsPage() {
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  useEffect(() => { setProducts(getAllProducts()); }, []);
+interface ReportProduct {
+  id: string;
+  name: string;
+  sku: string;
+  stock: number;
+  sold: number;
+  price: number;
+  salePrice: number | null;
+  category?: { name: string } | null;
+}
 
-  const topProducts = [...products]
-    .sort((a, b) => b.sold - a.sold)
-    .slice(0, 5);
+const EMPTY_STATS: DashboardStats = {
+  todayOrders: 0, todayRevenue: 0, weeklyRevenue: 0, monthlyRevenue: 0,
+  totalOrders: 0, totalProducts: 0, totalCustomers: 0, lowStock: 0,
+};
+
+export default function AdminReportsPage() {
+  const [products, setProducts] = useState<ReportProduct[]>([]);
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [dashRes, prodRes] = await Promise.all([
+          fetch('/api/admin/dashboard', { cache: 'no-store' }),
+          fetch('/api/admin/products', { cache: 'no-store' }),
+        ]);
+        if (!dashRes.ok || !prodRes.ok) throw new Error('Gagal memuat laporan');
+
+        const dash = await dashRes.json();
+        const prod = await prodRes.json();
+        if (cancelled) return;
+
+        setStats(dash.stats ?? EMPTY_STATS);
+        setRevenueData(dash.revenueData ?? []);
+        setProducts(prod.products ?? []);
+        setError('');
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Gagal memuat laporan');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const topProducts = [...products].sort((a, b) => b.sold - a.sold).slice(0, 5);
+  const totalSold = products.reduce((sum, p) => sum + p.sold, 0);
 
   const summaryCards = [
-    { label: 'Total Pendapatan', value: formatPrice(mockDashboardStats.monthlyRevenue) },
-    { label: 'Total Produk Terjual', value: topProducts.reduce((s, p) => s + p.sold, 0) },
-    { label: 'Total Pesanan', value: mockDashboardStats.totalOrders },
-    { label: 'Rata-rata Transaksi', value: formatPrice(mockDashboardStats.totalOrders > 0 ? Math.round(mockDashboardStats.monthlyRevenue / mockDashboardStats.totalOrders) : 0) },
+    { label: 'Pendapatan Bulan Ini', value: formatPrice(stats.monthlyRevenue) },
+    { label: 'Total Produk Terjual', value: totalSold },
+    { label: 'Total Pesanan', value: stats.totalOrders },
+    {
+      label: 'Rata-rata Transaksi',
+      value: formatPrice(stats.totalOrders > 0 ? Math.round(stats.monthlyRevenue / stats.totalOrders) : 0),
+    },
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-40 bg-[#F2F2F7] rounded animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 bg-[#F2F2F7] rounded-xl animate-pulse" />
+          ))}
+        </div>
+        <div className="h-80 bg-[#F2F2F7] rounded-xl animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#991B1B]">
+          {error}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#1C1C1E]">Laporan</h1>
         <Badge variant="info">Bulan {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</Badge>
@@ -54,7 +119,7 @@ export default function AdminReportsPage() {
         <CardContent>
           <div className="h-80">
             <Suspense fallback={<div className="h-80 bg-[#F2F2F7] rounded-xl animate-pulse" />}>
-              <AdminRevenueChart data={mockRevenueData} />
+              <AdminRevenueChart data={revenueData} />
             </Suspense>
           </div>
         </CardContent>
@@ -68,7 +133,7 @@ export default function AdminReportsPage() {
           <CardContent>
             <div className="h-72">
               <Suspense fallback={<div className="h-72 bg-[#F2F2F7] rounded-xl animate-pulse" />}>
-                <AdminOrdersChart data={mockRevenueData} />
+                <AdminOrdersChart data={revenueData} />
               </Suspense>
             </div>
           </CardContent>
@@ -139,7 +204,7 @@ export default function AdminReportsPage() {
   );
 }
 
-function exportCSV(products: CatalogProduct[]) {
+function exportCSV(products: ReportProduct[]) {
   const rows = products.map((p) => ({
     name: p.name,
     sku: p.sku,

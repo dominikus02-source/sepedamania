@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { verifySignatureKey, mapMidtransStatus, type MidtransNotification } from '@/lib/midtrans';
+import { applyStockForPaidOrder } from '@/lib/stock';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json() as MidtransNotification;
 
-    const { transaction_status, fraud_status, transaction_id, payment_type } = body;
+    const { transaction_status, fraud_status } = body;
     const midtransOrderId = body.order_id;
 
     if (!midtransOrderId || !transaction_status) {
@@ -44,22 +46,31 @@ export async function POST(req: Request) {
 
     const mapped = mapMidtransStatus(transaction_status, fraud_status || '');
 
-    const updateData: Record<string, unknown> = {
+    const updateData: Prisma.OrderUpdateInput = {
       paymentStatus: mapped.paymentStatus,
       status: mapped.orderStatus,
+      ...(mapped.paymentStatus === 'PAID' && { paidAt: new Date() }),
+      ...((mapped.paymentStatus === 'EXPIRED' || mapped.orderStatus === 'CANCELLED') && {
+        cancelledAt: new Date(),
+      }),
     };
-
-    if (mapped.paymentStatus === 'PAID') {
-      updateData.paidAt = new Date();
-    }
-    if (mapped.paymentStatus === 'EXPIRED' || mapped.orderStatus === 'CANCELLED') {
-      updateData.cancelledAt = new Date();
-    }
 
     await prisma.order.update({
       where: { id: order.id },
-      data: updateData as any,
+      data: updateData,
     });
+
+    // Inventory moves only once payment is confirmed. applyStockForPaidOrder is
+    // idempotent, so a Midtrans redelivery cannot deduct twice.
+    if (mapped.paymentStatus === 'PAID') {
+      try {
+        await applyStockForPaidOrder(order.id);
+      } catch (stockErr) {
+        // Never fail the webhook over this: Midtrans would retry and the payment
+        // record matters more. Surfaced for manual reconciliation instead.
+        console.error('Stock update failed for order', order.id, stockErr);
+      }
+    }
 
     await prisma.paymentLog.create({
       data: {
